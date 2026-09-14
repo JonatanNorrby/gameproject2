@@ -1,0 +1,47 @@
+import { GAME_BALANCE, UPGRADES } from '../data/content.js';
+
+export class ProgressionSystem {
+  constructor(game, ui) {
+    this.game = game;
+    this.ui = ui;
+    this.ranks = new Map();
+  }
+
+  reset() {
+    this.ranks.clear();
+    this.game.player.level = 1;
+    this.game.player.xp = 0;
+    this.game.player.xpToNext = GAME_BALANCE.progression.startingXpToNext;
+  }
+
+  addXp(amount) {
+    const player = this.game.player;
+    player.xp += amount;
+    if (player.xp >= player.xpToNext) this.levelUp();
+  }
+
+  levelUp() {
+    const player = this.game.player;
+    player.xp -= player.xpToNext;
+    player.level += 1;
+    player.xpToNext = Math.ceil(GAME_BALANCE.progression.startingXpToNext * Math.pow(GAME_BALANCE.progression.growth, player.level - 1));
+
+    const choices = this.getChoices(3);
+    if (choices.length === 0) return;
+    this.game.pause('levelup');
+    this.ui.showLevelUp(choices, (upgrade) => {
+      const rank = (this.ranks.get(upgrade.id) || 0) + 1;
+      this.ranks.set(upgrade.id, rank);
+      upgrade.apply(this.game);
+      this.ui.hideLevelUp();
+      this.game.resume('levelup');
+      if (player.xp >= player.xpToNext) this.levelUp();
+    }, this.ranks);
+  }
+
+  getChoices(count) {
+    const pool = UPGRADES.filter((upgrade) => (this.ranks.get(upgrade.id) || 0) < upgrade.maxRank);
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  }
+}
