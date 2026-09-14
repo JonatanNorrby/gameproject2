@@ -4,11 +4,18 @@ import { EntityStore } from './EntityStore.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
 import { ProgressionSystem } from '../systems/ProgressionSystem.js';
-import { SpriteSheetRenderer } from '../rendering/SpriteSheetRenderer.js';
+import { FrameAnimationRenderer } from '../rendering/FrameAnimationRenderer.js';
 import { getHexFormationLayout, radiusForNeighborSpacing } from '../utils/hexFormation.js';
 import { randomRange } from '../utils/math.js';
 
 const DAMAGE_FEEDBACK_DURATION = 0.18;
+const UNIT_ANIMATION_PRIORITY = {
+  shooting: 1,
+  damage_light: 2,
+  damage_medium: 2,
+  damage_heavy: 2,
+  dead: 3,
+};
 
 export class Game {
   constructor(canvas, input, ui) {
@@ -17,13 +24,14 @@ export class Game {
     this.input = input;
     this.ui = ui;
     this.entities = new EntityStore();
-    this.spriteRenderer = new SpriteSheetRenderer();
+    this.animationRenderer = new FrameAnimationRenderer();
     this.spawnSystem = new SpawnSystem(this);
     this.combatSystem = new CombatSystem(this);
     this.progression = new ProgressionSystem(this, ui);
     this.pauseReasons = new Set(['menu']);
     this.running = false;
     this.lastTimestamp = 0;
+    this.animationClock = performance.now() / 1000;
     this.resize();
     window.addEventListener('resize', () => this.resize());
     this.resetState();
@@ -41,6 +49,7 @@ export class Game {
     this.elapsed = 0;
     this.kills = 0;
     this.damageFeedback = 0;
+    this.gameOverAnimationStartedAt = null;
     this.nextSquadUnitId = 1;
     this.modifiers = { damage: 1, fireRate: 1, moveSpeed: 1, projectileSpeed: 1, projectileLife: 1, pierce: 0 };
     this.player = {
@@ -89,6 +98,7 @@ export class Game {
     const rawDt = (timestamp - this.lastTimestamp) / 1000;
     const dt = Math.min(0.033, Math.max(0, rawDt));
     this.lastTimestamp = timestamp;
+    this.animationClock = timestamp / 1000;
 
     if (!this.paused) this.update(dt);
     this.render();
@@ -111,6 +121,9 @@ export class Game {
 
     if (this.player.hp <= 0) {
       this.player.hp = 0;
+      if (this.gameOverAnimationStartedAt === null) {
+        this.gameOverAnimationStartedAt = this.animationClock;
+      }
       this.pause('gameover');
       this.ui.showGameOver(this);
     }
@@ -131,9 +144,48 @@ export class Game {
       this.player.squad.push({
         id: this.nextSquadUnitId,
         type,
+        animationState: null,
+        animationStartedAt: 0,
+        animationUntil: 0,
       });
       this.nextSquadUnitId += 1;
     }
+  }
+
+  playUnitAnimation(unit, state, duration = 0.2) {
+    if (!unit || !state) return;
+    const now = this.animationClock;
+    const currentIsActive = Boolean(unit.animationState) && unit.animationUntil > now;
+    const currentPriority = currentIsActive ? (UNIT_ANIMATION_PRIORITY[unit.animationState] ?? 0) : 0;
+    const nextPriority = UNIT_ANIMATION_PRIORITY[state] ?? 0;
+    if (currentIsActive && currentPriority > nextPriority) return;
+
+    unit.animationState = state;
+    unit.animationStartedAt = now;
+    unit.animationUntil = state === 'dead' ? Infinity : now + Math.max(0, duration);
+  }
+
+  getUnitAnimation(unit) {
+    if (this.player.hp <= 0) {
+      return {
+        name: 'dead',
+        time: Math.max(0, this.animationClock - (this.gameOverAnimationStartedAt ?? this.animationClock)),
+      };
+    }
+
+    if (unit.animationState && unit.animationUntil > this.animationClock) {
+      return {
+        name: unit.animationState,
+        time: Math.max(0, this.animationClock - unit.animationStartedAt),
+      };
+    }
+
+    if (this.player.moving) {
+      return { name: 'running', time: this.animationClock };
+    }
+
+    // No separate idle art is required: hold the first running frame.
+    return { name: 'running', time: 0 };
   }
 
   reorderSquad(fromIndex, toIndex) {
@@ -238,21 +290,21 @@ export class Game {
     const soldierRadius = GAME_BALANCE.player.soldierRadius;
     const soldiers = this.getSoldierPositions();
     const takingDamage = this.damageFeedback > 0;
-    const animation = this.player.moving ? 'move' : 'idle';
 
     ctx.save();
     for (const soldier of soldiers) {
       const unitClass = UNIT_CLASSES[soldier.unit.type] ?? UNIT_CLASSES.rifleman;
       const sprite = getSquadSprite(soldier.unit);
-      const spriteDrawn = this.spriteRenderer.draw(
+      const animation = this.getUnitAnimation(soldier.unit);
+      const spriteDrawn = this.animationRenderer.draw(
         ctx,
         sprite,
-        animation,
-        this.elapsed,
+        animation.name,
+        animation.time,
         soldier.x,
         soldier.y,
         {
-          phase: soldier.unit.id * 0.113,
+          phase: animation.name === 'running' && this.player.moving ? soldier.unit.id * 0.113 : 0,
           flipX: Boolean(sprite?.flipWithDirection && this.player.facingX < 0),
         },
       );
@@ -306,11 +358,11 @@ export class Game {
     for (const enemy of this.entities.enemies) {
       const type = ENEMY_TYPES[enemy.type];
       const sprite = getEnemySprite(enemy.type);
-      const spriteDrawn = this.spriteRenderer.draw(
+      const spriteDrawn = this.animationRenderer.draw(
         ctx,
         sprite,
-        'move',
-        this.elapsed,
+        'running',
+        this.animationClock,
         enemy.x,
         enemy.y,
         { phase: enemy.id * 0.071 },
