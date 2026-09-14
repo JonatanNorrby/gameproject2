@@ -186,8 +186,7 @@ export class Game {
       return { name: 'running', time: this.animationClock };
     }
 
-    // No separate idle art is required: hold the first running frame.
-    return { name: 'running', time: 0 };
+    return { name: 'idle', time: 0 };
   }
 
   reorderSquad(fromIndex, toIndex) {
@@ -301,7 +300,9 @@ export class Game {
       const sourceForwardAngle = Number.isFinite(sprite?.forwardAngle)
         ? sprite.forwardAngle
         : DEFAULT_SPRITE_FORWARD_ANGLE;
-      const spriteRotation = this.player.facingAngle - sourceForwardAngle;
+      const spriteRotation = animation.name === 'idle'
+        ? 0
+        : this.player.facingAngle - sourceForwardAngle;
       const spriteDrawn = this.animationRenderer.draw(
         ctx,
         sprite,

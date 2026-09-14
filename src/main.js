@@ -3,7 +3,7 @@ import { Input } from './core/Input.js';
 import { UI } from './core/UI.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 11;
+const GAME_VERSION = 12;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
