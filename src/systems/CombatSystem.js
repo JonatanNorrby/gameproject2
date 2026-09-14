@@ -5,7 +5,6 @@ import { distanceSq, normalize } from '../utils/math.js';
 const DAMAGE_FEEDBACK_INTERVAL = 0.16;
 const DAMAGE_INVULNERABILITY_DURATION = 0.1;
 const SHOOT_ANIMATION_DURATION = 0.18;
-const DAMAGE_ANIMATION_DURATION = 0.22;
 
 export class CombatSystem {
   constructor(game) {
@@ -156,14 +155,6 @@ export class CombatSystem {
         const damage = enemy.damage * (1 - player.armor) * DAMAGE_INVULNERABILITY_DURATION;
         if (!game.debug?.infiniteHp) player.hp -= damage;
         this.damageInvulnerability = DAMAGE_INVULNERABILITY_DURATION;
-
-        const hpRatio = Math.max(0, player.hp) / Math.max(1, player.maxHp);
-        const damageAnimation = hpRatio > 0.66
-          ? 'damage_light'
-          : hpRatio > 0.33
-            ? 'damage_medium'
-            : 'damage_heavy';
-        game.playUnitAnimation(hitSoldier.unit, damageAnimation, DAMAGE_ANIMATION_DURATION);
 
         if (this.damageFeedbackCooldown <= 0) {
           game.triggerDamageFeedback(hitSoldier.x, hitSoldier.y);
