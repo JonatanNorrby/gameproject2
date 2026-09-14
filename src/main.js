@@ -3,9 +3,11 @@ import { Input } from './core/Input.js';
 import { UI } from './core/UI.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
+const GAME_VERSION = 5;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
+ui.versionText.textContent = `v${GAME_VERSION}`;
 const input = new Input(canvas, touchStick);
 const game = new Game(canvas, input, ui);
 
