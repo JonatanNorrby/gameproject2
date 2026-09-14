@@ -206,8 +206,11 @@ export class Game {
     if (unit.dead) return { name: 'dead', time: 0 };
 
     if (unit.animationState && unit.animationUntil > this.animationClock) {
+      const isFiring = unit.animationState === 'shooting' || unit.animationState === 'idle_shooting';
       return {
-        name: unit.animationState,
+        name: isFiring
+          ? (this.player.moving ? 'shooting' : 'idle_shooting')
+          : unit.animationState,
         time: Math.max(0, this.animationClock - unit.animationStartedAt),
       };
     }
