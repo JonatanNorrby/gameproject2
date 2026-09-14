@@ -1,4 +1,5 @@
 import { CAPTAINS, GAME_BALANCE, UNIT_CLASSES } from '../data/content.js';
+import { getUnitModifiers } from '../data/unitModifiers.js';
 import { areHexSlotsAdjacent } from '../utils/hexFormation.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
@@ -42,6 +43,7 @@ export class CombatSystem {
       const unit = soldier.unit;
       const unitClass = UNIT_CLASSES[unit.type] ?? UNIT_CLASSES.rifleman;
       const weapon = unitClass.weapon;
+      const unitModifiers = getUnitModifiers(game.unitModifiers, unit.type);
       const adjacentToCaptain = Boolean(
         captainSoldier
         && captain
@@ -69,7 +71,11 @@ export class CombatSystem {
       const nextShotCount = mercerEligible ? (this.shotCounts.get(unit.id) ?? 0) + 1 : 0;
       const mercerSpecial = mercerEligible && nextShotCount % captain.effect.everyShots === 0;
       const rangeMultiplier = mercerSpecial ? captain.effect.rangeMultiplier : 1;
-      const target = this.findNearestTarget(soldier.x, soldier.y, weapon.range * rangeMultiplier);
+      const target = this.findNearestTarget(
+        soldier.x,
+        soldier.y,
+        weapon.range * unitModifiers.range * rangeMultiplier,
+      );
       if (!target) continue;
 
       this.fireWeapon(soldier, unitClass, target, mercerSpecial ? {
@@ -84,7 +90,7 @@ export class CombatSystem {
         SHOOT_ANIMATION_DURATION,
       );
       if (mercerEligible) this.shotCounts.set(unit.id, nextShotCount);
-      this.fireCooldowns.set(unit.id, weapon.cooldown / game.modifiers.fireRate);
+      this.fireCooldowns.set(unit.id, weapon.cooldown / unitModifiers.fireRate);
     }
 
     for (const unitId of this.fireCooldowns.keys()) {
@@ -98,8 +104,9 @@ export class CombatSystem {
   fireWeapon(soldier, unitClass, target, shotEffect = null) {
     const game = this.game;
     const weapon = unitClass.weapon;
+    const unitModifiers = getUnitModifiers(game.unitModifiers, soldier.unit.type);
     const direction = normalize(target.x - soldier.x, target.y - soldier.y);
-    const speed = weapon.projectileSpeed * game.modifiers.projectileSpeed;
+    const speed = weapon.projectileSpeed * unitModifiers.projectileSpeed;
     const explosive = weapon.kind === 'rocket';
     const rangeMultiplier = shotEffect?.rangeMultiplier ?? 1;
     const aoeMultiplier = shotEffect?.aoeMultiplier ?? 1;
@@ -114,10 +121,10 @@ export class CombatSystem {
       vx: direction.x * speed,
       vy: direction.y * speed,
       radius: weapon.projectileRadius,
-      damage: weapon.damage * game.modifiers.damage,
-      life: weapon.projectileLife * game.modifiers.projectileLife * rangeMultiplier,
-      pierce: explosive ? weapon.pierce : weapon.pierce + game.modifiers.pierce,
-      aoeRadius: (weapon.aoeRadius ?? 0) * aoeMultiplier,
+      damage: weapon.damage * unitModifiers.damage,
+      life: weapon.projectileLife * unitModifiers.range * rangeMultiplier,
+      pierce: explosive ? weapon.pierce : weapon.pierce + unitModifiers.pierce,
+      aoeRadius: (weapon.aoeRadius ?? 0) * unitModifiers.blastRadius * aoeMultiplier,
       color: shotEffect?.color ?? weapon.color,
       hitIds: new Set(),
       dead: false,
