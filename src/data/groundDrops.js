@@ -1,5 +1,5 @@
 export const GROUND_DROP_CONFIG = {
-  spawnChanceOnKill: 0.03,
+  spawnChanceOnKill: 0.005,
   pickupRadius: 28,
   debugSpawnDistance: 76,
 };
