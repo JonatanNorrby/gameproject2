@@ -5,6 +5,7 @@ export class EntityStore {
     this.enemies = [];
     this.projectiles = [];
     this.gems = [];
+    this.groundDrops = [];
     this.particles = [];
     this.effects = [];
     this.corpses = [];
@@ -17,6 +18,7 @@ export class EntityStore {
     this.enemies = this.enemies.filter((entity) => !entity.dead);
     this.projectiles = this.projectiles.filter((entity) => !entity.dead);
     this.gems = this.gems.filter((entity) => !entity.dead);
+    this.groundDrops = this.groundDrops.filter((entity) => !entity.dead);
     this.particles = this.particles.filter((entity) => entity.life > 0);
     this.effects = this.effects.filter((entity) => entity.life > 0);
     // Corpses intentionally persist for the full run and are never compacted.

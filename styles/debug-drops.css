@@ -1,0 +1,14 @@
+.debug-panel {
+  max-height: calc(100vh - 132px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.debug-drop-heading {
+  padding: 9px 14px 7px;
+  border-bottom: 1px solid rgba(255,255,255,.065);
+  color: #7ef9d4;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .16em;
+}

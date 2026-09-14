@@ -3,7 +3,7 @@ import { Input } from './core/Input.js';
 import { UI } from './core/UI.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 14;
+const GAME_VERSION = 15;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
@@ -50,5 +50,9 @@ ui.bindDebug({
     game.progression.debugLevelUp();
   },
 });
+
+for (const button of document.querySelectorAll('[data-debug-drop]')) {
+  button.addEventListener('click', () => game.spawnDebugGroundDrop(button.dataset.debugDrop));
+}
 
 window.game = game;

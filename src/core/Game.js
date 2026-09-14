@@ -1,4 +1,5 @@
 import { GAME_BALANCE, ENEMY_TYPES, UNIT_CLASSES } from '../data/content.js';
+import { GROUND_DROPS, GROUND_DROP_CONFIG, GROUND_DROP_IDS } from '../data/groundDrops.js';
 import { getEnemySprite, getSquadSprite } from '../data/sprites.js';
 import { EntityStore } from './EntityStore.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
@@ -6,7 +7,7 @@ import { CombatSystem } from '../systems/CombatSystem.js';
 import { ProgressionSystem } from '../systems/ProgressionSystem.js';
 import { FrameAnimationRenderer } from '../rendering/FrameAnimationRenderer.js';
 import { getHexFormationLayout, radiusForNeighborSpacing } from '../utils/hexFormation.js';
-import { randomRange } from '../utils/math.js';
+import { distanceSq, randomRange } from '../utils/math.js';
 
 const DAMAGE_FEEDBACK_DURATION = 0.18;
 const DEFAULT_SPRITE_FORWARD_ANGLE = -Math.PI / 2;
@@ -50,6 +51,11 @@ export class Game {
     this.damageFeedback = 0;
     this.deadCaptain = null;
     this.nextSquadUnitId = 1;
+    this.dropEffects = {
+      furyUntil: 0,
+      mothershipUntil: 0,
+      transformerUntil: 0,
+    };
     this.modifiers = { damage: 1, fireRate: 1, moveSpeed: 1, projectileSpeed: 1, projectileLife: 1, pierce: 0 };
     this.player = {
       x: 0,
@@ -112,6 +118,7 @@ export class Game {
     this.updateUnitState(dt);
     this.spawnSystem.update(dt);
     this.combatSystem.update(dt);
+    this.updateGroundDrops();
     this.updateParticles(dt);
     this.updateEffects(dt);
     this.damageFeedback = Math.max(0, this.damageFeedback - dt);
@@ -129,7 +136,7 @@ export class Game {
 
   updatePlayer(dt) {
     const axis = this.input.getAxis();
-    const speed = this.player.speed * this.modifiers.moveSpeed;
+    const speed = this.player.speed * this.modifiers.moveSpeed * this.getTransformerStatMultiplier();
     this.player.moving = Math.abs(axis.x) > 0.01 || Math.abs(axis.y) > 0.01;
     if (this.player.moving) {
       this.player.facingAngle = Math.atan2(axis.y, axis.x);
@@ -187,6 +194,132 @@ export class Game {
   healAllUnits() {
     for (const unit of this.player.squad) unit.hp = unit.maxHp;
     this.syncCaptainHealth();
+  }
+
+  isDropEffectActive(type) {
+    return (this.dropEffects?.[`${type}Until`] ?? 0) > this.elapsed;
+  }
+
+  getDropEffectRemaining(type) {
+    return Math.max(0, (this.dropEffects?.[`${type}Until`] ?? 0) - this.elapsed);
+  }
+
+  getTransformerStatMultiplier() {
+    return this.isDropEffectActive('transformer') ? 2 : 1;
+  }
+
+  getAttackSpeedMultiplier() {
+    let multiplier = this.getTransformerStatMultiplier();
+    if (this.isDropEffectActive('fury')) multiplier *= 4;
+    return multiplier;
+  }
+
+  activateTimedDropEffect(type, duration) {
+    const key = `${type}Until`;
+    if (!(key in this.dropEffects)) return;
+    const currentEnd = Math.max(this.elapsed, this.dropEffects[key]);
+    this.dropEffects[key] = currentEnd + Math.max(0, duration);
+  }
+
+  spawnGroundDrop(type, x = this.player.x, y = this.player.y) {
+    const definition = GROUND_DROPS[type];
+    if (!definition) return null;
+
+    const drop = {
+      id: this.entities.createId(),
+      type,
+      x,
+      y,
+      radius: 15,
+      dead: false,
+    };
+    this.entities.groundDrops.push(drop);
+    return drop;
+  }
+
+  spawnDebugGroundDrop(type) {
+    const definitionIndex = Math.max(0, GROUND_DROP_IDS.indexOf(type));
+    const angle = -Math.PI / 2 + definitionIndex * (Math.PI * 2 / Math.max(1, GROUND_DROP_IDS.length));
+    const distance = GROUND_DROP_CONFIG.debugSpawnDistance;
+    return this.spawnGroundDrop(
+      type,
+      this.player.x + Math.cos(angle) * distance,
+      this.player.y + Math.sin(angle) * distance,
+    );
+  }
+
+  trySpawnGroundDrop(x, y) {
+    if (Math.random() >= GROUND_DROP_CONFIG.spawnChanceOnKill) return null;
+    const type = GROUND_DROP_IDS[Math.floor(Math.random() * GROUND_DROP_IDS.length)];
+    return this.spawnGroundDrop(type, x, y);
+  }
+
+  updateGroundDrops() {
+    const collectRadiusBase = GROUND_DROP_CONFIG.pickupRadius + this.player.radius;
+    for (const drop of this.entities.groundDrops) {
+      if (drop.dead) continue;
+      const collectRadius = collectRadiusBase + (drop.radius ?? 0);
+      if (distanceSq(this.player.x, this.player.y, drop.x, drop.y) > collectRadius * collectRadius) continue;
+      drop.dead = true;
+      this.collectGroundDrop(drop.type);
+    }
+  }
+
+  collectGroundDrop(type) {
+    const definition = GROUND_DROPS[type];
+    if (!definition) return;
+
+    if (type === 'magnet') {
+      this.collectAllXp();
+    } else if (type === 'nuke') {
+      this.combatSystem.nukeAllEnemies();
+    } else if (definition.kind === 'timed') {
+      this.activateTimedDropEffect(type, definition.duration);
+    }
+
+    this.spawnExplosionEffect(this.player.x, this.player.y, 42, definition.color);
+  }
+
+  collectAllXp() {
+    let totalXp = 0;
+    for (const gem of this.entities.gems) {
+      if (gem.dead) continue;
+      gem.dead = true;
+      totalXp += gem.value;
+    }
+    if (totalXp > 0) this.progression.addXp(totalXp);
+  }
+
+  getWeaponPositions() {
+    const soldiers = this.getSoldierPositions();
+    if (!this.isDropEffectActive('transformer')) return soldiers;
+    return soldiers.map((soldier) => ({
+      ...soldier,
+      x: this.player.x,
+      y: this.player.y,
+    }));
+  }
+
+  damageMergedSquad(amount, x = this.player.x, y = this.player.y) {
+    const livingUnits = [...this.player.squad].filter((unit) => !unit.dead);
+    if (livingUnits.length === 0 || amount <= 0) return;
+
+    const effectiveDamage = amount / this.getTransformerStatMultiplier();
+    const damagePerUnit = effectiveDamage / livingUnits.length;
+    for (const unit of livingUnits) {
+      if (unit.dead) continue;
+      unit.hitFlash = DAMAGE_FEEDBACK_DURATION;
+      unit.hp = Math.max(0, unit.hp - damagePerUnit);
+      if (unit.hp <= 0) {
+        this.killSquadUnit({
+          unit,
+          x,
+          y,
+          index: -1,
+          hex: { q: 0, r: 0, ring: 0 },
+        });
+      }
+    }
   }
 
   playUnitAnimation(unit, state, duration = 0.2) {
@@ -327,6 +460,7 @@ export class Game {
     }
     ctx.translate(width / 2 - this.player.x, height / 2 - this.player.y);
     this.drawGems(ctx);
+    this.drawGroundDrops(ctx);
     this.drawCorpses(ctx);
     this.drawParticles(ctx);
     this.drawProjectiles(ctx);
@@ -368,6 +502,42 @@ export class Game {
     ctx.fillRect(0, 0, width, height);
   }
 
+  drawGroundDrops(ctx) {
+    for (const drop of this.entities.groundDrops) {
+      if (drop.dead) continue;
+      const definition = GROUND_DROPS[drop.type];
+      if (!definition) continue;
+
+      const bob = Math.sin(this.animationClock * 3.4 + drop.id * 0.71) * 3;
+      const pulse = 1 + Math.sin(this.animationClock * 5 + drop.id) * 0.06;
+      ctx.save();
+      ctx.translate(drop.x, drop.y + bob);
+      ctx.scale(pulse, pulse);
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = definition.color;
+      ctx.fillStyle = `${definition.color}33`;
+      ctx.strokeStyle = definition.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, drop.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = definition.color;
+      ctx.font = '900 13px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(definition.symbol, 0, 0);
+
+      ctx.font = '800 9px Inter, sans-serif';
+      ctx.fillStyle = '#f3f7fb';
+      ctx.textBaseline = 'top';
+      ctx.fillText(definition.label.toUpperCase(), 0, drop.radius + 7);
+      ctx.restore();
+    }
+  }
+
   drawCorpses(ctx) {
     const radius = GAME_BALANCE.player.soldierRadius;
 
@@ -405,6 +575,15 @@ export class Game {
   }
 
   drawPlayer(ctx) {
+    if (this.isDropEffectActive('mothership')) {
+      this.drawMothership(ctx);
+      return;
+    }
+    if (this.isDropEffectActive('transformer')) {
+      this.drawMegaUnit(ctx);
+      return;
+    }
+
     const soldierRadius = GAME_BALANCE.player.soldierRadius;
     const soldiers = this.getSoldierPositions();
 
@@ -470,6 +649,77 @@ export class Game {
         ctx.fillRect(soldier.x + soldierRadius - 1, soldier.y - 5, 5, 10);
       }
     }
+    ctx.restore();
+  }
+
+  drawMothership(ctx) {
+    const remaining = this.getDropEffectRemaining('mothership');
+    ctx.save();
+    ctx.translate(this.player.x, this.player.y);
+    ctx.rotate(this.player.facingAngle + Math.PI / 2);
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = '#9f8cff';
+    ctx.fillStyle = 'rgba(159,140,255,.22)';
+    ctx.strokeStyle = '#c8bdff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 34, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#9f8cff';
+    ctx.beginPath();
+    ctx.moveTo(0, -30);
+    ctx.lineTo(12, 13);
+    ctx.lineTo(-12, 13);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.rotate(-(this.player.facingAngle + Math.PI / 2));
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e9e4ff';
+    ctx.font = '900 10px Inter, sans-serif';
+    ctx.fillText(`MOTHERSHIP ${remaining.toFixed(1)}s`, 0, 40);
+    ctx.restore();
+  }
+
+  drawMegaUnit(ctx) {
+    const remaining = this.getDropEffectRemaining('transformer');
+    const takingDamage = this.player.squad.some((unit) => (unit.hitFlash ?? 0) > 0);
+    ctx.save();
+    ctx.translate(this.player.x, this.player.y);
+    ctx.rotate(this.player.facingAngle + Math.PI / 2);
+    ctx.shadowBlur = takingDamage ? 34 : 28;
+    ctx.shadowColor = takingDamage ? '#ff5f79' : '#7ef9d4';
+    ctx.fillStyle = takingDamage ? 'rgba(255,95,121,.28)' : 'rgba(126,249,212,.18)';
+    ctx.strokeStyle = takingDamage ? '#ff9bad' : '#7ef9d4';
+    ctx.lineWidth = 3;
+
+    const radius = 30;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i += 1) {
+      const angle = Math.PI / 3 * i - Math.PI / 2;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#eafff8';
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.rotate(-(this.player.facingAngle + Math.PI / 2));
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#dffff5';
+    ctx.font = '900 10px Inter, sans-serif';
+    ctx.fillText(`MEGA +100% ${remaining.toFixed(1)}s`, 0, 45);
     ctx.restore();
   }
 

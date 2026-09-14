@@ -39,10 +39,15 @@ export class CombatSystem {
 
   updateSquadWeapons(dt) {
     const game = this.game;
-    const soldiers = game.getSoldierPositions();
+    if (game.isDropEffectActive('mothership')) return;
+
+    const soldiers = game.getWeaponPositions();
     const captainSoldier = soldiers.find((soldier) => Boolean(soldier.unit.captainId));
     const captain = captainSoldier ? CAPTAINS[captainSoldier.unit.captainId] : null;
     const activeUnitIds = new Set();
+    const merged = game.isDropEffectActive('transformer');
+    const temporaryAttackSpeed = game.getAttackSpeedMultiplier();
+    const statMultiplier = game.getTransformerStatMultiplier();
 
     for (const soldier of soldiers) {
       const unit = soldier.unit;
@@ -53,7 +58,7 @@ export class CombatSystem {
         captainSoldier
         && captain
         && unit.id !== captainSoldier.unit.id
-        && areHexSlotsAdjacent(soldier.hex, captainSoldier.hex)
+        && (merged || areHexSlotsAdjacent(soldier.hex, captainSoldier.hex))
       );
       const valeFireRate = (
         adjacentToCaptain
@@ -63,7 +68,8 @@ export class CombatSystem {
 
       activeUnitIds.add(unit.id);
 
-      const cooldown = (this.fireCooldowns.get(unit.id) ?? 0.15) - dt * valeFireRate;
+      const cooldown = (this.fireCooldowns.get(unit.id) ?? 0.15)
+        - dt * valeFireRate * temporaryAttackSpeed;
       this.fireCooldowns.set(unit.id, cooldown);
       if (cooldown > 0) continue;
 
@@ -79,7 +85,7 @@ export class CombatSystem {
       const target = this.findNearestTarget(
         soldier.x,
         soldier.y,
-        weapon.range * unitModifiers.range * rangeMultiplier,
+        weapon.range * unitModifiers.range * rangeMultiplier * statMultiplier,
       );
       if (!target) continue;
 
@@ -105,7 +111,9 @@ export class CombatSystem {
       if (!activeUnitIds.has(unitId)) this.shotCounts.delete(unitId);
     }
     for (const unitId of this.damageInvulnerability.keys()) {
-      if (!activeUnitIds.has(unitId)) this.damageInvulnerability.delete(unitId);
+      if (typeof unitId === 'number' && !activeUnitIds.has(unitId)) {
+        this.damageInvulnerability.delete(unitId);
+      }
     }
   }
 
@@ -114,10 +122,12 @@ export class CombatSystem {
     const weapon = unitClass.weapon;
     const unitModifiers = getUnitModifiers(game.unitModifiers, soldier.unit.type);
     const direction = normalize(target.x - soldier.x, target.y - soldier.y);
-    const speed = weapon.projectileSpeed * unitModifiers.projectileSpeed;
+    const statMultiplier = game.getTransformerStatMultiplier();
+    const speed = weapon.projectileSpeed * unitModifiers.projectileSpeed * statMultiplier;
     const explosive = weapon.kind === 'rocket';
     const rangeMultiplier = shotEffect?.rangeMultiplier ?? 1;
     const aoeMultiplier = shotEffect?.aoeMultiplier ?? 1;
+    const basePierce = explosive ? weapon.pierce : weapon.pierce + unitModifiers.pierce;
 
     game.entities.projectiles.push({
       id: game.entities.createId(),
@@ -129,10 +139,10 @@ export class CombatSystem {
       vx: direction.x * speed,
       vy: direction.y * speed,
       radius: weapon.projectileRadius,
-      damage: weapon.damage * unitModifiers.damage,
-      life: weapon.projectileLife * unitModifiers.range * rangeMultiplier,
-      pierce: explosive ? weapon.pierce : weapon.pierce + unitModifiers.pierce,
-      aoeRadius: (weapon.aoeRadius ?? 0) * unitModifiers.blastRadius * aoeMultiplier,
+      damage: weapon.damage * unitModifiers.damage * statMultiplier,
+      life: weapon.projectileLife * unitModifiers.range * rangeMultiplier * statMultiplier,
+      pierce: Math.max(1, Math.round(basePierce * statMultiplier)),
+      aoeRadius: (weapon.aoeRadius ?? 0) * unitModifiers.blastRadius * aoeMultiplier * statMultiplier,
       color: shotEffect?.color ?? weapon.color,
       hitIds: new Set(),
       dead: false,
@@ -156,14 +166,35 @@ export class CombatSystem {
   updateEnemies(dt) {
     const game = this.game;
     const player = game.player;
-    const soldiers = game.getSoldierPositions();
+    const mothershipActive = game.isDropEffectActive('mothership');
+    const transformerActive = game.isDropEffectActive('transformer');
+    const soldiers = transformerActive ? [] : game.getSoldierPositions();
 
     for (const enemy of game.entities.enemies) {
       if (enemy.dead) continue;
+      enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
+
+      if (mothershipActive) continue;
+
       const direction = normalize(player.x - enemy.x, player.y - enemy.y);
       enemy.x += direction.x * enemy.speed * dt;
       enemy.y += direction.y * enemy.speed * dt;
-      enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
+
+      if (transformerActive) {
+        const minDistance = GAME_BALANCE.player.soldierRadius * 2.4 + enemy.radius;
+        if (distanceSq(player.x, player.y, enemy.x, enemy.y) > minDistance * minDistance) continue;
+        if (this.damageInvulnerability.has('transformer')) continue;
+
+        const damage = enemy.damage * (1 - player.armor) * DAMAGE_INVULNERABILITY_DURATION;
+        if (!game.debug?.infiniteHp) game.damageMergedSquad(damage, player.x, player.y);
+        this.damageInvulnerability.set('transformer', DAMAGE_INVULNERABILITY_DURATION);
+
+        if (this.damageFeedbackCooldown <= 0) {
+          game.triggerDamageFeedback(player.x, player.y);
+          this.damageFeedbackCooldown = DAMAGE_FEEDBACK_INTERVAL;
+        }
+        continue;
+      }
 
       const minDistance = GAME_BALANCE.player.soldierRadius + enemy.radius;
       const hitSoldier = soldiers.find((soldier) => (
@@ -248,7 +279,13 @@ export class CombatSystem {
     this.game.spawnExplosionEffect(projectile.x, projectile.y, blastRadius, projectile.color);
   }
 
-  killEnemy(enemy) {
+  nukeAllEnemies() {
+    for (const enemy of [...this.game.entities.enemies]) {
+      if (!enemy.dead) this.killEnemy(enemy, { allowDrop: false });
+    }
+  }
+
+  killEnemy(enemy, { allowDrop = true } = {}) {
     if (enemy.dead) return;
     enemy.dead = true;
     this.game.kills += 1;
@@ -260,6 +297,7 @@ export class CombatSystem {
       radius: 6 + Math.min(4, enemy.xp),
       dead: false,
     });
+    if (allowDrop) this.game.trySpawnGroundDrop(enemy.x, enemy.y);
     this.game.spawnDeathParticles(enemy.x, enemy.y, enemy.radius);
   }
 
