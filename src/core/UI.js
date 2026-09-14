@@ -1,4 +1,5 @@
 import { CAPTAINS, UNIT_CLASSES } from '../data/content.js';
+import { getEffectiveUnitStats } from '../data/unitModifiers.js';
 import { getSpritePortraitSources } from '../data/sprites.js';
 import { getHexFormationLayout } from '../utils/hexFormation.js';
 
@@ -22,6 +23,7 @@ export class UI {
     this.resultLevel = document.querySelector('#result-level');
     this.captainOptions = document.querySelector('#captain-options');
     this.selectedCaptainId = Object.keys(CAPTAINS)[0];
+    this.game = null;
 
     this.debugToggle = document.querySelector('#debug-toggle');
     this.debugPanel = document.querySelector('#debug-panel');
@@ -175,6 +177,7 @@ export class UI {
   }
 
   update(game) {
+    this.game = game;
     const player = game.player;
     const infiniteHp = Boolean(game.debug?.infiniteHp);
     const hpPercent = infiniteHp ? 100 : Math.max(0, player.hp / player.maxHp) * 100;
@@ -205,6 +208,89 @@ export class UI {
     this.squadBuilderScreen.setAttribute('aria-hidden', 'true');
   }
 
+  formatCombatValue(value, decimals = 0) {
+    const number = Number(value) || 0;
+    return decimals > 0 ? number.toFixed(decimals) : Math.round(number).toString();
+  }
+
+  renderSquadStats(counts) {
+    this.squadBuilderSummary.replaceChildren();
+
+    const squad = this.squadBuilderHandlers?.getSquad?.() ?? [];
+    const captainUnit = squad.find((unit) => Boolean(unit.captainId));
+    const captain = captainUnit ? CAPTAINS[captainUnit.captainId] : null;
+    const breakdown = Object.entries(counts)
+      .map(([type, count]) => `${count} ${UNIT_CLASSES[type]?.label ?? type}`)
+      .join(' • ');
+
+    const heading = document.createElement('div');
+    heading.textContent = `${squad.length} unit${squad.length === 1 ? '' : 's'}${breakdown ? ` • ${breakdown}` : ''}${captain ? ` • ${captain.name}` : ''}`;
+    Object.assign(heading.style, {
+      color: '#7ef9d4',
+      fontSize: '12px',
+      fontWeight: '900',
+      letterSpacing: '.04em',
+    });
+    this.squadBuilderSummary.append(heading);
+
+    const grid = document.createElement('div');
+    Object.assign(grid.style, {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+      gap: '8px',
+      marginTop: '10px',
+    });
+
+    for (const [unitType, count] of Object.entries(counts)) {
+      const stats = getEffectiveUnitStats(unitType, this.game?.unitModifiers);
+      if (!stats) continue;
+
+      const card = document.createElement('div');
+      Object.assign(card.style, {
+        padding: '10px 12px',
+        border: '1px solid rgba(255,255,255,.08)',
+        borderRadius: '10px',
+        background: 'rgba(255,255,255,.035)',
+        color: '#dce4ef',
+      });
+
+      const specialLabel = stats.kind === 'rocket' ? 'Blast' : 'Pierce';
+      const specialValue = stats.kind === 'rocket'
+        ? this.formatCombatValue(stats.blastRadius)
+        : this.formatCombatValue(stats.pierce);
+
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px;">
+          <strong style="font-size:12px;color:#f4f7fb;">${stats.label}</strong>
+          <span style="font-size:10px;color:#7f8da3;">${count} unit${count === 1 ? '' : 's'}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;text-align:center;">
+          <span><small style="display:block;color:#718097;font-size:8px;">DMG</small><b style="font-size:11px;">${this.formatCombatValue(stats.damage)}</b></span>
+          <span><small style="display:block;color:#718097;font-size:8px;">RATE</small><b style="font-size:11px;">${this.formatCombatValue(stats.fireRate, 2)}/s</b></span>
+          <span><small style="display:block;color:#718097;font-size:8px;">RANGE</small><b style="font-size:11px;">${this.formatCombatValue(stats.range)}</b></span>
+          <span><small style="display:block;color:#718097;font-size:8px;">SPEED</small><b style="font-size:11px;">${this.formatCombatValue(stats.projectileSpeed)}</b></span>
+          <span><small style="display:block;color:#718097;font-size:8px;">${specialLabel.toUpperCase()}</small><b style="font-size:11px;">${specialValue}</b></span>
+        </div>
+      `;
+      grid.append(card);
+    }
+
+    this.squadBuilderSummary.append(grid);
+
+    if (captain) {
+      const note = document.createElement('div');
+      note.textContent = 'Captain adjacency bonuses are conditional and are not included in the base stats above.';
+      Object.assign(note.style, {
+        marginTop: '7px',
+        color: '#6f7d91',
+        fontSize: '9px',
+        fontWeight: '600',
+        letterSpacing: '0',
+      });
+      this.squadBuilderSummary.append(note);
+    }
+  }
+
   getSquadBuilderHexRadius(count, mobile) {
     if (mobile) {
       if (count <= 7) return 54;
@@ -232,13 +318,7 @@ export class UI {
       result[unit.type] = (result[unit.type] || 0) + 1;
       return result;
     }, {});
-    const breakdown = Object.entries(counts)
-      .map(([type, count]) => `${count} ${UNIT_CLASSES[type]?.label ?? type}`)
-      .join(' • ');
-    const captainUnit = squad.find((unit) => Boolean(unit.captainId));
-    const captain = captainUnit ? CAPTAINS[captainUnit.captainId] : null;
-    const captainText = captain ? ` • ${captain.name}` : '';
-    this.squadBuilderSummary.textContent = `${squad.length} unit${squad.length === 1 ? '' : 's'}${breakdown ? ` • ${breakdown}` : ''}${captainText}`;
+    this.renderSquadStats(counts);
 
     if (squad.length === 0) return;
 
@@ -260,6 +340,7 @@ export class UI {
     squad.forEach((unit, index) => {
       const unitClass = UNIT_CLASSES[unit.type] ?? UNIT_CLASSES.rifleman;
       const unitCaptain = unit.captainId ? CAPTAINS[unit.captainId] : null;
+      const unitStats = getEffectiveUnitStats(unit.type, this.game?.unitModifiers);
       const slot = layout[index];
       const card = document.createElement('button');
 
@@ -278,11 +359,15 @@ export class UI {
       card.setAttribute('aria-label', `Slot ${index + 1}: ${unitCaptain?.name ?? unitClass.label}`);
       if (this.squadBuilderSelection === index) card.classList.add('squad-unit-card--selected');
 
+      const statLine = unitStats
+        ? `${this.formatCombatValue(unitStats.damage)} DMG • ${this.formatCombatValue(unitStats.fireRate, 2)}/s`
+        : (unitClass.weapon.kind === 'rocket' ? 'AoE rockets' : 'Automatic rifle');
+
       card.innerHTML = `
         <span class="squad-unit-card__slot">${index + 1}</span>
         <span class="squad-unit-card__icon">${unitCaptain?.shortLabel ?? unitClass.shortLabel}</span>
         <strong>${unitCaptain?.name ?? unitClass.label}</strong>
-        <small>${unitCaptain ? unitCaptain.role : (unitClass.weapon.kind === 'rocket' ? 'AoE rockets' : 'Automatic rifle')}</small>
+        <small>${statLine}</small>
       `;
 
       const slotLabel = card.querySelector('.squad-unit-card__slot');
@@ -384,7 +469,7 @@ export class UI {
         <p>${upgrade.describe(rarity)}</p>
         <small>Rank ${currentRank + 1} / ${upgrade.maxRank}</small>
       `;
-      if (upgrade.unitType) {
+      if (upgrade.kind === 'reinforcement') {
         this.addPortrait(button, getSpritePortraitSources({ unitType: upgrade.unitType }));
       }
       button.addEventListener('click', () => onChoose(choice), { once: true });
