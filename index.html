@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./styles/game.css" />
   <link rel="stylesheet" href="./styles/debug-drops.css" />
   <link rel="stylesheet" href="./styles/squad-formation.css" />
+  <link rel="stylesheet" href="./styles/captain-menu.css" />
 </head>
 <body>
   <main id="app" class="app-shell">
@@ -35,7 +36,7 @@
 
       <div class="hud__bottom">
         <div class="hud-card hud-card--wide">
-          <div class="hud-label-row"><span id="level-text">Level 1</span><span id="version-text">v17</span><span id="xp-text">0 / 8 XP</span></div>
+          <div class="hud-label-row"><span id="level-text">Level 1</span><span id="version-text">v18</span><span id="xp-text">0 / 8 XP</span></div>
           <div class="bar"><div id="xp-bar" class="bar__fill bar__fill--xp"></div></div>
         </div>
       </div>
@@ -92,10 +93,25 @@
         <p class="eyebrow">ROGUELITE SURVIVAL PROTOTYPE</p>
         <h1>Nightfall Protocol</h1>
         <p>Survive the swarm. Move with <strong>WASD</strong> or <strong>arrow keys</strong>. Your squad fires automatically at nearby enemies. Recruit specialized classes, arrange your formation, and use your Captain's adjacency bonuses to shape the squad.</p>
-        <p class="eyebrow">SELECT CAPTAIN</p>
-        <div id="captain-options" class="upgrade-grid" aria-label="Captain selection"></div>
+        <div id="selected-captain-summary" class="selected-captain-summary" aria-live="polite"></div>
+        <button id="captain-menu-open" class="captain-menu-button" type="button">Change Captain</button>
         <button id="start-button" class="primary-button">Begin Run</button>
-        <p class="muted">Your Captain replaces the normal starting unit.</p>
+        <p class="muted">Your Captain is the squad leader. If the Captain dies, the run ends.</p>
+      </div>
+    </section>
+
+    <section id="captain-select-screen" class="overlay" aria-hidden="true">
+      <div class="panel panel--captain-select">
+        <div class="captain-select__header">
+          <div>
+            <p class="eyebrow">COMMAND</p>
+            <h2>Select Captain</h2>
+          </div>
+          <button id="captain-menu-close" class="captain-select__close" type="button" aria-label="Close Captain selection">×</button>
+        </div>
+        <p class="captain-select__help">Choose the Captain who will lead the next run. Captain bonuses depend on adjacent squad units.</p>
+        <div id="captain-options" class="upgrade-grid" aria-label="Captain selection"></div>
+        <button id="captain-menu-back" class="primary-button" type="button">Back to Main Menu</button>
       </div>
     </section>
 
