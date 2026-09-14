@@ -1,4 +1,5 @@
 import { GAME_BALANCE, RARITIES, UPGRADES } from '../data/content.js';
+import { createUnitModifierState } from '../data/unitModifiers.js';
 
 export class ProgressionSystem {
   constructor(game, ui) {
@@ -9,6 +10,7 @@ export class ProgressionSystem {
 
   reset() {
     this.ranks.clear();
+    this.game.unitModifiers = createUnitModifierState();
     this.game.player.level = 1;
     this.game.player.xp = 0;
     this.game.player.xpToNext = GAME_BALANCE.progression.startingXpToNext;
@@ -45,7 +47,11 @@ export class ProgressionSystem {
   }
 
   getChoices(count) {
-    const pool = UPGRADES.filter((upgrade) => (this.ranks.get(upgrade.id) || 0) < upgrade.maxRank);
+    const ownedTypes = new Set(this.game.player.squad.map((unit) => unit.type));
+    const pool = UPGRADES.filter((upgrade) => (
+      ownedTypes.has(upgrade.unitType)
+      && (this.ranks.get(upgrade.id) || 0) < upgrade.maxRank
+    ));
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, count).map((upgrade) => ({
       upgrade,
