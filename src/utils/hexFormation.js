@@ -36,6 +36,27 @@ export function hexToPixel(slot, radius = 1) {
   };
 }
 
+export function getHexFormationLayout(count, radius = 1) {
+  const slots = getHexFormationSlots(count);
+  if (slots.length === 0) return [];
+
+  const rawPositions = slots.map((slot) => hexToPixel(slot, radius));
+  const xs = rawPositions.map((position) => position.x);
+  const ys = rawPositions.map((position) => position.y);
+  const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+
+  return slots.map((slot, index) => ({
+    ...slot,
+    x: rawPositions[index].x - centerX,
+    y: rawPositions[index].y - centerY,
+  }));
+}
+
+export function radiusForNeighborSpacing(spacing) {
+  return Math.max(0, spacing) / Math.sqrt(3);
+}
+
 export function hexDistance(a, b) {
   const dq = a.q - b.q;
   const dr = a.r - b.r;

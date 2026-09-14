@@ -1,5 +1,5 @@
 import { UNIT_CLASSES } from '../data/content.js';
-import { getHexFormationSlots, hexToPixel } from '../utils/hexFormation.js';
+import { getHexFormationLayout } from '../utils/hexFormation.js';
 
 const GAME_VERSION = '0.2.0';
 
@@ -37,6 +37,7 @@ export class UI {
     this.squadBuilderHandlers = null;
     this.squadBuilderSelection = null;
     this.squadBuilderDragging = false;
+    this.squadBuilderHasCentered = false;
 
     this.versionText.textContent = `v${GAME_VERSION}`;
   }
@@ -81,7 +82,9 @@ export class UI {
     });
 
     window.addEventListener('resize', () => {
-      if (this.squadBuilderScreen.classList.contains('overlay--visible')) this.renderSquadBuilder();
+      if (!this.squadBuilderScreen.classList.contains('overlay--visible')) return;
+      this.squadBuilderHasCentered = false;
+      this.renderSquadBuilder();
     });
   }
 
@@ -103,6 +106,7 @@ export class UI {
 
   showSquadBuilder() {
     this.squadBuilderSelection = null;
+    this.squadBuilderHasCentered = false;
     this.renderSquadBuilder();
     this.squadBuilderScreen.classList.add('overlay--visible');
     this.squadBuilderScreen.setAttribute('aria-hidden', 'false');
@@ -110,13 +114,32 @@ export class UI {
 
   hideSquadBuilder() {
     this.squadBuilderSelection = null;
+    this.squadBuilderHasCentered = false;
     this.squadBuilderScreen.classList.remove('overlay--visible');
     this.squadBuilderScreen.setAttribute('aria-hidden', 'true');
+  }
+
+  getSquadBuilderHexRadius(count, mobile) {
+    if (mobile) {
+      if (count <= 7) return 54;
+      if (count <= 19) return 48;
+      if (count <= 37) return 42;
+      if (count <= 61) return 36;
+      return 30;
+    }
+
+    if (count <= 7) return 70;
+    if (count <= 19) return 64;
+    if (count <= 37) return 52;
+    if (count <= 61) return 44;
+    return 36;
   }
 
   renderSquadBuilder() {
     if (!this.squadBuilderHandlers) return;
     const squad = this.squadBuilderHandlers.getSquad();
+    const previousScrollLeft = this.squadBuilderGrid.scrollLeft;
+    const previousScrollTop = this.squadBuilderGrid.scrollTop;
     this.squadBuilderGrid.replaceChildren();
 
     const counts = squad.reduce((result, unit) => {
@@ -131,23 +154,23 @@ export class UI {
     if (squad.length === 0) return;
 
     const mobile = window.innerWidth <= 760;
-    const hexRadius = mobile ? 58 : 70;
-    const cardWidth = mobile ? 100 : 122;
-    const cardHeight = mobile ? 116 : 140;
-    const slots = getHexFormationSlots(squad.length);
-    const positions = slots.map((slot) => hexToPixel(slot, hexRadius));
-    const maxAbsX = Math.max(...positions.map((position) => Math.abs(position.x)));
-    const maxAbsY = Math.max(...positions.map((position) => Math.abs(position.y)));
+    const hexRadius = this.getSquadBuilderHexRadius(squad.length, mobile);
+    const cardWidth = Math.sqrt(3) * hexRadius;
+    const cardHeight = hexRadius * 2;
+    const layout = getHexFormationLayout(squad.length, hexRadius);
+    const maxAbsX = Math.max(...layout.map((position) => Math.abs(position.x)));
+    const maxAbsY = Math.max(...layout.map((position) => Math.abs(position.y)));
+    const dense = hexRadius <= 44;
+    const veryDense = hexRadius <= 36;
 
     const board = document.createElement('div');
     board.className = 'squad-builder__board';
-    board.style.width = `${Math.max(mobile ? 300 : 420, maxAbsX * 2 + cardWidth + 40)}px`;
-    board.style.height = `${Math.max(230, maxAbsY * 2 + cardHeight + 40)}px`;
+    board.style.width = `${Math.max(mobile ? 300 : 420, maxAbsX * 2 + cardWidth + 56)}px`;
+    board.style.height = `${Math.max(230, maxAbsY * 2 + cardHeight + 56)}px`;
 
     squad.forEach((unit, index) => {
       const unitClass = UNIT_CLASSES[unit.type] ?? UNIT_CLASSES.rifleman;
-      const slot = slots[index];
-      const position = positions[index];
+      const slot = layout[index];
       const card = document.createElement('button');
 
       card.type = 'button';
@@ -157,8 +180,11 @@ export class UI {
       card.dataset.hexQ = String(slot.q);
       card.dataset.hexR = String(slot.r);
       card.style.setProperty('--unit-color', unitClass.fill);
-      card.style.left = `calc(50% + ${position.x}px)`;
-      card.style.top = `calc(50% + ${position.y}px)`;
+      card.style.width = `${cardWidth}px`;
+      card.style.height = `${cardHeight}px`;
+      card.style.left = `calc(50% + ${slot.x}px)`;
+      card.style.top = `calc(50% + ${slot.y}px)`;
+      card.style.padding = dense ? '10px 7px' : '18px 12px';
       card.setAttribute('aria-label', `Slot ${index + 1}: ${unitClass.label}`);
       if (this.squadBuilderSelection === index) card.classList.add('squad-unit-card--selected');
 
@@ -168,6 +194,25 @@ export class UI {
         <strong>${unitClass.label}</strong>
         <small>${unitClass.weapon.kind === 'rocket' ? 'AoE rockets' : 'Automatic rifle'}</small>
       `;
+
+      const slotLabel = card.querySelector('.squad-unit-card__slot');
+      const icon = card.querySelector('.squad-unit-card__icon');
+      const label = card.querySelector('strong');
+      const detail = card.querySelector('small');
+
+      if (dense) {
+        slotLabel.style.top = '16%';
+        slotLabel.style.left = '17%';
+        slotLabel.style.fontSize = veryDense ? '7px' : '8px';
+        icon.style.width = veryDense ? '30px' : '34px';
+        icon.style.height = veryDense ? '30px' : '34px';
+        icon.style.fontSize = veryDense ? '8px' : '9px';
+        label.style.fontSize = '10px';
+        label.style.marginTop = '4px';
+        detail.style.display = 'none';
+      }
+
+      if (veryDense) label.style.display = 'none';
 
       card.addEventListener('dragstart', (event) => {
         this.squadBuilderDragging = true;
@@ -218,6 +263,18 @@ export class UI {
     });
 
     this.squadBuilderGrid.append(board);
+
+    requestAnimationFrame(() => {
+      if (!this.squadBuilderHasCentered) {
+        this.squadBuilderGrid.scrollLeft = Math.max(0, (this.squadBuilderGrid.scrollWidth - this.squadBuilderGrid.clientWidth) / 2);
+        this.squadBuilderGrid.scrollTop = Math.max(0, (this.squadBuilderGrid.scrollHeight - this.squadBuilderGrid.clientHeight) / 2);
+        this.squadBuilderHasCentered = true;
+        return;
+      }
+
+      this.squadBuilderGrid.scrollLeft = previousScrollLeft;
+      this.squadBuilderGrid.scrollTop = previousScrollTop;
+    });
   }
 
   showLevelUp(choices, onChoose, ranks) {

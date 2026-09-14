@@ -3,6 +3,7 @@ import { EntityStore } from './EntityStore.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
 import { ProgressionSystem } from '../systems/ProgressionSystem.js';
+import { getHexFormationLayout, radiusForNeighborSpacing } from '../utils/hexFormation.js';
 import { randomRange } from '../utils/math.js';
 
 const DAMAGE_FEEDBACK_DURATION = 0.18;
@@ -144,31 +145,18 @@ export class Game {
 
   getSoldierPositions() {
     const squad = this.player.squad;
-    const count = squad.length;
-    if (count === 0) return [];
+    if (squad.length === 0) return [];
 
-    const columns = Math.ceil(Math.sqrt(count));
-    const rows = Math.ceil(count / columns);
-    const spacing = GAME_BALANCE.player.formationSpacing;
-    const positions = [];
+    const hexRadius = radiusForNeighborSpacing(GAME_BALANCE.player.formationSpacing);
+    const layout = getHexFormationLayout(squad.length, hexRadius);
 
-    for (let row = 0; row < rows; row += 1) {
-      const firstIndex = row * columns;
-      const rowCount = Math.min(columns, count - firstIndex);
-      const y = this.player.y + (row - (rows - 1) / 2) * spacing;
-
-      for (let column = 0; column < rowCount; column += 1) {
-        const index = firstIndex + column;
-        positions.push({
-          x: this.player.x + (column - (rowCount - 1) / 2) * spacing,
-          y,
-          index,
-          unit: squad[index],
-        });
-      }
-    }
-
-    return positions;
+    return layout.map((slot, index) => ({
+      x: this.player.x + slot.x,
+      y: this.player.y + slot.y,
+      index,
+      hex: { q: slot.q, r: slot.r, ring: slot.ring },
+      unit: squad[index],
+    }));
   }
 
   resize() {
