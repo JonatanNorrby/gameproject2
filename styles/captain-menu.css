@@ -86,6 +86,8 @@
 
 .panel--captain-select {
   width: min(760px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
 }
 
 .captain-select__header {
