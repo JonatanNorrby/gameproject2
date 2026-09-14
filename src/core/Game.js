@@ -9,12 +9,10 @@ import { getHexFormationLayout, radiusForNeighborSpacing } from '../utils/hexFor
 import { randomRange } from '../utils/math.js';
 
 const DAMAGE_FEEDBACK_DURATION = 0.18;
+const DEFAULT_SPRITE_FORWARD_ANGLE = -Math.PI / 2;
 const UNIT_ANIMATION_PRIORITY = {
   shooting: 1,
-  damage_light: 2,
-  damage_medium: 2,
-  damage_heavy: 2,
-  dead: 3,
+  dead: 2,
 };
 
 export class Game {
@@ -67,6 +65,7 @@ export class Game {
       xpToNext: GAME_BALANCE.progression.startingXpToNext,
       moving: false,
       facingX: 1,
+      facingAngle: DEFAULT_SPRITE_FORWARD_ANGLE,
     };
 
     for (const type of GAME_BALANCE.player.startingSquad) this.addSquadUnits(type, 1);
@@ -133,7 +132,10 @@ export class Game {
     const axis = this.input.getAxis();
     const speed = this.player.speed * this.modifiers.moveSpeed;
     this.player.moving = Math.abs(axis.x) > 0.01 || Math.abs(axis.y) > 0.01;
-    if (Math.abs(axis.x) > 0.01) this.player.facingX = Math.sign(axis.x);
+    if (this.player.moving) {
+      this.player.facingAngle = Math.atan2(axis.y, axis.x);
+      if (Math.abs(axis.x) > 0.01) this.player.facingX = Math.sign(axis.x);
+    }
     this.player.x += axis.x * speed * dt;
     this.player.y += axis.y * speed * dt;
   }
@@ -296,6 +298,10 @@ export class Game {
       const unitClass = UNIT_CLASSES[soldier.unit.type] ?? UNIT_CLASSES.rifleman;
       const sprite = getSquadSprite(soldier.unit);
       const animation = this.getUnitAnimation(soldier.unit);
+      const sourceForwardAngle = Number.isFinite(sprite?.forwardAngle)
+        ? sprite.forwardAngle
+        : DEFAULT_SPRITE_FORWARD_ANGLE;
+      const spriteRotation = this.player.facingAngle - sourceForwardAngle;
       const spriteDrawn = this.animationRenderer.draw(
         ctx,
         sprite,
@@ -305,7 +311,7 @@ export class Game {
         soldier.y,
         {
           phase: animation.name === 'running' && this.player.moving ? soldier.unit.id * 0.113 : 0,
-          flipX: Boolean(sprite?.flipWithDirection && this.player.facingX < 0),
+          rotation: spriteRotation,
         },
       );
 
