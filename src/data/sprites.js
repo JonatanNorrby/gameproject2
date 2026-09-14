@@ -8,6 +8,14 @@ function twoFrame(prefix, fps, loop = true) {
   };
 }
 
+function singleFrame(file) {
+  return {
+    frames: [file],
+    fps: 1,
+    loop: false,
+  };
+}
+
 export function createStandardFrameSet(folder, options = {}) {
   return {
     basePath: `./assets/${folder}`,
@@ -24,10 +32,7 @@ export function createStandardFrameSet(folder, options = {}) {
     animations: {
       running: twoFrame('running', options.runningFps ?? 8, true),
       shooting: twoFrame('shooting', options.shootingFps ?? 12, false),
-      damage_light: twoFrame('damage_light', options.damageFps ?? 10, false),
-      damage_medium: twoFrame('damage_medium', options.damageFps ?? 10, false),
-      damage_heavy: twoFrame('damage_heavy', options.damageFps ?? 10, false),
-      dead: twoFrame('dead', options.deadFps ?? 6, false),
+      dead: singleFrame('dead_1.png'),
     },
   };
 }
