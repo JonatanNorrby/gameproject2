@@ -8,6 +8,7 @@ Each unit, Captain, or enemy gets its own folder directly under `assets/`:
 assets/
   rifleman/
   rocketeer/
+  shockblade/
   captain_vale/
   captain_mercer/
   crawler/
@@ -39,9 +40,9 @@ dead_1.png
 - Leave enough transparent padding for weapons/effects that extend beyond the body.
 - The game preserves each image's aspect ratio when scaling it.
 - **Draw source art facing south/down (6 o'clock).**
-- Idle and idle-shooting are always shown facing south/down and do not rotate with the squad's previous movement vector.
-- Running and moving-shooting rotate at runtime to match the squad's movement direction.
-- If a future asset is authored facing a different direction, its sprite definition can override `forwardAngle` rather than requiring new movement-direction images.
+- Idle and normal idle-shooting are shown facing south/down.
+- Running and normal moving-shooting rotate at runtime to match the squad's movement direction.
+- If a future asset is authored facing a different direction, its sprite definition can override `forwardAngle`.
 
 Captain art is independent of the base unit class:
 
@@ -49,24 +50,40 @@ Captain art is independent of the base unit class:
 - Captain Mercer uses `assets/captain_mercer/`.
 - Normal Riflemen use `assets/rifleman/`.
 - Normal Rocketeers use `assets/rocketeer/`.
+- Shockblades use `assets/shockblade/`.
 
 ## Runtime states
 
 - Stationary: displays `idle_1.png` facing south.
-- Moving: alternates `running_1.png` / `running_2.png` and rotates toward the movement vector.
-- Standing still and firing: loops `idle_shooting_1.png` / `idle_shooting_2.png` facing south for a short firing window after each shot.
-- Moving and firing: loops `shooting_1.png` / `shooting_2.png` for the same firing window and follows movement direction.
-- The firing window lasts longer than the instant projectile spawn so even a single shot visibly repeats the two firing frames and reads as an attack animation.
-- Taking damage: keeps the current idle/running/shooting art and uses the game's red flash, shake, outline, and particles for feedback. No damage-specific PNGs are required.
-- Unit death: the unit is removed from the live squad, `dead_1.png` is placed at the exact world position where it died, and that corpse remains for the rest of the run.
+- Moving: alternates `running_1.png` / `running_2.png`.
+- Standing still and attacking: uses `idle_shooting_1.png` / `idle_shooting_2.png` for ordinary ranged units.
+- Moving and attacking: uses `shooting_1.png` / `shooting_2.png`.
+- Rifleman / Captain Vale can loop the two firing frames during their firing window.
+- Rocketeer / Captain Mercer use one non-looping two-frame firing cycle per shot.
+- Shockblade uses one non-looping `shooting_1.png` / `shooting_2.png` cycle for its jump-slash attack. The runtime physically lunges the unit forward and then returns it to its formation slot.
+- Taking damage keeps the current animation art and uses the game's red flash, shake, outline, and particles for feedback. No damage-specific PNGs are required.
+- Unit death removes the unit from the live squad and places `dead_1.png` at its exact world position for the rest of the run.
 - Captain death ends the run. Other unit deaths do not.
+
+### Shockblade art notes
+
+Shockblade is a melee class with laser swords and a jump pack.
+
+- `idle_1.png`: ready stance with both laser swords visible.
+- `running_1.png` / `running_2.png`: movement / jump-pack-ready locomotion.
+- `shooting_1.png`: jump or wind-up frame.
+- `shooting_2.png`: forward laser-sword sweep frame.
+- `idle_shooting_*` may mirror the same attack poses for asset consistency, although the current melee runtime uses the moving `shooting` pair during the lunge.
+- `dead_1.png`: defeated Shockblade.
+- The game renders the half-moon energy slash procedurally, so the character frame does not need to contain the entire slash arc.
 
 ## UI portraits
 
-The game also reuses each character's `idle_1.png` as static artwork:
+The game reuses each character's `idle_1.png` as static artwork:
 
 - Captain selection uses the selected Captain folder's `idle_1.png`.
 - Unit reinforcement upgrades use that unit class folder's `idle_1.png`.
+- Shockblade reinforcement therefore reads from `assets/shockblade/idle_1.png`.
 - If `idle_1.png` is not available yet, UI portraits temporarily fall back to the same character's `running_1.png`.
 
 Missing `idle_shooting` frames fall back to normal shooting frames. Other missing live animation images fall back to an available idle/running frame while art is being added. Corpse rendering requests `dead_1.png` strictly; if it is unavailable, the game draws a simple procedural corpse marker instead of showing a living frame.

@@ -24,5 +24,8 @@ Expected class badge files:
 
 - `unit_class/rifleman.png`
 - `unit_class/rocketeer.png`
+- `unit_class/shockblade.png`
+
+Shockblade uses the existing damage, fire-rate, range, and blast-radius generic icons. Its blast-radius icon represents the size of the half-moon slash.
 
 When adding a new upgrade or class, register its icon key/path in `src/data/upgradeIcons.js`.

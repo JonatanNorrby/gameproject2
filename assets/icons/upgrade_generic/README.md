@@ -11,6 +11,8 @@ Current generic stat-upgrade files expected by the game:
 - `pierce.png`
 - `blast_radius.png`
 
-These icons describe the stat effect only and are shared across every class.
+These icons describe the stat effect only and are shared across classes.
+
+Shockblade reuses `damage.png`, `fire_rate.png`, `range.png`, and `blast_radius.png`; no melee-only generic icon is required.
 
 Reinforcement cards do not use a generic icon. They use the full unit portrait plus the class badge from `../unit_class/`.

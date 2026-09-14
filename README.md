@@ -6,11 +6,17 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 
 - WASD / arrow-key movement
 - Touch drag movement
-- Automatic target acquisition and firing
+- Automatic combat with ranged and melee squad classes
+- Rifleman: rapid ranged bullet fire
+- Rocketeer: slower explosive rockets with AoE damage
+- Shockblade: jump-pack melee unit that lunges at nearby enemies and cuts a forward half-moon arc while invulnerable
 - Multiple enemy archetypes that unlock over time
 - XP pickups and level-ups
-- Randomized upgrade choices with ranks
-- Health, armor, damage, attack speed, movement, pickup radius, projectile speed, and pierce upgrades
+- Randomized, infinitely repeatable upgrade choices with rarity-based stat bonuses
+- Reinforcement upgrades that can introduce new squad classes
+- Freeform connected squad formation editing
+- Ground powerups with animated Magnet, Nuke, and Fury effects
+- Per-unit health, Captain-only run failure, and persistent corpses
 - Endless difficulty scaling
 - Death / restart loop
 - Responsive canvas UI
@@ -24,11 +30,24 @@ src/
   core/      Game lifecycle, input, UI, entity storage
   systems/   Larger gameplay domains (combat, spawning, progression)
   data/      Data-driven content and balance definitions
+  features/  Layered gameplay/UI extensions that preserve earlier systems
   utils/     Shared low-level helpers
 styles/      Site/game styling
+assets/      Character frames, upgrade/class icons, and optional projectile images
 ```
 
-New enemies, upgrades, and balance values should normally be added to `src/data/content.js`. Existing gameplay behavior should be extended in the relevant system instead of creating versioned or one-off scripts.
+Unit classes are defined in `src/data/content.js`. When adding a class, also review:
+
+- `src/data/sprites.js` for animation-folder registration.
+- `src/data/upgradeIcons.js` for the class badge and upgrade-card mappings.
+- `src/data/unitModifiers.js` / Squad Builder stat presentation when the class uses non-standard combat stats.
+- `assets/ANIMATION_FRAMEWORK.md`.
+- `assets/icons/README.md` and `assets/icons/unit_class/README.md`.
+- `assets/projectiles/README.md` if the class fires a projectile, or document explicitly that it does not.
+
+The current classes are `rifleman`, `rocketeer`, and `shockblade`.
+
+New enemies, upgrades, and balance values should normally be added to `src/data/content.js`. Existing gameplay behavior should be extended in the relevant system or feature layer instead of creating versioned or one-off scripts.
 
 ## Run locally
 

@@ -13,6 +13,7 @@ export const GENERIC_UPGRADE_ICON_FILES = Object.freeze({
 export const CLASS_ICON_FILES = Object.freeze({
   rifleman: 'rifleman.png',
   rocketeer: 'rocketeer.png',
+  shockblade: 'shockblade.png',
 });
 
 export const UPGRADE_ICON_METADATA = Object.freeze({
@@ -28,6 +29,11 @@ export const UPGRADE_ICON_METADATA = Object.freeze({
   'rocketeer-range': { generic: 'range', class: 'rocketeer' },
   'rocketeer-projectile-speed': { generic: 'projectileSpeed', class: 'rocketeer' },
   'rocketeer-blast-radius': { generic: 'blastRadius', class: 'rocketeer' },
+  'shockblade-reinforcements': { generic: 'reinforcement', class: 'shockblade' },
+  'shockblade-damage': { generic: 'damage', class: 'shockblade' },
+  'shockblade-fire-rate': { generic: 'fireRate', class: 'shockblade' },
+  'shockblade-range': { generic: 'range', class: 'shockblade' },
+  'shockblade-blast-radius': { generic: 'blastRadius', class: 'shockblade' },
 });
 
 const GENERIC_FALLBACKS = Object.freeze({
@@ -43,6 +49,7 @@ const GENERIC_FALLBACKS = Object.freeze({
 const CLASS_FALLBACKS = Object.freeze({
   rifleman: 'RIF',
   rocketeer: 'RKT',
+  shockblade: 'SHK',
 });
 
 function inferredGenericKey(upgrade) {

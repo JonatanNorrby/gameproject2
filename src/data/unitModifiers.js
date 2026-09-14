@@ -46,8 +46,11 @@ export function getEffectiveUnitStats(unitType, modifierState) {
     fireRate: (1 / weapon.cooldown) * modifiers.fireRate,
     cooldown: weapon.cooldown / modifiers.fireRate,
     range: weapon.range * modifiers.range,
-    projectileSpeed: weapon.projectileSpeed * modifiers.projectileSpeed,
-    pierce: weapon.pierce + modifiers.pierce,
+    projectileSpeed: (weapon.projectileSpeed ?? 0) * modifiers.projectileSpeed,
+    pierce: (weapon.pierce ?? 0) + modifiers.pierce,
     blastRadius: (weapon.aoeRadius ?? 0) * modifiers.blastRadius,
+    lungeDistance: (weapon.lungeDistance ?? 0) * modifiers.range,
+    attackDuration: weapon.attackDuration ?? 0,
+    arcRadians: weapon.arcRadians ?? 0,
   };
 }

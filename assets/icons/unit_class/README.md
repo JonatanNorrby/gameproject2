@@ -6,5 +6,8 @@ Current files expected by the game:
 
 - `rifleman.png`
 - `rocketeer.png`
+- `shockblade.png`
+
+Reinforcement cards combine the class badge with the full unit portrait from that class's animation folder.
 
 Add future class badge filenames to `src/data/upgradeIcons.js`.

@@ -6,3 +6,5 @@ Expected optional fallback images:
 - `rocket.png`
 
 These are used only when no class-specific projectile image is available. Each is a single static transparent PNG, not an animation.
+
+Melee classes such as Shockblade do not use a generic projectile fallback.

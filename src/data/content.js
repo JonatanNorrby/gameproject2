@@ -57,6 +57,31 @@ export const UNIT_CLASSES = {
       color: '#ffb35c',
     },
   },
+  shockblade: {
+    id: 'shockblade',
+    label: 'Shockblade',
+    shortLabel: 'SHK',
+    maxHp: 100,
+    fill: '#6fc8ff',
+    core: '#142d45',
+    outline: '#c5ecff',
+    weapon: {
+      kind: 'melee',
+      damage: 32,
+      cooldown: 1,
+      projectileSpeed: 0,
+      projectileRadius: 0,
+      projectileLife: 0,
+      pierce: 1,
+      range: 50,
+      aoeRadius: 52,
+      lungeDistance: 28,
+      attackDuration: 0.34,
+      hitTime: 0.17,
+      arcRadians: Math.PI,
+      color: '#7ad7ff',
+    },
+  },
 };
 
 export const CAPTAINS = {
@@ -241,5 +266,28 @@ export const UPGRADES = [
   unitStatUpgrade({
     unitType: 'rocketeer', id: 'blast-radius', name: 'Expanded Payload', stat: 'blastRadius', maxRank: 5,
     values: { common: 15, uncommon: 22, rare: 32, epic: 48 }, label: 'blast radius',
+  }),
+
+  recruitmentUpgrade({
+    id: 'shockblade-reinforcements',
+    name: 'Shockblade Reinforcement',
+    unitType: 'shockblade',
+    maxRank: 5,
+  }),
+  unitStatUpgrade({
+    unitType: 'shockblade', id: 'damage', name: 'Overcharged Blades', stat: 'damage', maxRank: 8,
+    values: { common: 20, uncommon: 28, rare: 40, epic: 60 }, label: 'slash damage',
+  }),
+  unitStatUpgrade({
+    unitType: 'shockblade', id: 'fire-rate', name: 'Jump-Pack Cycling', stat: 'fireRate', maxRank: 8,
+    values: { common: 15, uncommon: 21, rare: 30, epic: 45 }, label: 'attack rate',
+  }),
+  unitStatUpgrade({
+    unitType: 'shockblade', id: 'range', name: 'Threat Sensor', stat: 'range', maxRank: 5,
+    values: { common: 10, uncommon: 14, rare: 20, epic: 30 }, label: 'trigger and lunge range',
+  }),
+  unitStatUpgrade({
+    unitType: 'shockblade', id: 'blast-radius', name: 'Wide Arc Servos', stat: 'blastRadius', maxRank: 5,
+    values: { common: 15, uncommon: 22, rare: 32, epic: 48 }, label: 'slash radius',
   }),
 ];
