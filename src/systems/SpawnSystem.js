@@ -7,15 +7,15 @@ export class SpawnSystem {
     this.cooldown = 0;
   }
 
-  reset() { this.cooldown = 0.35; }
+  reset() { this.cooldown = 0.65; }
 
   update(dt) {
     this.cooldown -= dt;
     if (this.cooldown > 0) return;
 
     const elapsed = this.game.elapsed;
-    const interval = Math.max(0.14, 0.72 - elapsed * 0.006);
-    const burst = 1 + Math.floor(elapsed / 50);
+    const interval = Math.max(0.28, 0.95 - elapsed * 0.003);
+    const burst = 1 + Math.floor(elapsed / 120);
     for (let i = 0; i < burst; i += 1) this.spawnEnemy();
     this.cooldown = interval;
   }

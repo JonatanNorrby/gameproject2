@@ -117,16 +117,25 @@ export const RARITIES = [
   { id: 'epic', label: 'Epic', weight: 2, color: '#c17cff' },
 ];
 
+const STAT_BUFF_BY_RARITY = Object.freeze({
+  common: 5,
+  uncommon: 10,
+  rare: 15,
+  epic: 20,
+});
+
 function rarityValue(rarity, values) {
   return values[rarity.id] ?? values.common;
 }
 
-function applyUnitStat(game, unitType, stat, amount, mode) {
+function applyUnitStat(game, unitType, stat, amount) {
   const modifiers = game.unitModifiers?.[unitType];
   if (!modifiers || !(stat in modifiers)) return;
 
-  if (mode === 'flat') {
-    modifiers[stat] += amount;
+  if (stat === 'pierce') {
+    const basePierce = UNIT_CLASSES[unitType]?.weapon?.pierce ?? 1;
+    const currentPierce = basePierce + modifiers.pierce;
+    modifiers.pierce += currentPierce * (amount / 100);
     return;
   }
 
@@ -152,12 +161,11 @@ function unitStatUpgrade({
     stat,
     maxRank,
     describe(rarity) {
-      const amount = rarityValue(rarity, values);
-      const suffix = mode === 'flat' ? '' : '%';
-      return `+${amount}${suffix} ${UNIT_CLASSES[unitType].label} ${label}.`;
+      const amount = rarityValue(rarity, STAT_BUFF_BY_RARITY);
+      return `+${amount}% ${UNIT_CLASSES[unitType].label} ${label}.`;
     },
     apply(game, rarity) {
-      applyUnitStat(game, unitType, stat, rarityValue(rarity, values), mode);
+      applyUnitStat(game, unitType, stat, rarityValue(rarity, STAT_BUFF_BY_RARITY));
     },
   };
 }
