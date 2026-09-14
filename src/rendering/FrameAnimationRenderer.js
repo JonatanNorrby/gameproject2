@@ -70,15 +70,17 @@ export class FrameAnimationRenderer {
       record = this.findLoadedFrame(definition, animation);
     }
 
-    const fallbackAnimationNames = resolvedAnimationName === 'idle_shooting'
-      ? ['shooting', 'idle', 'running']
-      : resolvedAnimationName === 'shooting'
-        ? ['idle_shooting', 'running']
-        : resolvedAnimationName === 'idle'
-          ? ['running']
-          : resolvedAnimationName === 'dead'
-            ? ['idle', 'running']
-            : [];
+    const fallbackAnimationNames = options.strictAnimation
+      ? []
+      : resolvedAnimationName === 'idle_shooting'
+        ? ['shooting', 'idle', 'running']
+        : resolvedAnimationName === 'shooting'
+          ? ['idle_shooting', 'running']
+          : resolvedAnimationName === 'idle'
+            ? ['running']
+            : resolvedAnimationName === 'dead'
+              ? ['idle', 'running']
+              : [];
 
     for (const fallbackName of fallbackAnimationNames) {
       if (record?.loaded && !record.failed) break;

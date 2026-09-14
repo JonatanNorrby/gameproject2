@@ -13,19 +13,24 @@ export class CombatSystem {
     this.fireCooldowns = new Map();
     this.shotCounts = new Map();
     this.damageFeedbackCooldown = 0;
-    this.damageInvulnerability = 0;
+    this.damageInvulnerability = new Map();
   }
 
   reset() {
     this.fireCooldowns.clear();
     this.shotCounts.clear();
     this.damageFeedbackCooldown = 0;
-    this.damageInvulnerability = 0;
+    this.damageInvulnerability.clear();
   }
 
   update(dt) {
     this.damageFeedbackCooldown = Math.max(0, this.damageFeedbackCooldown - dt);
-    this.damageInvulnerability = Math.max(0, this.damageInvulnerability - dt);
+    for (const [unitId, time] of this.damageInvulnerability.entries()) {
+      const remaining = time - dt;
+      if (remaining <= 0) this.damageInvulnerability.delete(unitId);
+      else this.damageInvulnerability.set(unitId, remaining);
+    }
+
     this.updateEnemies(dt);
     this.updateProjectiles(dt);
     this.updateGems(dt);
@@ -99,6 +104,9 @@ export class CombatSystem {
     for (const unitId of this.shotCounts.keys()) {
       if (!activeUnitIds.has(unitId)) this.shotCounts.delete(unitId);
     }
+    for (const unitId of this.damageInvulnerability.keys()) {
+      if (!activeUnitIds.has(unitId)) this.damageInvulnerability.delete(unitId);
+    }
   }
 
   fireWeapon(soldier, unitClass, target, shotEffect = null) {
@@ -159,19 +167,25 @@ export class CombatSystem {
 
       const minDistance = GAME_BALANCE.player.soldierRadius + enemy.radius;
       const hitSoldier = soldiers.find((soldier) => (
-        distanceSq(soldier.x, soldier.y, enemy.x, enemy.y) <= minDistance * minDistance
+        !soldier.unit.dead
+        && distanceSq(soldier.x, soldier.y, enemy.x, enemy.y) <= minDistance * minDistance
       ));
+      if (!hitSoldier) continue;
 
-      if (hitSoldier && this.damageInvulnerability <= 0) {
-        const damage = enemy.damage * (1 - player.armor) * DAMAGE_INVULNERABILITY_DURATION;
-        if (!game.debug?.infiniteHp) player.hp -= damage;
-        this.damageInvulnerability = DAMAGE_INVULNERABILITY_DURATION;
+      const unit = hitSoldier.unit;
+      if (this.damageInvulnerability.has(unit.id)) continue;
 
-        if (this.damageFeedbackCooldown <= 0) {
-          game.triggerDamageFeedback(hitSoldier.x, hitSoldier.y);
-          this.damageFeedbackCooldown = DAMAGE_FEEDBACK_INTERVAL;
-        }
+      const damage = enemy.damage * (1 - player.armor) * DAMAGE_INVULNERABILITY_DURATION;
+      unit.hitFlash = DAMAGE_FEEDBACK_INTERVAL;
+      if (!game.debug?.infiniteHp) unit.hp = Math.max(0, unit.hp - damage);
+      this.damageInvulnerability.set(unit.id, DAMAGE_INVULNERABILITY_DURATION);
+
+      if (this.damageFeedbackCooldown <= 0) {
+        game.triggerDamageFeedback(hitSoldier.x, hitSoldier.y);
+        this.damageFeedbackCooldown = DAMAGE_FEEDBACK_INTERVAL;
       }
+
+      if (!game.debug?.infiniteHp && unit.hp <= 0) game.killSquadUnit(hitSoldier);
     }
   }
 

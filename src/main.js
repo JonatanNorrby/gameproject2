@@ -3,7 +3,7 @@ import { Input } from './core/Input.js';
 import { UI } from './core/UI.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 12;
+const GAME_VERSION = 13;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
@@ -24,7 +24,12 @@ function configureCaptain(captainId) {
 
 function markStartingCaptain(captain) {
   const startingUnit = game.player.squad[0];
-  if (startingUnit) startingUnit.captainId = captain.id;
+  if (!startingUnit) return;
+
+  startingUnit.captainId = captain.id;
+  startingUnit.maxHp = captain.maxHp ?? startingUnit.maxHp;
+  startingUnit.hp = startingUnit.maxHp;
+  game.syncCaptainHealth();
 }
 
 function startRun(captainId, restart = false) {
@@ -39,7 +44,7 @@ ui.bindRestart(() => startRun(game.selectedCaptainId ?? ui.getSelectedCaptainId(
 ui.bindDebug({
   setInfiniteHp(enabled) {
     game.debug.infiniteHp = enabled;
-    if (enabled) game.player.hp = game.player.maxHp;
+    if (enabled) game.healAllUnits();
   },
   levelUp() {
     game.progression.debugLevelUp();

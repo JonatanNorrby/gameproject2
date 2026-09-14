@@ -12,6 +12,7 @@ const DAMAGE_FEEDBACK_DURATION = 0.18;
 const DEFAULT_SPRITE_FORWARD_ANGLE = -Math.PI / 2;
 const UNIT_ANIMATION_PRIORITY = {
   shooting: 1,
+  idle_shooting: 1,
   dead: 2,
 };
 
@@ -47,7 +48,7 @@ export class Game {
     this.elapsed = 0;
     this.kills = 0;
     this.damageFeedback = 0;
-    this.gameOverAnimationStartedAt = null;
+    this.deadCaptain = null;
     this.nextSquadUnitId = 1;
     this.modifiers = { damage: 1, fireRate: 1, moveSpeed: 1, projectileSpeed: 1, projectileLife: 1, pierce: 0 };
     this.player = {
@@ -108,21 +109,19 @@ export class Game {
   update(dt) {
     this.elapsed += dt;
     this.updatePlayer(dt);
+    this.updateUnitState(dt);
     this.spawnSystem.update(dt);
     this.combatSystem.update(dt);
     this.updateParticles(dt);
     this.updateEffects(dt);
     this.damageFeedback = Math.max(0, this.damageFeedback - dt);
 
-    if (this.debug?.infiniteHp) this.player.hp = this.player.maxHp;
+    if (this.debug?.infiniteHp) this.healAllUnits();
+    this.syncCaptainHealth();
 
     this.entities.compact();
 
-    if (this.player.hp <= 0) {
-      this.player.hp = 0;
-      if (this.gameOverAnimationStartedAt === null) {
-        this.gameOverAnimationStartedAt = this.animationClock;
-      }
+    if (this.player.hp <= 0 && this.deadCaptain && !this.pauseReasons.has('gameover')) {
       this.pause('gameover');
       this.ui.showGameOver(this);
     }
@@ -140,18 +139,54 @@ export class Game {
     this.player.y += axis.y * speed * dt;
   }
 
+  updateUnitState(dt) {
+    for (const unit of this.player.squad) {
+      unit.hitFlash = Math.max(0, (unit.hitFlash ?? 0) - dt);
+    }
+  }
+
   addSquadUnits(type, amount = 1) {
-    if (!UNIT_CLASSES[type]) return;
+    const unitClass = UNIT_CLASSES[type];
+    if (!unitClass) return;
+    const maxHp = unitClass.maxHp ?? GAME_BALANCE.player.maxHp;
+
     for (let i = 0; i < amount; i += 1) {
       this.player.squad.push({
         id: this.nextSquadUnitId,
         type,
+        hp: maxHp,
+        maxHp,
+        hitFlash: 0,
+        dead: false,
         animationState: null,
         animationStartedAt: 0,
         animationUntil: 0,
       });
       this.nextSquadUnitId += 1;
     }
+  }
+
+  getCaptainUnit() {
+    return this.player.squad.find((unit) => Boolean(unit.captainId)) ?? null;
+  }
+
+  syncCaptainHealth() {
+    const captainUnit = this.getCaptainUnit();
+    if (captainUnit) {
+      this.player.maxHp = captainUnit.maxHp;
+      this.player.hp = Math.max(0, captainUnit.hp);
+      return;
+    }
+
+    if (this.deadCaptain?.unit) {
+      this.player.maxHp = this.deadCaptain.unit.maxHp;
+      this.player.hp = 0;
+    }
+  }
+
+  healAllUnits() {
+    for (const unit of this.player.squad) unit.hp = unit.maxHp;
+    this.syncCaptainHealth();
   }
 
   playUnitAnimation(unit, state, duration = 0.2) {
@@ -168,12 +203,7 @@ export class Game {
   }
 
   getUnitAnimation(unit) {
-    if (this.player.hp <= 0) {
-      return {
-        name: 'dead',
-        time: Math.max(0, this.animationClock - (this.gameOverAnimationStartedAt ?? this.animationClock)),
-      };
-    }
+    if (unit.dead) return { name: 'dead', time: 0 };
 
     if (unit.animationState && unit.animationUntil > this.animationClock) {
       return {
@@ -187,6 +217,53 @@ export class Game {
     }
 
     return { name: 'idle', time: 0 };
+  }
+
+  getUnitSpriteRotation(sprite, animationName) {
+    if (animationName === 'idle' || animationName === 'idle_shooting') return 0;
+    const sourceForwardAngle = Number.isFinite(sprite?.forwardAngle)
+      ? sprite.forwardAngle
+      : DEFAULT_SPRITE_FORWARD_ANGLE;
+    return this.player.facingAngle - sourceForwardAngle;
+  }
+
+  killSquadUnit(soldier) {
+    const unit = soldier?.unit;
+    if (!unit || unit.dead) return;
+
+    const sprite = getSquadSprite(unit);
+    const currentAnimation = this.getUnitAnimation(unit);
+    const rotation = this.getUnitSpriteRotation(sprite, currentAnimation.name);
+
+    unit.hp = 0;
+    unit.dead = true;
+    this.playUnitAnimation(unit, 'dead');
+
+    const corpseUnit = {
+      ...unit,
+      animationState: 'dead',
+      animationStartedAt: this.animationClock,
+      animationUntil: Infinity,
+    };
+    const corpse = {
+      id: this.entities.createId(),
+      unit: corpseUnit,
+      x: soldier.x,
+      y: soldier.y,
+      rotation,
+    };
+    this.entities.corpses.push(corpse);
+
+    const squadIndex = this.player.squad.findIndex((candidate) => candidate.id === unit.id);
+    if (squadIndex >= 0) this.player.squad.splice(squadIndex, 1);
+
+    if (unit.captainId) {
+      this.deadCaptain = corpse;
+      this.player.maxHp = unit.maxHp;
+      this.player.hp = 0;
+    }
+
+    this.spawnDeathParticles(soldier.x, soldier.y, GAME_BALANCE.player.soldierRadius);
   }
 
   reorderSquad(fromIndex, toIndex) {
@@ -247,6 +324,7 @@ export class Game {
     }
     ctx.translate(width / 2 - this.player.x, height / 2 - this.player.y);
     this.drawGems(ctx);
+    this.drawCorpses(ctx);
     this.drawParticles(ctx);
     this.drawProjectiles(ctx);
     this.drawEnemies(ctx);
@@ -287,22 +365,53 @@ export class Game {
     ctx.fillRect(0, 0, width, height);
   }
 
+  drawCorpses(ctx) {
+    const radius = GAME_BALANCE.player.soldierRadius;
+
+    for (const corpse of this.entities.corpses) {
+      const sprite = getSquadSprite(corpse.unit);
+      const drawn = this.animationRenderer.draw(
+        ctx,
+        sprite,
+        'dead',
+        0,
+        corpse.x,
+        corpse.y,
+        {
+          rotation: corpse.rotation,
+          alpha: 0.92,
+          strictAnimation: true,
+        },
+      );
+      if (drawn) continue;
+
+      const unitClass = UNIT_CLASSES[corpse.unit.type] ?? UNIT_CLASSES.rifleman;
+      ctx.save();
+      ctx.translate(corpse.x, corpse.y);
+      ctx.rotate(corpse.rotation || 0);
+      ctx.globalAlpha = 0.72;
+      ctx.fillStyle = unitClass.core;
+      ctx.strokeStyle = unitClass.outline;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius + 4, radius * 0.62, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   drawPlayer(ctx) {
     const soldierRadius = GAME_BALANCE.player.soldierRadius;
     const soldiers = this.getSoldierPositions();
-    const takingDamage = this.damageFeedback > 0;
 
     ctx.save();
     for (const soldier of soldiers) {
       const unitClass = UNIT_CLASSES[soldier.unit.type] ?? UNIT_CLASSES.rifleman;
       const sprite = getSquadSprite(soldier.unit);
       const animation = this.getUnitAnimation(soldier.unit);
-      const sourceForwardAngle = Number.isFinite(sprite?.forwardAngle)
-        ? sprite.forwardAngle
-        : DEFAULT_SPRITE_FORWARD_ANGLE;
-      const spriteRotation = animation.name === 'idle'
-        ? 0
-        : this.player.facingAngle - sourceForwardAngle;
+      const spriteRotation = this.getUnitSpriteRotation(sprite, animation.name);
+      const takingDamage = (soldier.unit.hitFlash ?? 0) > 0;
       const spriteDrawn = this.animationRenderer.draw(
         ctx,
         sprite,

@@ -5,6 +5,7 @@ import { getHexFormationLayout } from '../utils/hexFormation.js';
 
 export class UI {
   constructor() {
+    this.hpLabel = document.querySelector('#hp-label');
     this.hpText = document.querySelector('#hp-text');
     this.hpBar = document.querySelector('#hp-bar');
     this.timeText = document.querySelector('#time-text');
@@ -179,10 +180,19 @@ export class UI {
   update(game) {
     this.game = game;
     const player = game.player;
-    const infiniteHp = Boolean(game.debug?.infiniteHp);
-    const hpPercent = infiniteHp ? 100 : Math.max(0, player.hp / player.maxHp) * 100;
+    const selectedCaptainId = game.selectedCaptainId ?? this.selectedCaptainId;
+    const captain = CAPTAINS[selectedCaptainId];
+    const liveCaptain = game.getCaptainUnit?.() ?? null;
+    const healthUnit = liveCaptain ?? game.deadCaptain?.unit ?? null;
+    const fallbackMaxHp = UNIT_CLASSES[captain?.unitType]?.maxHp ?? player.maxHp ?? 100;
+    const maxHp = healthUnit?.maxHp ?? fallbackMaxHp;
+    const hp = healthUnit ? Math.max(0, healthUnit.hp) : maxHp;
+    const infiniteHp = Boolean(game.debug?.infiniteHp && liveCaptain);
+    const hpPercent = infiniteHp ? 100 : Math.max(0, Math.min(1, hp / Math.max(1, maxHp))) * 100;
     const xpPercent = Math.max(0, player.xp / player.xpToNext) * 100;
-    this.hpText.textContent = infiniteHp ? '∞ / ∞' : `${Math.ceil(Math.max(0, player.hp))} / ${player.maxHp}`;
+
+    if (this.hpLabel) this.hpLabel.textContent = `${captain?.name ?? 'Captain'} Health`;
+    this.hpText.textContent = infiniteHp ? '∞ / ∞' : `${Math.ceil(hp)} / ${maxHp}`;
     this.hpBar.style.width = `${hpPercent}%`;
     this.xpBar.style.width = `${xpPercent}%`;
     this.xpText.textContent = `${player.xp} / ${player.xpToNext} XP`;
@@ -190,7 +200,7 @@ export class UI {
     this.killsText.textContent = game.kills;
     this.squadText.textContent = player.squad.length;
     this.timeText.textContent = this.formatTime(game.elapsed);
-    this.debugInfiniteHp.checked = infiniteHp;
+    this.debugInfiniteHp.checked = Boolean(game.debug?.infiniteHp);
   }
 
   showSquadBuilder() {
@@ -224,7 +234,7 @@ export class UI {
       .join(' • ');
 
     const heading = document.createElement('div');
-    heading.textContent = `${squad.length} unit${squad.length === 1 ? '' : 's'}${breakdown ? ` • ${breakdown}` : ''}${captain ? ` • ${captain.name}` : ''}`;
+    heading.textContent = `${squad.length} living unit${squad.length === 1 ? '' : 's'}${breakdown ? ` • ${breakdown}` : ''}${captain ? ` • ${captain.name}` : ''}`;
     Object.assign(heading.style, {
       color: '#7ef9d4',
       fontSize: '12px',
@@ -356,23 +366,27 @@ export class UI {
       card.style.left = `calc(50% + ${slot.x}px)`;
       card.style.top = `calc(50% + ${slot.y}px)`;
       card.style.padding = dense ? '10px 7px' : '18px 12px';
-      card.setAttribute('aria-label', `Slot ${index + 1}: ${unitCaptain?.name ?? unitClass.label}`);
+      card.setAttribute('aria-label', `Slot ${index + 1}: ${unitCaptain?.name ?? unitClass.label}, ${Math.ceil(unit.hp)} of ${unit.maxHp} health`);
       if (this.squadBuilderSelection === index) card.classList.add('squad-unit-card--selected');
 
       const statLine = unitStats
         ? `${this.formatCombatValue(unitStats.damage)} DMG • ${this.formatCombatValue(unitStats.fireRate, 2)}/s`
         : (unitClass.weapon.kind === 'rocket' ? 'AoE rockets' : 'Automatic rifle');
+      const healthRatio = Math.max(0, Math.min(1, unit.hp / Math.max(1, unit.maxHp)));
+      const healthColor = healthRatio > 0.6 ? '#7ef9d4' : healthRatio > 0.3 ? '#ffd36a' : '#ff7188';
 
       card.innerHTML = `
         <span class="squad-unit-card__slot">${index + 1}</span>
         <span class="squad-unit-card__icon">${unitCaptain?.shortLabel ?? unitClass.shortLabel}</span>
         <strong>${unitCaptain?.name ?? unitClass.label}</strong>
+        <span class="squad-unit-card__health" style="margin-top:4px;color:${healthColor};font-size:10px;font-weight:950;letter-spacing:.02em;">${Math.ceil(unit.hp)} / ${unit.maxHp} HP</span>
         <small>${statLine}</small>
       `;
 
       const slotLabel = card.querySelector('.squad-unit-card__slot');
       const icon = card.querySelector('.squad-unit-card__icon');
       const label = card.querySelector('strong');
+      const health = card.querySelector('.squad-unit-card__health');
       const detail = card.querySelector('small');
 
       if (dense) {
@@ -384,6 +398,8 @@ export class UI {
         icon.style.fontSize = veryDense ? '8px' : '9px';
         label.style.fontSize = '10px';
         label.style.marginTop = '4px';
+        health.style.fontSize = veryDense ? '7px' : '8px';
+        health.style.marginTop = '2px';
         detail.style.display = 'none';
       }
 
