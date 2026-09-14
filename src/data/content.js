@@ -3,7 +3,7 @@ export const GAME_BALANCE = {
     radius: 16,
     soldierRadius: 10,
     formationSpacing: 28,
-    startingSoldiers: 2,
+    startingSoldiers: 1,
     speed: 235,
     maxHp: 100,
     armor: 0,
