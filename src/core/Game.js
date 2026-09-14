@@ -1,8 +1,10 @@
 import { GAME_BALANCE, ENEMY_TYPES, UNIT_CLASSES } from '../data/content.js';
+import { getEnemySprite, getSquadSprite } from '../data/sprites.js';
 import { EntityStore } from './EntityStore.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
 import { ProgressionSystem } from '../systems/ProgressionSystem.js';
+import { SpriteSheetRenderer } from '../rendering/SpriteSheetRenderer.js';
 import { getHexFormationLayout, radiusForNeighborSpacing } from '../utils/hexFormation.js';
 import { randomRange } from '../utils/math.js';
 
@@ -15,6 +17,7 @@ export class Game {
     this.input = input;
     this.ui = ui;
     this.entities = new EntityStore();
+    this.spriteRenderer = new SpriteSheetRenderer();
     this.spawnSystem = new SpawnSystem(this);
     this.combatSystem = new CombatSystem(this);
     this.progression = new ProgressionSystem(this, ui);
@@ -53,6 +56,8 @@ export class Game {
       level: 1,
       xp: 0,
       xpToNext: GAME_BALANCE.progression.startingXpToNext,
+      moving: false,
+      facingX: 1,
     };
 
     for (const type of GAME_BALANCE.player.startingSquad) this.addSquadUnits(type, 1);
@@ -114,6 +119,8 @@ export class Game {
   updatePlayer(dt) {
     const axis = this.input.getAxis();
     const speed = this.player.speed * this.modifiers.moveSpeed;
+    this.player.moving = Math.abs(axis.x) > 0.01 || Math.abs(axis.y) > 0.01;
+    if (Math.abs(axis.x) > 0.01) this.player.facingX = Math.sign(axis.x);
     this.player.x += axis.x * speed * dt;
     this.player.y += axis.y * speed * dt;
   }
@@ -231,10 +238,40 @@ export class Game {
     const soldierRadius = GAME_BALANCE.player.soldierRadius;
     const soldiers = this.getSoldierPositions();
     const takingDamage = this.damageFeedback > 0;
+    const animation = this.player.moving ? 'move' : 'idle';
 
     ctx.save();
     for (const soldier of soldiers) {
       const unitClass = UNIT_CLASSES[soldier.unit.type] ?? UNIT_CLASSES.rifleman;
+      const sprite = getSquadSprite(soldier.unit);
+      const spriteDrawn = this.spriteRenderer.draw(
+        ctx,
+        sprite,
+        animation,
+        this.elapsed,
+        soldier.x,
+        soldier.y,
+        {
+          phase: soldier.unit.id * 0.113,
+          flipX: Boolean(sprite?.flipWithDirection && this.player.facingX < 0),
+        },
+      );
+
+      if (spriteDrawn) {
+        if (takingDamage) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255,102,119,.9)';
+          ctx.lineWidth = 2;
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = 'rgba(255,74,94,.75)';
+          ctx.beginPath();
+          ctx.arc(soldier.x, soldier.y, soldierRadius + 4, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+        continue;
+      }
+
       const fill = takingDamage ? '#ff6677' : unitClass.fill;
       const core = takingDamage ? '#4a1119' : unitClass.core;
       const outline = takingDamage ? '#ffb0bb' : unitClass.outline;
@@ -268,6 +305,30 @@ export class Game {
   drawEnemies(ctx) {
     for (const enemy of this.entities.enemies) {
       const type = ENEMY_TYPES[enemy.type];
+      const sprite = getEnemySprite(enemy.type);
+      const spriteDrawn = this.spriteRenderer.draw(
+        ctx,
+        sprite,
+        'move',
+        this.elapsed,
+        enemy.x,
+        enemy.y,
+        { phase: enemy.id * 0.071 },
+      );
+
+      if (spriteDrawn) {
+        if (enemy.hitFlash > 0) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(255,255,255,.9)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, enemy.radius + 3, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+        continue;
+      }
+
       ctx.save();
       ctx.translate(enemy.x, enemy.y);
       ctx.fillStyle = enemy.hitFlash > 0 ? '#ffffff' : type.fill;
