@@ -5,6 +5,8 @@ import { CombatSystem } from '../systems/CombatSystem.js';
 import { ProgressionSystem } from '../systems/ProgressionSystem.js';
 import { randomRange } from '../utils/math.js';
 
+const DAMAGE_FEEDBACK_DURATION = 0.18;
+
 export class Game {
   constructor(canvas, input, ui) {
     this.canvas = canvas;
@@ -27,6 +29,7 @@ export class Game {
     this.entities.reset();
     this.elapsed = 0;
     this.kills = 0;
+    this.damageFeedback = 0;
     this.modifiers = { damage: 1, fireRate: 1, moveSpeed: 1, projectileSpeed: 1, projectileLife: 1, pierce: 0 };
     this.player = {
       x: 0,
@@ -81,6 +84,7 @@ export class Game {
     this.spawnSystem.update(dt);
     this.combatSystem.update(dt);
     this.updateParticles(dt);
+    this.damageFeedback = Math.max(0, this.damageFeedback - dt);
     this.entities.compact();
 
     if (this.player.hp <= 0) {
@@ -131,10 +135,19 @@ export class Game {
   render() {
     const ctx = this.ctx;
     const { width, height } = this.viewport;
+    const damageStrength = Math.min(1, this.damageFeedback / DAMAGE_FEEDBACK_DURATION);
+    const shakeAmount = 4 * damageStrength;
+
     ctx.clearRect(0, 0, width, height);
     this.drawBackground(ctx, width, height);
 
     ctx.save();
+    if (shakeAmount > 0) {
+      ctx.translate(
+        (Math.random() - 0.5) * shakeAmount,
+        (Math.random() - 0.5) * shakeAmount,
+      );
+    }
     ctx.translate(width / 2 - this.player.x, height / 2 - this.player.y);
     this.drawGems(ctx);
     this.drawParticles(ctx);
@@ -142,6 +155,8 @@ export class Game {
     this.drawEnemies(ctx);
     this.drawPlayer(ctx);
     ctx.restore();
+
+    if (damageStrength > 0) this.drawDamageOverlay(ctx, width, height, damageStrength);
   }
 
   drawBackground(ctx, width, height) {
@@ -164,25 +179,36 @@ export class Game {
     ctx.fillRect(0, 0, width, height);
   }
 
+  drawDamageOverlay(ctx, width, height, strength) {
+    const radius = Math.max(width, height) * 0.72;
+    const gradient = ctx.createRadialGradient(width / 2, height / 2, radius * 0.28, width / 2, height / 2, radius);
+    gradient.addColorStop(0, 'rgba(255, 45, 70, 0)');
+    gradient.addColorStop(0.62, `rgba(255, 45, 70, ${0.05 * strength})`);
+    gradient.addColorStop(1, `rgba(255, 35, 60, ${0.32 * strength})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+  }
+
   drawPlayer(ctx) {
     const soldierRadius = GAME_BALANCE.player.soldierRadius;
     const soldiers = this.getSoldierPositions();
+    const takingDamage = this.damageFeedback > 0;
 
     ctx.save();
-    ctx.shadowBlur = 14;
-    ctx.shadowColor = 'rgba(126,249,212,.42)';
+    ctx.shadowBlur = takingDamage ? 22 : 14;
+    ctx.shadowColor = takingDamage ? 'rgba(255,74,94,.72)' : 'rgba(126,249,212,.42)';
     for (const soldier of soldiers) {
-      ctx.fillStyle = '#7ef9d4';
+      ctx.fillStyle = takingDamage ? '#ff6677' : '#7ef9d4';
       ctx.beginPath();
       ctx.arc(soldier.x, soldier.y, soldierRadius, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.shadowBlur = 0;
-      ctx.fillStyle = '#0c302a';
+      ctx.fillStyle = takingDamage ? '#4a1119' : '#0c302a';
       ctx.beginPath();
       ctx.arc(soldier.x, soldier.y, soldierRadius * 0.38, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = takingDamage ? 22 : 14;
     }
     ctx.restore();
   }
@@ -245,8 +271,17 @@ export class Game {
     ctx.globalAlpha = 1;
   }
 
+  triggerDamageFeedback(x, y) {
+    this.damageFeedback = DAMAGE_FEEDBACK_DURATION;
+    this.spawnDamageParticles(x, y);
+  }
+
   spawnHitParticles(x, y) {
     for (let i = 0; i < 3; i += 1) this.createParticle(x, y, '#bffcf0', 0.18, 95);
+  }
+
+  spawnDamageParticles(x, y) {
+    for (let i = 0; i < 6; i += 1) this.createParticle(x, y, '#ff5f79', 0.24, 125);
   }
 
   spawnDeathParticles(x, y, radius) {
