@@ -1,15 +1,17 @@
 # Upgrade and class icon assets
 
-Upgrade cards use two layered icon types:
+Stat upgrade cards use two layered icon types:
 
-- `upgrade_generic/` contains one reusable icon for what an upgrade does.
+- `upgrade_generic/` contains one reusable icon for what a stat upgrade does.
 - `unit_class/` contains one badge icon for the class the upgrade belongs to.
+
+Reinforcement cards are different: they use the full unit portrait from the normal sprite assets plus the same `unit_class/` class badge. They do not use a generic reinforcement icon.
 
 Use transparent PNGs on a 256 x 256 source canvas. Keep the important artwork centered with generous padding because the UI scales these files down significantly.
 
 The UI has text fallbacks, so missing PNGs do not break upgrade cards.
 
-Expected generic upgrade files:
+Expected generic stat-upgrade files:
 
 - `upgrade_generic/damage.png`
 - `upgrade_generic/fire_rate.png`
@@ -17,7 +19,6 @@ Expected generic upgrade files:
 - `upgrade_generic/projectile_speed.png`
 - `upgrade_generic/pierce.png`
 - `upgrade_generic/blast_radius.png`
-- `upgrade_generic/reinforcement.png`
 
 Expected class badge files:
 
