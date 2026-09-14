@@ -88,7 +88,7 @@ export class CombatSystem {
       const hitSoldier = soldiers.find((soldier) => distanceSq(soldier.x, soldier.y, enemy.x, enemy.y) <= minDistance * minDistance);
       if (hitSoldier && this.damageInvulnerability <= 0) {
         const damage = enemy.damage * (1 - player.armor) * DAMAGE_INVULNERABILITY_DURATION;
-        player.hp -= damage;
+        if (!game.debug?.infiniteHp) player.hp -= damage;
         this.damageInvulnerability = DAMAGE_INVULNERABILITY_DURATION;
 
         if (this.damageFeedbackCooldown <= 0) {

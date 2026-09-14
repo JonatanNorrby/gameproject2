@@ -18,17 +18,38 @@ export class UI {
     this.resultTime = document.querySelector('#result-time');
     this.resultKills = document.querySelector('#result-kills');
     this.resultLevel = document.querySelector('#result-level');
+    this.debugToggle = document.querySelector('#debug-toggle');
+    this.debugPanel = document.querySelector('#debug-panel');
+    this.debugClose = document.querySelector('#debug-close');
+    this.debugInfiniteHp = document.querySelector('#debug-infinite-hp');
+    this.debugLevelUp = document.querySelector('#debug-level-up');
     this.versionText.textContent = `v${GAME_VERSION}`;
   }
 
   bindStart(handler) { document.querySelector('#start-button').addEventListener('click', handler); }
   bindRestart(handler) { document.querySelector('#restart-button').addEventListener('click', handler); }
 
+  bindDebug({ setInfiniteHp, levelUp }) {
+    const setOpen = (open) => {
+      this.debugPanel.classList.toggle('debug-panel--visible', open);
+      this.debugPanel.setAttribute('aria-hidden', String(!open));
+      this.debugToggle.setAttribute('aria-expanded', String(open));
+    };
+
+    this.debugToggle.addEventListener('click', () => {
+      setOpen(!this.debugPanel.classList.contains('debug-panel--visible'));
+    });
+    this.debugClose.addEventListener('click', () => setOpen(false));
+    this.debugInfiniteHp.addEventListener('change', (event) => setInfiniteHp(event.currentTarget.checked));
+    this.debugLevelUp.addEventListener('click', levelUp);
+  }
+
   update(game) {
     const player = game.player;
-    const hpPercent = Math.max(0, player.hp / player.maxHp) * 100;
+    const infiniteHp = Boolean(game.debug?.infiniteHp);
+    const hpPercent = infiniteHp ? 100 : Math.max(0, player.hp / player.maxHp) * 100;
     const xpPercent = Math.max(0, player.xp / player.xpToNext) * 100;
-    this.hpText.textContent = `${Math.ceil(Math.max(0, player.hp))} / ${player.maxHp}`;
+    this.hpText.textContent = infiniteHp ? '∞ / ∞' : `${Math.ceil(Math.max(0, player.hp))} / ${player.maxHp}`;
     this.hpBar.style.width = `${hpPercent}%`;
     this.xpBar.style.width = `${xpPercent}%`;
     this.xpText.textContent = `${player.xp} / ${player.xpToNext} XP`;
@@ -36,6 +57,7 @@ export class UI {
     this.killsText.textContent = game.kills;
     this.squadText.textContent = player.soldiers;
     this.timeText.textContent = this.formatTime(game.elapsed);
+    this.debugInfiniteHp.checked = infiniteHp;
   }
 
   showLevelUp(choices, onChoose, ranks) {

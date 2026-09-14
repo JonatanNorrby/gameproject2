@@ -20,9 +20,13 @@ export class ProgressionSystem {
     if (player.xp >= player.xpToNext) this.levelUp();
   }
 
-  levelUp() {
+  debugLevelUp() {
+    this.levelUp({ consumeXp: false });
+  }
+
+  levelUp({ consumeXp = true } = {}) {
     const player = this.game.player;
-    player.xp -= player.xpToNext;
+    if (consumeXp) player.xp -= player.xpToNext;
     player.level += 1;
     player.xpToNext = Math.ceil(GAME_BALANCE.progression.startingXpToNext * Math.pow(GAME_BALANCE.progression.growth, player.level - 1));
 

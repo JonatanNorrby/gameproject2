@@ -33,9 +33,27 @@ button { font: inherit; }
 .bar__fill--hp { background: linear-gradient(90deg, #ff5f79, #ff957d); }
 .bar__fill--xp { background: linear-gradient(90deg, #8172ff, #c58cff); }
 
-.overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(4, 6, 11, .58); backdrop-filter: blur(4px); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 160ms ease; }
+.debug-menu { position: absolute; top: 82px; right: max(14px, env(safe-area-inset-right)); z-index: 10; display: grid; justify-items: end; gap: 8px; pointer-events: auto; }
+.debug-toggle { border: 1px solid rgba(255,255,255,.14); border-radius: 9px; padding: 7px 10px; background: rgba(8,12,20,.8); color: #9ca8bd; font-size: 10px; font-weight: 900; letter-spacing: .12em; cursor: pointer; backdrop-filter: blur(8px); }
+.debug-toggle:hover, .debug-toggle[aria-expanded="true"] { color: var(--accent); border-color: rgba(126,249,212,.42); }
+.debug-panel { width: min(280px, calc(100vw - 28px)); display: none; overflow: hidden; border: 1px solid rgba(126,249,212,.22); border-radius: 14px; background: rgba(9,14,23,.96); box-shadow: 0 20px 54px rgba(0,0,0,.42); backdrop-filter: blur(12px); }
+.debug-panel--visible { display: block; }
+.debug-panel__header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.debug-panel__header strong { font-size: 13px; letter-spacing: .04em; }
+.debug-panel__close { width: 28px; height: 28px; border: 0; border-radius: 8px; background: rgba(255,255,255,.05); color: var(--text-muted); font-size: 19px; line-height: 1; cursor: pointer; }
+.debug-control { width: 100%; min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 14px; border: 0; border-bottom: 1px solid rgba(255,255,255,.065); background: transparent; color: inherit; text-align: left; }
+.debug-control:last-child { border-bottom: 0; }
+.debug-control span, .debug-control--button { display: flex; flex-direction: column; align-items: flex-start; }
+.debug-control strong { font-size: 13px; }
+.debug-control small { margin-top: 3px; color: #76839a; font-size: 11px; }
+.debug-control--button { cursor: pointer; }
+.debug-control--button:hover { background: rgba(126,249,212,.06); }
+.debug-control input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+
+.overlay { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(4, 6, 11, .58); backdrop-filter: blur(4px); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 160ms ease; }
 .overlay--visible { opacity: 1; visibility: visible; pointer-events: auto; }
 .panel { width: min(720px, 100%); border: 1px solid var(--panel-border); border-radius: 20px; padding: clamp(24px, 5vw, 44px); background: linear-gradient(160deg, rgba(19,25,39,.98), rgba(9,13,22,.98)); box-shadow: 0 28px 90px rgba(0,0,0,.45); }
+.panel--intro { max-width: 620px; text-align: center; }
 .panel h1, .panel h2 { margin: 6px 0 14px; letter-spacing: -.035em; }
 .panel h1 { font-size: clamp(40px, 7vw, 74px); line-height: .95; }
 .panel h2 { font-size: clamp(30px, 5vw, 48px); }
@@ -75,6 +93,7 @@ button { font: inherit; }
   .hud-card--wide { min-width: 0; }
   .hud-card strong { font-size: 15px; }
   .hud-label, .hud-label-row { font-size: 10px; }
+  .debug-menu { top: 118px; }
   .upgrade-grid { grid-template-columns: 1fr; max-height: 62vh; overflow-y: auto; }
   .upgrade-card { min-height: 132px; }
   .results-grid { grid-template-columns: 1fr; }

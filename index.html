@@ -39,6 +39,27 @@
       </div>
     </section>
 
+    <aside class="debug-menu" aria-label="Debug tools">
+      <button id="debug-toggle" class="debug-toggle" type="button" aria-expanded="false" aria-controls="debug-panel">DEBUG</button>
+      <div id="debug-panel" class="debug-panel" aria-hidden="true">
+        <div class="debug-panel__header">
+          <strong>Debug Menu</strong>
+          <button id="debug-close" class="debug-panel__close" type="button" aria-label="Close debug menu">×</button>
+        </div>
+        <label class="debug-control debug-control--toggle">
+          <span>
+            <strong>Infinite HP</strong>
+            <small>Ignore all squad damage</small>
+          </span>
+          <input id="debug-infinite-hp" type="checkbox" />
+        </label>
+        <button id="debug-level-up" class="debug-control debug-control--button" type="button">
+          <strong>Level Up</strong>
+          <small>Grant one level and choose an upgrade</small>
+        </button>
+      </div>
+    </aside>
+
     <section id="start-screen" class="overlay overlay--visible">
       <div class="panel panel--intro">
         <p class="eyebrow">ROGUELITE SURVIVAL PROTOTYPE</p>
