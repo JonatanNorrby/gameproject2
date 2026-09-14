@@ -1,4 +1,5 @@
 import { UNIT_CLASSES } from '../data/content.js';
+import { getHexFormationSlots, hexToPixel } from '../utils/hexFormation.js';
 
 const GAME_VERSION = '0.2.0';
 
@@ -78,6 +79,10 @@ export class UI {
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') close();
     });
+
+    window.addEventListener('resize', () => {
+      if (this.squadBuilderScreen.classList.contains('overlay--visible')) this.renderSquadBuilder();
+    });
   }
 
   update(game) {
@@ -125,85 +130,94 @@ export class UI {
 
     if (squad.length === 0) return;
 
-    const columns = Math.ceil(Math.sqrt(squad.length));
-    const rows = Math.ceil(squad.length / columns);
+    const mobile = window.innerWidth <= 760;
+    const hexRadius = mobile ? 58 : 70;
+    const cardWidth = mobile ? 100 : 122;
+    const cardHeight = mobile ? 116 : 140;
+    const slots = getHexFormationSlots(squad.length);
+    const positions = slots.map((slot) => hexToPixel(slot, hexRadius));
+    const maxAbsX = Math.max(...positions.map((position) => Math.abs(position.x)));
+    const maxAbsY = Math.max(...positions.map((position) => Math.abs(position.y)));
 
-    for (let row = 0; row < rows; row += 1) {
-      const firstIndex = row * columns;
-      const rowCount = Math.min(columns, squad.length - firstIndex);
-      const rowElement = document.createElement('div');
-      rowElement.className = 'squad-builder__row';
+    const board = document.createElement('div');
+    board.className = 'squad-builder__board';
+    board.style.width = `${Math.max(mobile ? 300 : 420, maxAbsX * 2 + cardWidth + 40)}px`;
+    board.style.height = `${Math.max(230, maxAbsY * 2 + cardHeight + 40)}px`;
 
-      for (let column = 0; column < rowCount; column += 1) {
-        const index = firstIndex + column;
-        const unit = squad[index];
-        const unitClass = UNIT_CLASSES[unit.type] ?? UNIT_CLASSES.rifleman;
-        const card = document.createElement('button');
+    squad.forEach((unit, index) => {
+      const unitClass = UNIT_CLASSES[unit.type] ?? UNIT_CLASSES.rifleman;
+      const slot = slots[index];
+      const position = positions[index];
+      const card = document.createElement('button');
 
-        card.type = 'button';
-        card.draggable = true;
-        card.className = 'squad-unit-card';
-        card.dataset.index = String(index);
-        card.style.setProperty('--unit-color', unitClass.fill);
-        if (this.squadBuilderSelection === index) card.classList.add('squad-unit-card--selected');
+      card.type = 'button';
+      card.draggable = true;
+      card.className = 'squad-unit-card';
+      card.dataset.index = String(index);
+      card.dataset.hexQ = String(slot.q);
+      card.dataset.hexR = String(slot.r);
+      card.style.setProperty('--unit-color', unitClass.fill);
+      card.style.left = `calc(50% + ${position.x}px)`;
+      card.style.top = `calc(50% + ${position.y}px)`;
+      card.setAttribute('aria-label', `Slot ${index + 1}: ${unitClass.label}`);
+      if (this.squadBuilderSelection === index) card.classList.add('squad-unit-card--selected');
 
-        card.innerHTML = `
-          <span class="squad-unit-card__slot">${index + 1}</span>
-          <span class="squad-unit-card__icon">${unitClass.shortLabel}</span>
-          <strong>${unitClass.label}</strong>
-          <small>${unitClass.weapon.kind === 'rocket' ? 'AoE rockets' : 'Automatic rifle'}</small>
-        `;
+      card.innerHTML = `
+        <span class="squad-unit-card__slot">${index + 1}</span>
+        <span class="squad-unit-card__icon">${unitClass.shortLabel}</span>
+        <strong>${unitClass.label}</strong>
+        <small>${unitClass.weapon.kind === 'rocket' ? 'AoE rockets' : 'Automatic rifle'}</small>
+      `;
 
-        card.addEventListener('dragstart', (event) => {
-          this.squadBuilderDragging = true;
-          event.dataTransfer.effectAllowed = 'move';
-          event.dataTransfer.setData('text/plain', String(index));
-          card.classList.add('squad-unit-card--dragging');
-        });
+      card.addEventListener('dragstart', (event) => {
+        this.squadBuilderDragging = true;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', String(index));
+        card.classList.add('squad-unit-card--dragging');
+      });
 
-        card.addEventListener('dragend', () => {
-          card.classList.remove('squad-unit-card--dragging');
-          setTimeout(() => { this.squadBuilderDragging = false; }, 0);
-        });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('squad-unit-card--dragging');
+        setTimeout(() => { this.squadBuilderDragging = false; }, 0);
+      });
 
-        card.addEventListener('dragover', (event) => {
-          event.preventDefault();
-          event.dataTransfer.dropEffect = 'move';
-        });
+      card.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      });
 
-        card.addEventListener('drop', (event) => {
-          event.preventDefault();
-          const fromIndex = Number(event.dataTransfer.getData('text/plain'));
-          this.squadBuilderHandlers.reorder(fromIndex, index);
+      card.addEventListener('drop', (event) => {
+        event.preventDefault();
+        const fromIndex = Number(event.dataTransfer.getData('text/plain'));
+        this.squadBuilderHandlers.reorder(fromIndex, index);
+        this.squadBuilderSelection = null;
+        this.renderSquadBuilder();
+      });
+
+      card.addEventListener('click', () => {
+        if (this.squadBuilderDragging) return;
+
+        if (this.squadBuilderSelection === null) {
+          this.squadBuilderSelection = index;
+          this.renderSquadBuilder();
+          return;
+        }
+
+        if (this.squadBuilderSelection === index) {
           this.squadBuilderSelection = null;
           this.renderSquadBuilder();
-        });
+          return;
+        }
 
-        card.addEventListener('click', () => {
-          if (this.squadBuilderDragging) return;
+        this.squadBuilderHandlers.reorder(this.squadBuilderSelection, index);
+        this.squadBuilderSelection = null;
+        this.renderSquadBuilder();
+      });
 
-          if (this.squadBuilderSelection === null) {
-            this.squadBuilderSelection = index;
-            this.renderSquadBuilder();
-            return;
-          }
+      board.append(card);
+    });
 
-          if (this.squadBuilderSelection === index) {
-            this.squadBuilderSelection = null;
-            this.renderSquadBuilder();
-            return;
-          }
-
-          this.squadBuilderHandlers.reorder(this.squadBuilderSelection, index);
-          this.squadBuilderSelection = null;
-          this.renderSquadBuilder();
-        });
-
-        rowElement.append(card);
-      }
-
-      this.squadBuilderGrid.append(rowElement);
-    }
+    this.squadBuilderGrid.append(board);
   }
 
   showLevelUp(choices, onChoose, ranks) {
