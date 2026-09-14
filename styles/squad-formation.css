@@ -1,0 +1,74 @@
+.squad-formation-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -4px 0 12px;
+  padding: 9px 10px;
+  border: 1px solid rgba(126,249,212,.12);
+  border-radius: 10px;
+  background: rgba(7,11,18,.9);
+  backdrop-filter: blur(8px);
+}
+.squad-formation-toolbar__status {
+  min-width: 0;
+  color: #95a4ba;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+.squad-formation-remove {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,95,121,.5);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: rgba(255,95,121,.09);
+  color: #ff8aa0;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+.squad-formation-remove:hover:not(:disabled) { background: rgba(255,95,121,.18); }
+.squad-formation-remove:disabled {
+  border-color: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.025);
+  color: #5f6b7d;
+  cursor: default;
+}
+.squad-builder__board--freeform { min-width: 100%; }
+.squad-formation-target {
+  position: absolute;
+  z-index: 0;
+  border: 1px dashed rgba(126,249,212,.2);
+  padding: 0;
+  background: rgba(126,249,212,.025);
+  clip-path: polygon(50% 0%, 96% 25%, 96% 75%, 50% 100%, 4% 75%, 4% 25%);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: background 100ms ease, border-color 100ms ease, filter 100ms ease;
+}
+.squad-formation-target--valid {
+  border-color: rgba(126,249,212,.72);
+  background: rgba(126,249,212,.09);
+  filter: drop-shadow(0 0 8px rgba(126,249,212,.2));
+}
+.squad-formation-target--invalid {
+  border-color: rgba(255,113,136,.18);
+  background: rgba(255,113,136,.018);
+  opacity: .45;
+}
+.squad-formation-target--dragover,
+.squad-formation-target--valid:hover {
+  border-color: #7ef9d4;
+  background: rgba(126,249,212,.19);
+  filter: drop-shadow(0 0 13px rgba(126,249,212,.45));
+}
+.squad-builder__board--freeform .squad-unit-card { z-index: 2; }
+@media (max-width: 760px) {
+  .squad-formation-toolbar { align-items: stretch; flex-direction: column; }
+  .squad-formation-remove { width: 100%; text-align: center; }
+}
