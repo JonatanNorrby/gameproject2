@@ -23,19 +23,12 @@ export class UI extends PreviousUI {
       const choice = choices[index];
       if (!choice?.upgrade) return;
 
-      card.querySelector('.upgrade-card__portrait')?.remove();
+      const portrait = card.querySelector('.upgrade-card__portrait');
       const icon = getUpgradeIconSpec(choice.upgrade);
       const stage = document.createElement('div');
       stage.className = 'upgrade-icon-stage';
       stage.dataset.genericIcon = icon.genericKey;
       stage.dataset.classIcon = icon.classKey;
-
-      const genericShell = document.createElement('div');
-      genericShell.className = 'upgrade-icon-generic';
-      const genericFallback = document.createElement('span');
-      genericFallback.className = 'upgrade-icon-fallback';
-      genericFallback.textContent = icon.genericFallback;
-      genericShell.append(genericFallback, createIconImage(icon.genericSrc, 'upgrade-icon-generic__image', genericFallback));
 
       const classBadge = document.createElement('div');
       classBadge.className = 'upgrade-icon-class';
@@ -45,7 +38,30 @@ export class UI extends PreviousUI {
       classFallback.textContent = icon.classFallback;
       classBadge.append(classFallback, createIconImage(icon.classSrc, 'upgrade-icon-class__image', classFallback));
 
-      stage.append(genericShell, classBadge);
+      if (choice.upgrade.kind === 'reinforcement') {
+        stage.classList.add('upgrade-icon-stage--reinforcement');
+        stage.dataset.genericIcon = 'unit-portrait';
+        if (portrait) {
+          portrait.style.width = '100%';
+          portrait.style.height = '118px';
+          portrait.style.margin = '0';
+          portrait.style.objectFit = 'contain';
+          portrait.style.objectPosition = 'center';
+          portrait.style.pointerEvents = 'none';
+          stage.append(portrait);
+        }
+      } else {
+        portrait?.remove();
+        const genericShell = document.createElement('div');
+        genericShell.className = 'upgrade-icon-generic';
+        const genericFallback = document.createElement('span');
+        genericFallback.className = 'upgrade-icon-fallback';
+        genericFallback.textContent = icon.genericFallback;
+        genericShell.append(genericFallback, createIconImage(icon.genericSrc, 'upgrade-icon-generic__image', genericFallback));
+        stage.append(genericShell);
+      }
+
+      stage.append(classBadge);
       const meta = card.querySelector('.upgrade-card__meta');
       if (meta) meta.after(stage);
       else card.prepend(stage);
