@@ -48,10 +48,14 @@ export class ProgressionSystem {
 
   getChoices(count) {
     const ownedTypes = new Set(this.game.player.squad.map((unit) => unit.type));
-    const pool = UPGRADES.filter((upgrade) => (
-      ownedTypes.has(upgrade.unitType)
-      && (this.ranks.get(upgrade.id) || 0) < upgrade.maxRank
-    ));
+    const pool = UPGRADES.filter((upgrade) => {
+      const belowMaxRank = (this.ranks.get(upgrade.id) || 0) < upgrade.maxRank;
+      if (!belowMaxRank) return false;
+
+      if (upgrade.kind === 'reinforcement') return true;
+      return ownedTypes.has(upgrade.unitType);
+    });
+
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, count).map((upgrade) => ({
       upgrade,
