@@ -68,7 +68,96 @@
   filter: drop-shadow(0 0 13px rgba(126,249,212,.45));
 }
 .squad-builder__board--freeform .squad-unit-card { z-index: 2; }
+
+/* Keep the full builder inside every viewport; only the formation canvas scrolls. */
+#squad-builder-screen {
+  padding:
+    max(6px, env(safe-area-inset-top))
+    max(6px, env(safe-area-inset-right))
+    max(6px, env(safe-area-inset-bottom))
+    max(6px, env(safe-area-inset-left));
+  overflow: hidden;
+}
+.panel--squad-builder {
+  width: min(960px, calc(100vw - 12px));
+  height: min(820px, calc(100dvh - 12px));
+  max-height: calc(100dvh - 12px);
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(10px, 2.4vw, 28px);
+}
+.squad-builder__header,
+.squad-builder__summary,
+.squad-builder__grid { min-width: 0; }
+.squad-builder__header h2 { font-size: clamp(24px, 5vw, 42px); }
+.squad-builder__help {
+  margin: 8px 0 6px;
+  font-size: clamp(10px, 1.8vw, 13px);
+  line-height: 1.35;
+}
+.squad-builder__summary {
+  max-height: min(18dvh, 138px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.squad-builder__grid {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  margin-top: 8px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  touch-action: pan-x pan-y;
+}
+.squad-builder__board--freeform { min-width: min(100%, 280px); }
+.squad-builder__done {
+  margin-top: 8px;
+  padding-block: 10px;
+}
+
 @media (max-width: 760px) {
   .squad-formation-toolbar { align-items: stretch; flex-direction: column; }
   .squad-formation-remove { width: 100%; text-align: center; }
+}
+
+@media (max-width: 520px) {
+  .panel--squad-builder {
+    width: calc(100vw - 8px);
+    height: calc(100dvh - 8px);
+    max-height: calc(100dvh - 8px);
+    border-radius: 14px;
+    padding: 10px 8px;
+  }
+  .squad-builder__header { gap: 8px; }
+  .squad-builder__close { width: 34px; height: 34px; }
+  .squad-builder__help { margin-block: 5px 4px; }
+  .squad-builder__grid { padding: 8px 4px; border-radius: 12px; }
+  .squad-formation-toolbar { margin-bottom: 6px; padding: 7px; gap: 7px; }
+}
+
+@media (max-height: 600px) {
+  .panel--squad-builder {
+    height: calc(100dvh - 8px);
+    max-height: calc(100dvh - 8px);
+    padding-block: 8px;
+  }
+  .squad-builder__header .eyebrow { display: none; }
+  .squad-builder__header h2 { margin: 0; font-size: 24px; }
+  .squad-builder__help {
+    margin: 3px 0;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .squad-builder__summary { max-height: 76px; }
+  .squad-builder__grid { margin-top: 5px; }
+  .squad-builder__done {
+    min-width: 100px;
+    margin-top: 5px;
+    padding: 8px 16px;
+  }
 }
