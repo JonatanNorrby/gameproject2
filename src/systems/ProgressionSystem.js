@@ -1,6 +1,9 @@
 import { GAME_BALANCE, RARITIES, UPGRADES } from '../data/content.js';
 import { createUnitModifierState } from '../data/unitModifiers.js';
 
+const REINFORCEMENT_CHOICE_WEIGHT = 0.5;
+const STAT_CHOICE_WEIGHT = 1;
+
 export class ProgressionSystem {
   constructor(game, ui) {
     this.game = game;
@@ -51,14 +54,36 @@ export class ProgressionSystem {
     }, this.ranks, finishLevelUp);
   }
 
+  getChoiceWeight(upgrade) {
+    return upgrade.kind === 'reinforcement'
+      ? REINFORCEMENT_CHOICE_WEIGHT
+      : STAT_CHOICE_WEIGHT;
+  }
+
   getChoices(count) {
     const ownedTypes = new Set(this.game.player.squad.map((unit) => unit.type));
-    const pool = UPGRADES.filter((upgrade) => (
+    const candidates = UPGRADES.filter((upgrade) => (
       upgrade.kind === 'reinforcement' || ownedTypes.has(upgrade.unitType)
     ));
+    const selected = [];
 
-    const shuffled = [...pool].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count).map((upgrade) => ({
+    while (selected.length < count && candidates.length > 0) {
+      const totalWeight = candidates.reduce((sum, upgrade) => sum + this.getChoiceWeight(upgrade), 0);
+      let roll = Math.random() * totalWeight;
+      let selectedIndex = candidates.length - 1;
+
+      for (let index = 0; index < candidates.length; index += 1) {
+        roll -= this.getChoiceWeight(candidates[index]);
+        if (roll < 0) {
+          selectedIndex = index;
+          break;
+        }
+      }
+
+      selected.push(candidates.splice(selectedIndex, 1)[0]);
+    }
+
+    return selected.map((upgrade) => ({
       upgrade: { ...upgrade, maxRank: '∞' },
       rarity: this.rollRarity(),
     }));
