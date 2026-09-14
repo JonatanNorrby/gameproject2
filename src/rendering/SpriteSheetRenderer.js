@@ -13,6 +13,28 @@ function buildFrameSequence(animation) {
   return Array.from({ length: count }, (_, index) => start + index);
 }
 
+function resolveFrameSize(definition, image) {
+  const marginX = Math.max(0, Number(definition.marginX) || 0);
+  const marginY = Math.max(0, Number(definition.marginY) || 0);
+  const spacingX = Math.max(0, Number(definition.spacingX) || 0);
+  const spacingY = Math.max(0, Number(definition.spacingY) || 0);
+  const columns = Math.max(1, Math.floor(Number(definition.columns) || 1));
+  const rows = Math.max(1, Math.floor(Number(definition.rows) || 1));
+
+  const availableWidth = Math.max(0, image.naturalWidth - marginX * 2 - spacingX * (columns - 1));
+  const availableHeight = Math.max(0, image.naturalHeight - marginY * 2 - spacingY * (rows - 1));
+
+  return {
+    frameWidth: clampPositive(definition.frameWidth, Math.floor(availableWidth / columns)),
+    frameHeight: clampPositive(definition.frameHeight, Math.floor(availableHeight / rows)),
+    columns,
+    marginX,
+    marginY,
+    spacingX,
+    spacingY,
+  };
+}
+
 export class SpriteSheetRenderer {
   constructor() {
     this.images = new Map();
@@ -35,12 +57,19 @@ export class SpriteSheetRenderer {
   draw(ctx, definition, animationName, time, x, y, options = {}) {
     if (!definition?.src) return false;
 
-    const frameWidth = clampPositive(definition.frameWidth, 0);
-    const frameHeight = clampPositive(definition.frameHeight, 0);
-    if (!frameWidth || !frameHeight) return false;
-
     const record = this.getImage(definition.src);
     if (!record || record.failed || !record.loaded) return false;
+
+    const {
+      frameWidth,
+      frameHeight,
+      columns,
+      marginX,
+      marginY,
+      spacingX,
+      spacingY,
+    } = resolveFrameSize(definition, record.image);
+    if (!frameWidth || !frameHeight) return false;
 
     const animation = definition.animations?.[animationName]
       ?? definition.animations?.idle
@@ -54,19 +83,11 @@ export class SpriteSheetRenderer {
       : rawFrameIndex % frames.length;
     const frame = frames[sequenceIndex];
 
-    const columns = Math.max(
-      1,
-      Math.floor(definition.columns ?? (record.image.naturalWidth / frameWidth)),
-    );
     const row = animation.row === undefined
       ? Math.floor(frame / columns)
       : Math.max(0, Math.floor(animation.row));
     const column = animation.row === undefined ? frame % columns : frame;
 
-    const marginX = Math.max(0, Number(definition.marginX) || 0);
-    const marginY = Math.max(0, Number(definition.marginY) || 0);
-    const spacingX = Math.max(0, Number(definition.spacingX) || 0);
-    const spacingY = Math.max(0, Number(definition.spacingY) || 0);
     const sourceX = marginX + column * (frameWidth + spacingX);
     const sourceY = marginY + row * (frameHeight + spacingY);
     if (
