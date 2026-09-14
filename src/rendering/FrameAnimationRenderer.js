@@ -66,19 +66,27 @@ export class FrameAnimationRenderer {
     const preferredSrc = resolveFramePath(definition, frames[frameIndex]);
     let record = this.getImage(preferredSrc);
 
-    // If the preferred frame is still loading, use another loaded frame from
-    // the same animation rather than making the unit blink out.
     if (!record?.loaded || record.failed) {
       record = this.findLoadedFrame(definition, animation);
     }
 
-    // New art can be added incrementally. If idle/shooting/dead is missing,
-    // keep rendering the unit with the first available running frame.
-    if ((!record?.loaded || record.failed) && resolvedAnimationName !== 'running') {
-      const running = definition.animations?.running;
-      this.preloadAnimation(definition, running);
-      record = this.findLoadedFrame(definition, running);
+    const fallbackAnimationNames = resolvedAnimationName === 'idle_shooting'
+      ? ['shooting', 'idle', 'running']
+      : resolvedAnimationName === 'shooting'
+        ? ['idle_shooting', 'running']
+        : resolvedAnimationName === 'idle'
+          ? ['running']
+          : resolvedAnimationName === 'dead'
+            ? ['idle', 'running']
+            : [];
+
+    for (const fallbackName of fallbackAnimationNames) {
+      if (record?.loaded && !record.failed) break;
+      const fallbackAnimation = definition.animations?.[fallbackName];
+      this.preloadAnimation(definition, fallbackAnimation);
+      record = this.findLoadedFrame(definition, fallbackAnimation);
     }
+
     if (!record?.loaded || record.failed) return false;
 
     const image = record.image;

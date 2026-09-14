@@ -21,12 +21,14 @@ Every standard animated character uses these exact file names:
 idle_1.png
 running_1.png
 running_2.png
+idle_shooting_1.png
+idle_shooting_2.png
 shooting_1.png
 shooting_2.png
 dead_1.png
 ```
 
-`idle_1.png` and `dead_1.png` are single-frame states. Running and shooting each use exactly two frames.
+`idle_1.png` and `dead_1.png` are single-frame states. Running, idle shooting, and moving shooting each use exactly two frames.
 
 ## Art requirements
 
@@ -50,10 +52,20 @@ Captain art is independent of the base unit class:
 
 - Stationary: displays `idle_1.png` while keeping the squad's last movement-facing direction.
 - Moving: alternates `running_1.png` / `running_2.png` and rotates toward the movement vector.
-- Firing: plays `shooting_1.png` then `shooting_2.png` while keeping the current squad-facing direction.
+- Standing still and firing: loops `idle_shooting_1.png` / `idle_shooting_2.png` for a short firing window after each shot.
+- Moving and firing: loops `shooting_1.png` / `shooting_2.png` for the same firing window.
+- The firing window lasts longer than the instant projectile spawn so even a single shot visibly repeats the two firing frames and reads as an attack animation.
 - Taking damage: keeps the current idle/running/shooting art and uses the game's red flash, shake, outline, and particles for feedback. No damage-specific PNGs are required.
 - Run ended: displays `dead_1.png` using the last facing direction.
 
-Missing animation images fall back to an available running frame while art is being added. If no usable image exists for that character yet, the game falls back to its existing procedural shape.
+## UI portraits
+
+The game also reuses each character's `idle_1.png` as static artwork:
+
+- Captain selection uses the selected Captain folder's `idle_1.png`.
+- Unit reinforcement upgrades use that unit class folder's `idle_1.png`.
+- If `idle_1.png` is not available yet, UI portraits temporarily fall back to the same character's `running_1.png`.
+
+Missing `idle_shooting` frames fall back to normal shooting frames. Other missing animation images fall back to an available idle/running frame while art is being added. If no usable image exists for that character yet, the game falls back to its existing procedural shape.
 
 Animation definitions live in `src/data/sprites.js`. Rendering is handled by `src/rendering/FrameAnimationRenderer.js`.

@@ -1,7 +1,6 @@
 import { CAPTAINS, UNIT_CLASSES } from '../data/content.js';
+import { getSpritePortraitSources } from '../data/sprites.js';
 import { getHexFormationLayout } from '../utils/hexFormation.js';
-
-const GAME_VERSION = 4;
 
 export class UI {
   constructor() {
@@ -41,7 +40,6 @@ export class UI {
     this.squadBuilderDragging = false;
     this.squadBuilderHasCentered = false;
 
-    this.versionText.textContent = `v${GAME_VERSION}`;
     this.renderCaptainOptions();
   }
 
@@ -49,6 +47,40 @@ export class UI {
   bindRestart(handler) { document.querySelector('#restart-button').addEventListener('click', handler); }
 
   getSelectedCaptainId() { return this.selectedCaptainId; }
+
+  addPortrait(container, sources) {
+    if (!container || !sources?.length) return;
+
+    const image = document.createElement('img');
+    image.className = 'upgrade-card__portrait';
+    image.alt = '';
+    image.setAttribute('aria-hidden', 'true');
+    Object.assign(image.style, {
+      width: '100%',
+      height: '112px',
+      objectFit: 'contain',
+      objectPosition: 'center',
+      alignSelf: 'center',
+      margin: '10px 0 2px',
+      pointerEvents: 'none',
+      filter: 'drop-shadow(0 10px 16px rgba(0,0,0,.28))',
+    });
+
+    let sourceIndex = 0;
+    image.addEventListener('error', () => {
+      sourceIndex += 1;
+      if (sourceIndex < sources.length) {
+        image.src = sources[sourceIndex];
+        return;
+      }
+      image.remove();
+    });
+    image.src = sources[sourceIndex];
+
+    const meta = container.querySelector('.upgrade-card__meta');
+    if (meta) meta.after(image);
+    else container.prepend(image);
+  }
 
   renderCaptainOptions() {
     if (!this.captainOptions) return;
@@ -84,6 +116,7 @@ export class UI {
         <p>${captain.description}</p>
         <small>${captain.passiveText}</small>
       `;
+      this.addPortrait(button, getSpritePortraitSources({ captainId: captain.id }));
 
       button.addEventListener('click', () => {
         this.selectedCaptainId = captain.id;
@@ -351,6 +384,9 @@ export class UI {
         <p>${upgrade.describe(rarity)}</p>
         <small>Rank ${currentRank + 1} / ${upgrade.maxRank}</small>
       `;
+      if (upgrade.unitType) {
+        this.addPortrait(button, getSpritePortraitSources({ unitType: upgrade.unitType }));
+      }
       button.addEventListener('click', () => onChoose(choice), { once: true });
       this.upgradeOptions.append(button);
     }

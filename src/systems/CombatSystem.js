@@ -4,7 +4,7 @@ import { distanceSq, normalize } from '../utils/math.js';
 
 const DAMAGE_FEEDBACK_INTERVAL = 0.16;
 const DAMAGE_INVULNERABILITY_DURATION = 0.1;
-const SHOOT_ANIMATION_DURATION = 0.18;
+const SHOOT_ANIMATION_DURATION = 0.36;
 
 export class CombatSystem {
   constructor(game) {
@@ -78,7 +78,11 @@ export class CombatSystem {
         aoeMultiplier: captain.effect.aoeMultiplier,
         color: captain.effect.color,
       } : null);
-      game.playUnitAnimation(unit, 'shooting', SHOOT_ANIMATION_DURATION);
+      game.playUnitAnimation(
+        unit,
+        game.player.moving ? 'shooting' : 'idle_shooting',
+        SHOOT_ANIMATION_DURATION,
+      );
       if (mercerEligible) this.shotCounts.set(unit.id, nextShotCount);
       this.fireCooldowns.set(unit.id, weapon.cooldown / game.modifiers.fireRate);
     }

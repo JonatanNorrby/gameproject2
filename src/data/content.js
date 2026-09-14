@@ -130,16 +130,15 @@ function percentageUpgrade({ id, name, tag, maxRank, values, target, suffix = ''
   };
 }
 
-function recruitmentUpgrade({ id, name, unitType, maxRank, values }) {
+function recruitmentUpgrade({ id, name, unitType, maxRank }) {
   return {
-    id, name, tag: 'Squad', maxRank,
-    describe(rarity) {
-      const amount = rarityValue(rarity, values);
+    id, name, tag: 'Squad', maxRank, unitType,
+    describe() {
       const label = UNIT_CLASSES[unitType].label;
-      return `Recruit ${amount} ${label}${amount === 1 ? '' : 's'} into the squad.`;
+      return `Recruit 1 ${label} into the squad.`;
     },
-    apply(game, rarity) {
-      game.addSquadUnits(unitType, rarityValue(rarity, values));
+    apply(game) {
+      game.addSquadUnits(unitType, 1);
     },
   };
 }
@@ -150,14 +149,12 @@ export const UPGRADES = [
     name: 'Rifleman Reinforcements',
     unitType: 'rifleman',
     maxRank: 7,
-    values: { common: 1, uncommon: 1, rare: 2, epic: 3 },
   }),
   recruitmentUpgrade({
     id: 'rocketeer-reinforcements',
     name: 'Rocketeer Reinforcements',
     unitType: 'rocketeer',
     maxRank: 5,
-    values: { common: 1, uncommon: 1, rare: 1, epic: 2 },
   }),
   percentageUpgrade({
     id: 'damage', name: 'Overcharged Rounds', tag: 'Weapon', maxRank: 8,

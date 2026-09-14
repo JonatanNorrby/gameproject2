@@ -16,7 +16,17 @@ function singleFrame(file) {
   };
 }
 
+function resolveFramePath(definition, frame) {
+  if (!definition || !frame) return null;
+  if (/^(?:https?:)?\/\//.test(frame) || frame.startsWith('./') || frame.startsWith('../') || frame.startsWith('/')) {
+    return frame;
+  }
+  const basePath = String(definition.basePath ?? '').replace(/\/$/, '');
+  return basePath ? `${basePath}/${frame}` : frame;
+}
+
 export function createStandardFrameSet(folder, options = {}) {
+  const shootingFps = options.shootingFps ?? 12;
   return {
     basePath: `./assets/${folder}`,
     drawSize: options.drawSize ?? 42,
@@ -32,7 +42,8 @@ export function createStandardFrameSet(folder, options = {}) {
     animations: {
       idle: singleFrame('idle_1.png'),
       running: twoFrame('running', options.runningFps ?? 8, true),
-      shooting: twoFrame('shooting', options.shootingFps ?? 12, false),
+      idle_shooting: twoFrame('idle_shooting', options.idleShootingFps ?? shootingFps, true),
+      shooting: twoFrame('shooting', shootingFps, true),
       dead: singleFrame('dead_1.png'),
     },
   };
@@ -62,4 +73,18 @@ export function getSquadSprite(unit) {
 
 export function getEnemySprite(enemyType) {
   return FRAME_SPRITES.enemies[enemyType] ?? null;
+}
+
+export function getSpritePortraitSources({ unitType, captainId } = {}) {
+  const definition = captainId
+    ? FRAME_SPRITES.captains[captainId]
+    : FRAME_SPRITES.units[unitType];
+  if (!definition) return [];
+
+  const frames = [
+    definition.animations?.idle?.frames?.[0],
+    definition.animations?.running?.frames?.[0],
+  ];
+
+  return [...new Set(frames.filter(Boolean).map((frame) => resolveFramePath(definition, frame)))];
 }
