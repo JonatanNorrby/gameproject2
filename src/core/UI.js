@@ -1,7 +1,7 @@
 import { CAPTAINS, UNIT_CLASSES } from '../data/content.js';
 import { getHexFormationLayout } from '../utils/hexFormation.js';
 
-const GAME_VERSION = 2;
+const GAME_VERSION = 3;
 
 export class UI {
   constructor() {
@@ -61,21 +61,29 @@ export class UI {
       button.type = 'button';
       button.className = 'upgrade-card';
       button.style.setProperty('--rarity-color', captain.color);
+      button.style.position = 'relative';
+      button.style.opacity = selected ? '1' : '0.58';
+      button.style.filter = selected ? 'none' : 'saturate(0.65) brightness(0.78)';
+      button.style.border = selected ? `3px solid ${captain.color}` : `1px solid ${captain.color}55`;
+      button.style.background = selected
+        ? `linear-gradient(160deg, ${captain.color}2e, rgba(255,255,255,.055))`
+        : `linear-gradient(160deg, ${captain.color}0d, rgba(255,255,255,.018))`;
+      button.style.boxShadow = selected
+        ? `0 0 0 3px ${captain.color}38, 0 0 34px ${captain.color}50, 0 18px 40px rgba(0,0,0,.34)`
+        : 'none';
+      button.style.transform = selected ? 'translateY(-4px) scale(1.025)' : 'scale(.985)';
       button.setAttribute('aria-pressed', String(selected));
+      button.setAttribute('aria-label', `${captain.name}${selected ? ', selected' : ', click to select'}`);
       button.innerHTML = `
+        ${selected ? `<span style="width:100%;margin:-4px 0 12px;padding:7px 10px;border-radius:8px;background:${captain.color};color:#07110f;font-size:11px;font-weight:1000;letter-spacing:.12em;text-align:center;">✓ SELECTED CAPTAIN</span>` : ''}
         <span class="upgrade-card__meta">
           <span class="upgrade-card__tag">${captain.role}</span>
-          <span class="upgrade-card__rarity">${selected ? 'Selected' : 'Captain'}</span>
+          <span class="upgrade-card__rarity">${selected ? 'ACTIVE' : 'SELECT'}</span>
         </span>
         <strong>${captain.name}</strong>
         <p>${captain.description}</p>
         <small>${captain.passiveText}</small>
       `;
-
-      if (selected) {
-        button.style.borderColor = captain.color;
-        button.style.boxShadow = `0 0 0 2px ${captain.color}55, 0 16px 36px ${captain.color}18`;
-      }
 
       button.addEventListener('click', () => {
         this.selectedCaptainId = captain.id;
@@ -83,6 +91,10 @@ export class UI {
       });
       this.captainOptions.append(button);
     }
+
+    const selectedCaptain = CAPTAINS[this.selectedCaptainId];
+    const startButton = document.querySelector('#start-button');
+    if (startButton && selectedCaptain) startButton.textContent = `Begin Run — ${selectedCaptain.name}`;
   }
 
   bindDebug({ setInfiniteHp, levelUp }) {
