@@ -1,7 +1,7 @@
 import { UNIT_CLASSES } from '../data/content.js';
 import { getHexFormationLayout } from '../utils/hexFormation.js';
 
-const GAME_VERSION = '0.2.0';
+const GAME_VERSION = 1;
 
 export class UI {
   constructor() {
