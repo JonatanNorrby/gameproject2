@@ -1,4 +1,6 @@
-const GAME_VERSION = '0.1.0';
+import { UNIT_CLASSES } from '../data/content.js';
+
+const GAME_VERSION = '0.2.0';
 
 export class UI {
   constructor() {
@@ -18,11 +20,23 @@ export class UI {
     this.resultTime = document.querySelector('#result-time');
     this.resultKills = document.querySelector('#result-kills');
     this.resultLevel = document.querySelector('#result-level');
+
     this.debugToggle = document.querySelector('#debug-toggle');
     this.debugPanel = document.querySelector('#debug-panel');
     this.debugClose = document.querySelector('#debug-close');
     this.debugInfiniteHp = document.querySelector('#debug-infinite-hp');
     this.debugLevelUp = document.querySelector('#debug-level-up');
+
+    this.squadBuilderToggle = document.querySelector('#squad-builder-toggle');
+    this.squadBuilderScreen = document.querySelector('#squad-builder-screen');
+    this.squadBuilderGrid = document.querySelector('#squad-builder-grid');
+    this.squadBuilderSummary = document.querySelector('#squad-builder-summary');
+    this.squadBuilderClose = document.querySelector('#squad-builder-close');
+    this.squadBuilderDone = document.querySelector('#squad-builder-done');
+    this.squadBuilderHandlers = null;
+    this.squadBuilderSelection = null;
+    this.squadBuilderDragging = false;
+
     this.versionText.textContent = `v${GAME_VERSION}`;
   }
 
@@ -44,6 +58,28 @@ export class UI {
     this.debugLevelUp.addEventListener('click', levelUp);
   }
 
+  bindSquadBuilder({ getSquad, reorder, onOpen, onClose }) {
+    this.squadBuilderHandlers = { getSquad, reorder, onOpen, onClose };
+
+    this.squadBuilderToggle.addEventListener('click', () => {
+      onOpen();
+      this.showSquadBuilder();
+    });
+
+    const close = () => {
+      if (!this.squadBuilderScreen.classList.contains('overlay--visible')) return;
+      this.hideSquadBuilder();
+      onClose();
+    };
+
+    this.squadBuilderClose.addEventListener('click', close);
+    this.squadBuilderDone.addEventListener('click', close);
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') close();
+    });
+  }
+
   update(game) {
     const player = game.player;
     const infiniteHp = Boolean(game.debug?.infiniteHp);
@@ -55,9 +91,119 @@ export class UI {
     this.xpText.textContent = `${player.xp} / ${player.xpToNext} XP`;
     this.levelText.textContent = `Level ${player.level}`;
     this.killsText.textContent = game.kills;
-    this.squadText.textContent = player.soldiers;
+    this.squadText.textContent = player.squad.length;
     this.timeText.textContent = this.formatTime(game.elapsed);
     this.debugInfiniteHp.checked = infiniteHp;
+  }
+
+  showSquadBuilder() {
+    this.squadBuilderSelection = null;
+    this.renderSquadBuilder();
+    this.squadBuilderScreen.classList.add('overlay--visible');
+    this.squadBuilderScreen.setAttribute('aria-hidden', 'false');
+  }
+
+  hideSquadBuilder() {
+    this.squadBuilderSelection = null;
+    this.squadBuilderScreen.classList.remove('overlay--visible');
+    this.squadBuilderScreen.setAttribute('aria-hidden', 'true');
+  }
+
+  renderSquadBuilder() {
+    if (!this.squadBuilderHandlers) return;
+    const squad = this.squadBuilderHandlers.getSquad();
+    this.squadBuilderGrid.replaceChildren();
+
+    const counts = squad.reduce((result, unit) => {
+      result[unit.type] = (result[unit.type] || 0) + 1;
+      return result;
+    }, {});
+    const breakdown = Object.entries(counts)
+      .map(([type, count]) => `${count} ${UNIT_CLASSES[type]?.label ?? type}`)
+      .join(' • ');
+    this.squadBuilderSummary.textContent = `${squad.length} unit${squad.length === 1 ? '' : 's'}${breakdown ? ` • ${breakdown}` : ''}`;
+
+    if (squad.length === 0) return;
+
+    const columns = Math.ceil(Math.sqrt(squad.length));
+    const rows = Math.ceil(squad.length / columns);
+
+    for (let row = 0; row < rows; row += 1) {
+      const firstIndex = row * columns;
+      const rowCount = Math.min(columns, squad.length - firstIndex);
+      const rowElement = document.createElement('div');
+      rowElement.className = 'squad-builder__row';
+
+      for (let column = 0; column < rowCount; column += 1) {
+        const index = firstIndex + column;
+        const unit = squad[index];
+        const unitClass = UNIT_CLASSES[unit.type] ?? UNIT_CLASSES.rifleman;
+        const card = document.createElement('button');
+
+        card.type = 'button';
+        card.draggable = true;
+        card.className = 'squad-unit-card';
+        card.dataset.index = String(index);
+        card.style.setProperty('--unit-color', unitClass.fill);
+        if (this.squadBuilderSelection === index) card.classList.add('squad-unit-card--selected');
+
+        card.innerHTML = `
+          <span class="squad-unit-card__slot">${index + 1}</span>
+          <span class="squad-unit-card__icon">${unitClass.shortLabel}</span>
+          <strong>${unitClass.label}</strong>
+          <small>${unitClass.weapon.kind === 'rocket' ? 'AoE rockets' : 'Automatic rifle'}</small>
+        `;
+
+        card.addEventListener('dragstart', (event) => {
+          this.squadBuilderDragging = true;
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', String(index));
+          card.classList.add('squad-unit-card--dragging');
+        });
+
+        card.addEventListener('dragend', () => {
+          card.classList.remove('squad-unit-card--dragging');
+          setTimeout(() => { this.squadBuilderDragging = false; }, 0);
+        });
+
+        card.addEventListener('dragover', (event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'move';
+        });
+
+        card.addEventListener('drop', (event) => {
+          event.preventDefault();
+          const fromIndex = Number(event.dataTransfer.getData('text/plain'));
+          this.squadBuilderHandlers.reorder(fromIndex, index);
+          this.squadBuilderSelection = null;
+          this.renderSquadBuilder();
+        });
+
+        card.addEventListener('click', () => {
+          if (this.squadBuilderDragging) return;
+
+          if (this.squadBuilderSelection === null) {
+            this.squadBuilderSelection = index;
+            this.renderSquadBuilder();
+            return;
+          }
+
+          if (this.squadBuilderSelection === index) {
+            this.squadBuilderSelection = null;
+            this.renderSquadBuilder();
+            return;
+          }
+
+          this.squadBuilderHandlers.reorder(this.squadBuilderSelection, index);
+          this.squadBuilderSelection = null;
+          this.renderSquadBuilder();
+        });
+
+        rowElement.append(card);
+      }
+
+      this.squadBuilderGrid.append(rowElement);
+    }
   }
 
   showLevelUp(choices, onChoose, ranks) {

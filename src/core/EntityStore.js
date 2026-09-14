@@ -6,6 +6,7 @@ export class EntityStore {
     this.projectiles = [];
     this.gems = [];
     this.particles = [];
+    this.effects = [];
     this.nextId = 1;
   }
 
@@ -16,5 +17,6 @@ export class EntityStore {
     this.projectiles = this.projectiles.filter((entity) => !entity.dead);
     this.gems = this.gems.filter((entity) => !entity.dead);
     this.particles = this.particles.filter((entity) => entity.life > 0);
+    this.effects = this.effects.filter((entity) => entity.life > 0);
   }
 }

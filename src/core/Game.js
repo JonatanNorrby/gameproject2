@@ -1,4 +1,4 @@
-import { GAME_BALANCE, ENEMY_TYPES } from '../data/content.js';
+import { GAME_BALANCE, ENEMY_TYPES, UNIT_CLASSES } from '../data/content.js';
 import { EntityStore } from './EntityStore.js';
 import { SpawnSystem } from '../systems/SpawnSystem.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
@@ -23,6 +23,13 @@ export class Game {
     this.resize();
     window.addEventListener('resize', () => this.resize());
     this.resetState();
+
+    this.ui.bindSquadBuilder({
+      getSquad: () => this.player.squad,
+      reorder: (fromIndex, toIndex) => this.reorderSquad(fromIndex, toIndex),
+      onOpen: () => this.pause('squad-builder'),
+      onClose: () => this.resume('squad-builder'),
+    });
   }
 
   resetState() {
@@ -30,6 +37,7 @@ export class Game {
     this.elapsed = 0;
     this.kills = 0;
     this.damageFeedback = 0;
+    this.nextSquadUnitId = 1;
     this.modifiers = { damage: 1, fireRate: 1, moveSpeed: 1, projectileSpeed: 1, projectileLife: 1, pierce: 0 };
     this.player = {
       x: 0,
@@ -40,11 +48,14 @@ export class Game {
       hp: GAME_BALANCE.player.maxHp,
       armor: GAME_BALANCE.player.armor,
       magnetRadius: GAME_BALANCE.player.magnetRadius,
-      soldiers: GAME_BALANCE.player.startingSoldiers,
+      squad: [],
       level: 1,
       xp: 0,
       xpToNext: GAME_BALANCE.progression.startingXpToNext,
     };
+
+    for (const type of GAME_BALANCE.player.startingSquad) this.addSquadUnits(type, 1);
+
     this.progression.reset();
     this.spawnSystem.reset();
     this.combatSystem.reset();
@@ -55,6 +66,7 @@ export class Game {
     this.pauseReasons.clear();
     this.ui.hideStart();
     this.ui.hideGameOver();
+    this.ui.hideSquadBuilder();
     if (!this.running) {
       this.running = true;
       this.lastTimestamp = performance.now();
@@ -84,7 +96,11 @@ export class Game {
     this.spawnSystem.update(dt);
     this.combatSystem.update(dt);
     this.updateParticles(dt);
+    this.updateEffects(dt);
     this.damageFeedback = Math.max(0, this.damageFeedback - dt);
+
+    if (this.debug?.infiniteHp) this.player.hp = this.player.maxHp;
+
     this.entities.compact();
 
     if (this.player.hp <= 0) {
@@ -101,8 +117,36 @@ export class Game {
     this.player.y += axis.y * speed * dt;
   }
 
+  addSquadUnits(type, amount = 1) {
+    if (!UNIT_CLASSES[type]) return;
+    for (let i = 0; i < amount; i += 1) {
+      this.player.squad.push({
+        id: this.nextSquadUnitId,
+        type,
+      });
+      this.nextSquadUnitId += 1;
+    }
+  }
+
+  reorderSquad(fromIndex, toIndex) {
+    const squad = this.player.squad;
+    if (
+      fromIndex === toIndex
+      || fromIndex < 0
+      || toIndex < 0
+      || fromIndex >= squad.length
+      || toIndex >= squad.length
+    ) return;
+
+    const [unit] = squad.splice(fromIndex, 1);
+    squad.splice(toIndex, 0, unit);
+  }
+
   getSoldierPositions() {
-    const count = Math.max(1, this.player.soldiers);
+    const squad = this.player.squad;
+    const count = squad.length;
+    if (count === 0) return [];
+
     const columns = Math.ceil(Math.sqrt(count));
     const rows = Math.ceil(count / columns);
     const spacing = GAME_BALANCE.player.formationSpacing;
@@ -112,13 +156,18 @@ export class Game {
       const firstIndex = row * columns;
       const rowCount = Math.min(columns, count - firstIndex);
       const y = this.player.y + (row - (rows - 1) / 2) * spacing;
+
       for (let column = 0; column < rowCount; column += 1) {
+        const index = firstIndex + column;
         positions.push({
           x: this.player.x + (column - (rowCount - 1) / 2) * spacing,
           y,
+          index,
+          unit: squad[index],
         });
       }
     }
+
     return positions;
   }
 
@@ -153,6 +202,7 @@ export class Game {
     this.drawParticles(ctx);
     this.drawProjectiles(ctx);
     this.drawEnemies(ctx);
+    this.drawEffects(ctx);
     this.drawPlayer(ctx);
     ctx.restore();
 
@@ -195,20 +245,34 @@ export class Game {
     const takingDamage = this.damageFeedback > 0;
 
     ctx.save();
-    ctx.shadowBlur = takingDamage ? 22 : 14;
-    ctx.shadowColor = takingDamage ? 'rgba(255,74,94,.72)' : 'rgba(126,249,212,.42)';
     for (const soldier of soldiers) {
-      ctx.fillStyle = takingDamage ? '#ff6677' : '#7ef9d4';
+      const unitClass = UNIT_CLASSES[soldier.unit.type] ?? UNIT_CLASSES.rifleman;
+      const fill = takingDamage ? '#ff6677' : unitClass.fill;
+      const core = takingDamage ? '#4a1119' : unitClass.core;
+      const outline = takingDamage ? '#ffb0bb' : unitClass.outline;
+
+      ctx.shadowBlur = takingDamage ? 22 : 14;
+      ctx.shadowColor = takingDamage ? 'rgba(255,74,94,.72)' : `${outline}66`;
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 2;
+
       ctx.beginPath();
       ctx.arc(soldier.x, soldier.y, soldierRadius, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
 
       ctx.shadowBlur = 0;
-      ctx.fillStyle = takingDamage ? '#4a1119' : '#0c302a';
+      ctx.fillStyle = core;
       ctx.beginPath();
       ctx.arc(soldier.x, soldier.y, soldierRadius * 0.38, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = takingDamage ? 22 : 14;
+
+      if (soldier.unit.type === 'rocketeer') {
+        ctx.fillStyle = takingDamage ? '#651a25' : '#6f421d';
+        ctx.fillRect(soldier.x - soldierRadius - 4, soldier.y - 5, 5, 10);
+        ctx.fillRect(soldier.x + soldierRadius - 1, soldier.y - 5, 5, 10);
+      }
     }
     ctx.restore();
   }
@@ -240,15 +304,48 @@ export class Game {
   }
 
   drawProjectiles(ctx) {
-    ctx.fillStyle = '#bffcf0';
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = '#7ef9d4';
     for (const projectile of this.entities.projectiles) {
+      ctx.save();
+      ctx.fillStyle = projectile.color ?? '#bffcf0';
+      ctx.shadowBlur = projectile.kind === 'rocket' ? 18 : 12;
+      ctx.shadowColor = projectile.color ?? '#7ef9d4';
+
+      if (projectile.kind === 'rocket') {
+        const length = Math.hypot(projectile.vx, projectile.vy) || 1;
+        const tailX = projectile.x - (projectile.vx / length) * 15;
+        const tailY = projectile.y - (projectile.vy / length) * 15;
+        ctx.strokeStyle = '#ffe19d';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(projectile.x, projectile.y);
+        ctx.lineTo(tailX, tailY);
+        ctx.stroke();
+      }
+
       ctx.beginPath();
       ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
     }
-    ctx.shadowBlur = 0;
+  }
+
+  drawEffects(ctx) {
+    for (const effect of this.entities.effects) {
+      const progress = 1 - effect.life / effect.maxLife;
+      const radius = effect.radius * (0.35 + progress * 0.65);
+      const alpha = Math.max(0, effect.life / effect.maxLife);
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = effect.color;
+      ctx.fillStyle = `${effect.color}22`;
+      ctx.lineWidth = 5 * alpha + 1;
+      ctx.beginPath();
+      ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   drawGems(ctx) {
@@ -284,6 +381,18 @@ export class Game {
     for (let i = 0; i < 6; i += 1) this.createParticle(x, y, '#ff5f79', 0.24, 125);
   }
 
+  spawnExplosionEffect(x, y, radius, color = '#ffb35c') {
+    this.entities.effects.push({
+      x, y, radius, color,
+      life: 0.32,
+      maxLife: 0.32,
+    });
+
+    for (let i = 0; i < 18; i += 1) {
+      this.createParticle(x, y, i % 3 === 0 ? '#fff0b0' : color, 0.34, radius * 3.4);
+    }
+  }
+
   spawnDeathParticles(x, y, radius) {
     const amount = Math.min(10, Math.ceil(radius / 3));
     for (let i = 0; i < amount; i += 1) this.createParticle(x, y, '#e87aa0', 0.35, 150);
@@ -307,5 +416,9 @@ export class Game {
       particle.vy *= 0.97;
       particle.life -= dt;
     }
+  }
+
+  updateEffects(dt) {
+    for (const effect of this.entities.effects) effect.life -= dt;
   }
 }

@@ -33,11 +33,15 @@
 
       <div class="hud__bottom">
         <div class="hud-card hud-card--wide">
-          <div class="hud-label-row"><span id="level-text">Level 1</span><span id="version-text">v0.1.0</span><span id="xp-text">0 / 8 XP</span></div>
+          <div class="hud-label-row"><span id="level-text">Level 1</span><span id="version-text">v0.2.0</span><span id="xp-text">0 / 8 XP</span></div>
           <div class="bar"><div id="xp-bar" class="bar__fill bar__fill--xp"></div></div>
         </div>
       </div>
     </section>
+
+    <aside class="squad-menu" aria-label="Squad tools">
+      <button id="squad-builder-toggle" class="squad-builder-toggle" type="button">SQUAD BUILDER</button>
+    </aside>
 
     <aside class="debug-menu" aria-label="Debug tools">
       <button id="debug-toggle" class="debug-toggle" type="button" aria-expanded="false" aria-controls="debug-panel">DEBUG</button>
@@ -64,7 +68,7 @@
       <div class="panel panel--intro">
         <p class="eyebrow">ROGUELITE SURVIVAL PROTOTYPE</p>
         <h1>Nightfall Protocol</h1>
-        <p>Survive the swarm. Move with <strong>WASD</strong> or <strong>arrow keys</strong>. Your squad fires automatically at nearby enemies. Level up to recruit more soldiers and find stronger, rarer upgrades. On touch devices, drag anywhere to move.</p>
+        <p>Survive the swarm. Move with <strong>WASD</strong> or <strong>arrow keys</strong>. Your squad fires automatically at nearby enemies. Recruit specialized classes, arrange your formation, and build a squad that works together. On touch devices, drag anywhere to move.</p>
         <button id="start-button" class="primary-button">Begin Run</button>
         <p class="muted">First rendition • built for expansion</p>
       </div>
@@ -75,6 +79,22 @@
         <p class="eyebrow">LEVEL UP</p>
         <h2>Choose an upgrade</h2>
         <div id="upgrade-options" class="upgrade-grid"></div>
+      </div>
+    </section>
+
+    <section id="squad-builder-screen" class="overlay" aria-hidden="true">
+      <div class="panel panel--squad-builder">
+        <div class="squad-builder__header">
+          <div>
+            <p class="eyebrow">FORMATION</p>
+            <h2>Squad Builder</h2>
+          </div>
+          <button id="squad-builder-close" class="squad-builder__close" type="button" aria-label="Close squad builder">×</button>
+        </div>
+        <p class="squad-builder__help">Drag units to reorder them. On touch devices, tap one unit and then another. The formation is packed automatically so the squad always stays tightly clumped.</p>
+        <div id="squad-builder-summary" class="squad-builder__summary"></div>
+        <div id="squad-builder-grid" class="squad-builder__grid" aria-label="Squad formation"></div>
+        <button id="squad-builder-done" class="primary-button squad-builder__done" type="button">Done</button>
       </div>
     </section>
 

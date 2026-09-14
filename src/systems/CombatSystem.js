@@ -1,4 +1,4 @@
-import { GAME_BALANCE } from '../data/content.js';
+import { GAME_BALANCE, UNIT_CLASSES } from '../data/content.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
 const DAMAGE_FEEDBACK_INTERVAL = 0.16;
@@ -7,56 +7,76 @@ const DAMAGE_INVULNERABILITY_DURATION = 0.1;
 export class CombatSystem {
   constructor(game) {
     this.game = game;
-    this.fireCooldown = 0;
+    this.fireCooldowns = new Map();
     this.damageFeedbackCooldown = 0;
     this.damageInvulnerability = 0;
   }
 
   reset() {
-    this.fireCooldown = 0.15;
+    this.fireCooldowns.clear();
     this.damageFeedbackCooldown = 0;
     this.damageInvulnerability = 0;
   }
 
   update(dt) {
-    this.fireCooldown -= dt;
     this.damageFeedbackCooldown = Math.max(0, this.damageFeedbackCooldown - dt);
     this.damageInvulnerability = Math.max(0, this.damageInvulnerability - dt);
     this.updateEnemies(dt);
     this.updateProjectiles(dt);
     this.updateGems(dt);
-
-    if (this.fireCooldown <= 0) this.tryFire();
+    this.updateSquadWeapons(dt);
   }
 
-  tryFire() {
+  updateSquadWeapons(dt) {
     const game = this.game;
-    const weapon = GAME_BALANCE.weapon;
-    const speed = weapon.projectileSpeed * game.modifiers.projectileSpeed;
-    let fired = false;
+    const activeUnitIds = new Set();
 
     for (const soldier of game.getSoldierPositions()) {
+      const unit = soldier.unit;
+      const unitClass = UNIT_CLASSES[unit.type] ?? UNIT_CLASSES.rifleman;
+      const weapon = unitClass.weapon;
+      activeUnitIds.add(unit.id);
+
+      const cooldown = (this.fireCooldowns.get(unit.id) ?? 0.15) - dt;
+      this.fireCooldowns.set(unit.id, cooldown);
+      if (cooldown > 0) continue;
+
       const target = this.findNearestTarget(soldier.x, soldier.y, weapon.range);
       if (!target) continue;
 
-      const direction = normalize(target.x - soldier.x, target.y - soldier.y);
-      game.entities.projectiles.push({
-        id: game.entities.createId(),
-        x: soldier.x + direction.x * (GAME_BALANCE.player.soldierRadius + 7),
-        y: soldier.y + direction.y * (GAME_BALANCE.player.soldierRadius + 7),
-        vx: direction.x * speed,
-        vy: direction.y * speed,
-        radius: weapon.projectileRadius,
-        damage: weapon.damage * game.modifiers.damage,
-        life: weapon.projectileLife * game.modifiers.projectileLife,
-        pierce: weapon.pierce + game.modifiers.pierce,
-        hitIds: new Set(),
-        dead: false,
-      });
-      fired = true;
+      this.fireWeapon(soldier, unitClass, target);
+      this.fireCooldowns.set(unit.id, weapon.cooldown / game.modifiers.fireRate);
     }
 
-    if (fired) this.fireCooldown = weapon.cooldown / game.modifiers.fireRate;
+    for (const unitId of this.fireCooldowns.keys()) {
+      if (!activeUnitIds.has(unitId)) this.fireCooldowns.delete(unitId);
+    }
+  }
+
+  fireWeapon(soldier, unitClass, target) {
+    const game = this.game;
+    const weapon = unitClass.weapon;
+    const direction = normalize(target.x - soldier.x, target.y - soldier.y);
+    const speed = weapon.projectileSpeed * game.modifiers.projectileSpeed;
+    const explosive = weapon.kind === 'rocket';
+
+    game.entities.projectiles.push({
+      id: game.entities.createId(),
+      kind: weapon.kind,
+      sourceType: soldier.unit.type,
+      x: soldier.x + direction.x * (GAME_BALANCE.player.soldierRadius + weapon.projectileRadius + 2),
+      y: soldier.y + direction.y * (GAME_BALANCE.player.soldierRadius + weapon.projectileRadius + 2),
+      vx: direction.x * speed,
+      vy: direction.y * speed,
+      radius: weapon.projectileRadius,
+      damage: weapon.damage * game.modifiers.damage,
+      life: weapon.projectileLife * game.modifiers.projectileLife,
+      pierce: explosive ? weapon.pierce : weapon.pierce + game.modifiers.pierce,
+      aoeRadius: weapon.aoeRadius ?? 0,
+      color: weapon.color,
+      hitIds: new Set(),
+      dead: false,
+    });
   }
 
   findNearestTarget(x, y, range) {
@@ -77,6 +97,7 @@ export class CombatSystem {
     const game = this.game;
     const player = game.player;
     const soldiers = game.getSoldierPositions();
+
     for (const enemy of game.entities.enemies) {
       if (enemy.dead) continue;
       const direction = normalize(player.x - enemy.x, player.y - enemy.y);
@@ -85,7 +106,10 @@ export class CombatSystem {
       enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
 
       const minDistance = GAME_BALANCE.player.soldierRadius + enemy.radius;
-      const hitSoldier = soldiers.find((soldier) => distanceSq(soldier.x, soldier.y, enemy.x, enemy.y) <= minDistance * minDistance);
+      const hitSoldier = soldiers.find((soldier) => (
+        distanceSq(soldier.x, soldier.y, enemy.x, enemy.y) <= minDistance * minDistance
+      ));
+
       if (hitSoldier && this.damageInvulnerability <= 0) {
         const damage = enemy.damage * (1 - player.armor) * DAMAGE_INVULNERABILITY_DURATION;
         if (!game.debug?.infiniteHp) player.hp -= damage;
@@ -101,13 +125,17 @@ export class CombatSystem {
 
   updateProjectiles(dt) {
     const enemies = this.game.entities.enemies;
+
     for (const projectile of this.game.entities.projectiles) {
       if (projectile.dead) continue;
+
       projectile.x += projectile.vx * dt;
       projectile.y += projectile.vy * dt;
       projectile.life -= dt;
+
       if (projectile.life <= 0) {
-        projectile.dead = true;
+        if (projectile.kind === 'rocket') this.explodeProjectile(projectile);
+        else projectile.dead = true;
         continue;
       }
 
@@ -116,11 +144,17 @@ export class CombatSystem {
         const radius = projectile.radius + enemy.radius;
         if (distanceSq(projectile.x, projectile.y, enemy.x, enemy.y) > radius * radius) continue;
 
+        if (projectile.kind === 'rocket') {
+          this.explodeProjectile(projectile);
+          break;
+        }
+
         projectile.hitIds.add(enemy.id);
         enemy.hp -= projectile.damage;
         enemy.hitFlash = 0.07;
         this.game.spawnHitParticles(projectile.x, projectile.y);
         projectile.pierce -= 1;
+
         if (enemy.hp <= 0) this.killEnemy(enemy);
         if (projectile.pierce <= 0) {
           projectile.dead = true;
@@ -128,6 +162,24 @@ export class CombatSystem {
         }
       }
     }
+  }
+
+  explodeProjectile(projectile) {
+    if (projectile.dead) return;
+    projectile.dead = true;
+
+    const blastRadius = projectile.aoeRadius || projectile.radius * 4;
+    for (const enemy of this.game.entities.enemies) {
+      if (enemy.dead) continue;
+      const damageRadius = blastRadius + enemy.radius;
+      if (distanceSq(projectile.x, projectile.y, enemy.x, enemy.y) > damageRadius * damageRadius) continue;
+
+      enemy.hp -= projectile.damage;
+      enemy.hitFlash = 0.1;
+      if (enemy.hp <= 0) this.killEnemy(enemy);
+    }
+
+    this.game.spawnExplosionEffect(projectile.x, projectile.y, blastRadius, projectile.color);
   }
 
   killEnemy(enemy) {

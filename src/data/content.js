@@ -3,24 +3,57 @@ export const GAME_BALANCE = {
     radius: 16,
     soldierRadius: 10,
     formationSpacing: 28,
-    startingSoldiers: 1,
+    startingSquad: ['rifleman'],
     speed: 235,
     maxHp: 100,
     armor: 0,
     magnetRadius: 92,
   },
-  weapon: {
-    damage: 20,
-    cooldown: 0.55,
-    projectileSpeed: 620,
-    projectileRadius: 5,
-    projectileLife: 1.25,
-    pierce: 1,
-    range: 780,
-  },
   progression: {
     startingXpToNext: 8,
     growth: 1.34,
+  },
+};
+
+export const UNIT_CLASSES = {
+  rifleman: {
+    id: 'rifleman',
+    label: 'Rifleman',
+    shortLabel: 'RIF',
+    fill: '#7ef9d4',
+    core: '#0c302a',
+    outline: '#bffcf0',
+    weapon: {
+      kind: 'bullet',
+      damage: 20,
+      cooldown: 0.55,
+      projectileSpeed: 620,
+      projectileRadius: 5,
+      projectileLife: 1.25,
+      pierce: 1,
+      range: 780,
+      color: '#bffcf0',
+    },
+  },
+  rocketeer: {
+    id: 'rocketeer',
+    label: 'Rocketeer',
+    shortLabel: 'RKT',
+    fill: '#ffb35c',
+    core: '#4b2b13',
+    outline: '#ffe0a8',
+    weapon: {
+      kind: 'rocket',
+      damage: 38,
+      cooldown: 1.65,
+      projectileSpeed: 340,
+      projectileRadius: 9,
+      projectileLife: 2.1,
+      pierce: 1,
+      range: 720,
+      aoeRadius: 86,
+      color: '#ffb35c',
+    },
   },
 };
 
@@ -63,22 +96,39 @@ function percentageUpgrade({ id, name, tag, maxRank, values, target, suffix = ''
   };
 }
 
-export const UPGRADES = [
-  {
-    id: 'soldiers', name: 'Squad Reinforcements', tag: 'Squad', maxRank: 7,
-    values: { common: 1, uncommon: 1, rare: 2, epic: 3 },
+function recruitmentUpgrade({ id, name, unitType, maxRank, values }) {
+  return {
+    id, name, tag: 'Squad', maxRank,
     describe(rarity) {
-      const amount = rarityValue(rarity, this.values);
-      return `+${amount} soldier${amount === 1 ? '' : 's'}. Every soldier fires in each volley.`;
+      const amount = rarityValue(rarity, values);
+      const label = UNIT_CLASSES[unitType].label;
+      return `Recruit ${amount} ${label}${amount === 1 ? '' : 's'} into the squad.`;
     },
     apply(game, rarity) {
-      game.player.soldiers += rarityValue(rarity, this.values);
+      game.addSquadUnits(unitType, rarityValue(rarity, values));
     },
-  },
+  };
+}
+
+export const UPGRADES = [
+  recruitmentUpgrade({
+    id: 'rifleman-reinforcements',
+    name: 'Rifleman Reinforcements',
+    unitType: 'rifleman',
+    maxRank: 7,
+    values: { common: 1, uncommon: 1, rare: 2, epic: 3 },
+  }),
+  recruitmentUpgrade({
+    id: 'rocketeer-reinforcements',
+    name: 'Rocketeer Reinforcements',
+    unitType: 'rocketeer',
+    maxRank: 5,
+    values: { common: 1, uncommon: 1, rare: 1, epic: 2 },
+  }),
   percentageUpgrade({
     id: 'damage', name: 'Overcharged Rounds', tag: 'Weapon', maxRank: 8,
     values: { common: 20, uncommon: 28, rare: 40, epic: 60 },
-    target: 'damage', suffix: 'projectile damage.',
+    target: 'damage', suffix: 'weapon damage.',
   }),
   percentageUpgrade({
     id: 'fire-rate', name: 'Accelerated Cycling', tag: 'Weapon', maxRank: 8,
@@ -127,7 +177,7 @@ export const UPGRADES = [
     id: 'pierce', name: 'Penetrator Core', tag: 'Weapon', maxRank: 4,
     values: { common: 1, uncommon: 1, rare: 2, epic: 3 },
     describe(rarity) {
-      return `+${rarityValue(rarity, this.values)} projectile pierce.`;
+      return `+${rarityValue(rarity, this.values)} rifle projectile pierce.`;
     },
     apply(game, rarity) {
       game.modifiers.pierce += rarityValue(rarity, this.values);
