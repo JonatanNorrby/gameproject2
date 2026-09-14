@@ -2,22 +2,26 @@ import { GAME_BALANCE } from '../data/content.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
 const DAMAGE_FEEDBACK_INTERVAL = 0.16;
+const DAMAGE_INVULNERABILITY_DURATION = 0.1;
 
 export class CombatSystem {
   constructor(game) {
     this.game = game;
     this.fireCooldown = 0;
     this.damageFeedbackCooldown = 0;
+    this.damageInvulnerability = 0;
   }
 
   reset() {
     this.fireCooldown = 0.15;
     this.damageFeedbackCooldown = 0;
+    this.damageInvulnerability = 0;
   }
 
   update(dt) {
     this.fireCooldown -= dt;
     this.damageFeedbackCooldown = Math.max(0, this.damageFeedbackCooldown - dt);
+    this.damageInvulnerability = Math.max(0, this.damageInvulnerability - dt);
     this.updateEnemies(dt);
     this.updateProjectiles(dt);
     this.updateGems(dt);
@@ -82,9 +86,10 @@ export class CombatSystem {
 
       const minDistance = GAME_BALANCE.player.soldierRadius + enemy.radius;
       const hitSoldier = soldiers.find((soldier) => distanceSq(soldier.x, soldier.y, enemy.x, enemy.y) <= minDistance * minDistance);
-      if (hitSoldier) {
-        const damage = enemy.damage * (1 - player.armor) * dt;
+      if (hitSoldier && this.damageInvulnerability <= 0) {
+        const damage = enemy.damage * (1 - player.armor) * DAMAGE_INVULNERABILITY_DURATION;
         player.hp -= damage;
+        this.damageInvulnerability = DAMAGE_INVULNERABILITY_DURATION;
 
         if (this.damageFeedbackCooldown <= 0) {
           game.triggerDamageFeedback(hitSoldier.x, hitSoldier.y);
