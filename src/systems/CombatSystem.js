@@ -1,16 +1,23 @@
 import { GAME_BALANCE } from '../data/content.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
+const DAMAGE_FEEDBACK_INTERVAL = 0.16;
+
 export class CombatSystem {
   constructor(game) {
     this.game = game;
     this.fireCooldown = 0;
+    this.damageFeedbackCooldown = 0;
   }
 
-  reset() { this.fireCooldown = 0.15; }
+  reset() {
+    this.fireCooldown = 0.15;
+    this.damageFeedbackCooldown = 0;
+  }
 
   update(dt) {
     this.fireCooldown -= dt;
+    this.damageFeedbackCooldown = Math.max(0, this.damageFeedbackCooldown - dt);
     this.updateEnemies(dt);
     this.updateProjectiles(dt);
     this.updateGems(dt);
@@ -74,10 +81,15 @@ export class CombatSystem {
       enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
 
       const minDistance = GAME_BALANCE.player.soldierRadius + enemy.radius;
-      const touchingSquad = soldiers.some((soldier) => distanceSq(soldier.x, soldier.y, enemy.x, enemy.y) <= minDistance * minDistance);
-      if (touchingSquad) {
+      const hitSoldier = soldiers.find((soldier) => distanceSq(soldier.x, soldier.y, enemy.x, enemy.y) <= minDistance * minDistance);
+      if (hitSoldier) {
         const damage = enemy.damage * (1 - player.armor) * dt;
         player.hp -= damage;
+
+        if (this.damageFeedbackCooldown <= 0) {
+          game.triggerDamageFeedback(hitSoldier.x, hitSoldier.y);
+          this.damageFeedbackCooldown = DAMAGE_FEEDBACK_INTERVAL;
+        }
       }
     }
   }
