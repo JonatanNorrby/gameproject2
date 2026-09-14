@@ -1,4 +1,4 @@
-import { GAME_BALANCE, UPGRADES } from '../data/content.js';
+import { GAME_BALANCE, RARITIES, UPGRADES } from '../data/content.js';
 
 export class ProgressionSystem {
   constructor(game, ui) {
@@ -29,10 +29,11 @@ export class ProgressionSystem {
     const choices = this.getChoices(3);
     if (choices.length === 0) return;
     this.game.pause('levelup');
-    this.ui.showLevelUp(choices, (upgrade) => {
+    this.ui.showLevelUp(choices, (choice) => {
+      const { upgrade, rarity } = choice;
       const rank = (this.ranks.get(upgrade.id) || 0) + 1;
       this.ranks.set(upgrade.id, rank);
-      upgrade.apply(this.game);
+      upgrade.apply(this.game, rarity);
       this.ui.hideLevelUp();
       this.game.resume('levelup');
       if (player.xp >= player.xpToNext) this.levelUp();
@@ -42,6 +43,19 @@ export class ProgressionSystem {
   getChoices(count) {
     const pool = UPGRADES.filter((upgrade) => (this.ranks.get(upgrade.id) || 0) < upgrade.maxRank);
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
+    return shuffled.slice(0, count).map((upgrade) => ({
+      upgrade,
+      rarity: this.rollRarity(),
+    }));
+  }
+
+  rollRarity() {
+    const totalWeight = RARITIES.reduce((sum, rarity) => sum + rarity.weight, 0);
+    let roll = Math.random() * totalWeight;
+    for (const rarity of RARITIES) {
+      roll -= rarity.weight;
+      if (roll < 0) return rarity;
+    }
+    return RARITIES[0];
   }
 }

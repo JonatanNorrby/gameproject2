@@ -4,6 +4,7 @@ export class UI {
     this.hpBar = document.querySelector('#hp-bar');
     this.timeText = document.querySelector('#time-text');
     this.killsText = document.querySelector('#kills-text');
+    this.squadText = document.querySelector('#squad-text');
     this.levelText = document.querySelector('#level-text');
     this.xpText = document.querySelector('#xp-text');
     this.xpBar = document.querySelector('#xp-bar');
@@ -29,22 +30,28 @@ export class UI {
     this.xpText.textContent = `${player.xp} / ${player.xpToNext} XP`;
     this.levelText.textContent = `Level ${player.level}`;
     this.killsText.textContent = game.kills;
+    this.squadText.textContent = player.soldiers;
     this.timeText.textContent = this.formatTime(game.elapsed);
   }
 
   showLevelUp(choices, onChoose, ranks) {
     this.upgradeOptions.replaceChildren();
-    for (const upgrade of choices) {
+    for (const choice of choices) {
+      const { upgrade, rarity } = choice;
       const currentRank = ranks.get(upgrade.id) || 0;
       const button = document.createElement('button');
-      button.className = 'upgrade-card';
+      button.className = `upgrade-card upgrade-card--${rarity.id}`;
+      button.style.setProperty('--rarity-color', rarity.color);
       button.innerHTML = `
-        <span class="upgrade-card__tag">${upgrade.tag}</span>
+        <span class="upgrade-card__meta">
+          <span class="upgrade-card__tag">${upgrade.tag}</span>
+          <span class="upgrade-card__rarity">${rarity.label}</span>
+        </span>
         <strong>${upgrade.name}</strong>
-        <p>${upgrade.description}</p>
+        <p>${upgrade.describe(rarity)}</p>
         <small>Rank ${currentRank + 1} / ${upgrade.maxRank}</small>
       `;
-      button.addEventListener('click', () => onChoose(upgrade), { once: true });
+      button.addEventListener('click', () => onChoose(choice), { once: true });
       this.upgradeOptions.append(button);
     }
     this.levelupScreen.classList.add('overlay--visible');

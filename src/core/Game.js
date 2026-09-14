@@ -37,6 +37,7 @@ export class Game {
       hp: GAME_BALANCE.player.maxHp,
       armor: GAME_BALANCE.player.armor,
       magnetRadius: GAME_BALANCE.player.magnetRadius,
+      soldiers: GAME_BALANCE.player.startingSoldiers,
       level: 1,
       xp: 0,
       xpToNext: GAME_BALANCE.progression.startingXpToNext,
@@ -96,6 +97,27 @@ export class Game {
     this.player.y += axis.y * speed * dt;
   }
 
+  getSoldierPositions() {
+    const count = Math.max(1, this.player.soldiers);
+    const columns = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / columns);
+    const spacing = GAME_BALANCE.player.formationSpacing;
+    const positions = [];
+
+    for (let row = 0; row < rows; row += 1) {
+      const firstIndex = row * columns;
+      const rowCount = Math.min(columns, count - firstIndex);
+      const y = this.player.y + (row - (rows - 1) / 2) * spacing;
+      for (let column = 0; column < rowCount; column += 1) {
+        positions.push({
+          x: this.player.x + (column - (rowCount - 1) / 2) * spacing,
+          y,
+        });
+      }
+    }
+    return positions;
+  }
+
   resize() {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     this.canvas.width = Math.floor(window.innerWidth * dpr);
@@ -143,20 +165,25 @@ export class Game {
   }
 
   drawPlayer(ctx) {
-    const p = this.player;
+    const soldierRadius = GAME_BALANCE.player.soldierRadius;
+    const soldiers = this.getSoldierPositions();
+
     ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.shadowBlur = 18;
-    ctx.shadowColor = 'rgba(126,249,212,.5)';
-    ctx.fillStyle = '#7ef9d4';
-    ctx.beginPath();
-    ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#0c302a';
-    ctx.beginPath();
-    ctx.arc(0, 0, p.radius * 0.42, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = 'rgba(126,249,212,.42)';
+    for (const soldier of soldiers) {
+      ctx.fillStyle = '#7ef9d4';
+      ctx.beginPath();
+      ctx.arc(soldier.x, soldier.y, soldierRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#0c302a';
+      ctx.beginPath();
+      ctx.arc(soldier.x, soldier.y, soldierRadius * 0.38, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 14;
+    }
     ctx.restore();
   }
 

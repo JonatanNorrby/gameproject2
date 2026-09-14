@@ -21,41 +21,51 @@ export class CombatSystem {
   tryFire() {
     const game = this.game;
     const weapon = GAME_BALANCE.weapon;
-    const maxDistanceSq = weapon.range * weapon.range;
-    let target = null;
-    let bestDistance = maxDistanceSq;
+    const speed = weapon.projectileSpeed * game.modifiers.projectileSpeed;
+    let fired = false;
 
-    for (const enemy of game.entities.enemies) {
+    for (const soldier of game.getSoldierPositions()) {
+      const target = this.findNearestTarget(soldier.x, soldier.y, weapon.range);
+      if (!target) continue;
+
+      const direction = normalize(target.x - soldier.x, target.y - soldier.y);
+      game.entities.projectiles.push({
+        id: game.entities.createId(),
+        x: soldier.x + direction.x * (GAME_BALANCE.player.soldierRadius + 7),
+        y: soldier.y + direction.y * (GAME_BALANCE.player.soldierRadius + 7),
+        vx: direction.x * speed,
+        vy: direction.y * speed,
+        radius: weapon.projectileRadius,
+        damage: weapon.damage * game.modifiers.damage,
+        life: weapon.projectileLife * game.modifiers.projectileLife,
+        pierce: weapon.pierce + game.modifiers.pierce,
+        hitIds: new Set(),
+        dead: false,
+      });
+      fired = true;
+    }
+
+    if (fired) this.fireCooldown = weapon.cooldown / game.modifiers.fireRate;
+  }
+
+  findNearestTarget(x, y, range) {
+    let target = null;
+    let bestDistance = range * range;
+    for (const enemy of this.game.entities.enemies) {
       if (enemy.dead) continue;
-      const distSq = distanceSq(game.player.x, game.player.y, enemy.x, enemy.y);
+      const distSq = distanceSq(x, y, enemy.x, enemy.y);
       if (distSq < bestDistance) {
         bestDistance = distSq;
         target = enemy;
       }
     }
-
-    if (!target) return;
-    const direction = normalize(target.x - game.player.x, target.y - game.player.y);
-    const speed = weapon.projectileSpeed * game.modifiers.projectileSpeed;
-    game.entities.projectiles.push({
-      id: game.entities.createId(),
-      x: game.player.x + direction.x * 23,
-      y: game.player.y + direction.y * 23,
-      vx: direction.x * speed,
-      vy: direction.y * speed,
-      radius: weapon.projectileRadius,
-      damage: weapon.damage * game.modifiers.damage,
-      life: weapon.projectileLife * game.modifiers.projectileLife,
-      pierce: weapon.pierce + game.modifiers.pierce,
-      hitIds: new Set(),
-      dead: false,
-    });
-    this.fireCooldown = weapon.cooldown / game.modifiers.fireRate;
+    return target;
   }
 
   updateEnemies(dt) {
     const game = this.game;
     const player = game.player;
+    const soldiers = game.getSoldierPositions();
     for (const enemy of game.entities.enemies) {
       if (enemy.dead) continue;
       const direction = normalize(player.x - enemy.x, player.y - enemy.y);
@@ -63,8 +73,9 @@ export class CombatSystem {
       enemy.y += direction.y * enemy.speed * dt;
       enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
 
-      const minDistance = player.radius + enemy.radius;
-      if (distanceSq(player.x, player.y, enemy.x, enemy.y) <= minDistance * minDistance) {
+      const minDistance = GAME_BALANCE.player.soldierRadius + enemy.radius;
+      const touchingSquad = soldiers.some((soldier) => distanceSq(soldier.x, soldier.y, enemy.x, enemy.y) <= minDistance * minDistance);
+      if (touchingSquad) {
         const damage = enemy.damage * (1 - player.armor) * dt;
         player.hp -= damage;
       }
