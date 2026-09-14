@@ -27,6 +27,8 @@ function resolveFramePath(definition, frame) {
 
 export function createStandardFrameSet(folder, options = {}) {
   const shootingFps = options.shootingFps ?? 12;
+  const shootingLoop = options.shootingLoop ?? true;
+  const idleShootingLoop = options.idleShootingLoop ?? shootingLoop;
   return {
     basePath: `./assets/${folder}`,
     drawSize: options.drawSize ?? 42,
@@ -42,8 +44,8 @@ export function createStandardFrameSet(folder, options = {}) {
     animations: {
       idle: singleFrame('idle_1.png'),
       running: twoFrame('running', options.runningFps ?? 8, true),
-      idle_shooting: twoFrame('idle_shooting', options.idleShootingFps ?? shootingFps, true),
-      shooting: twoFrame('shooting', shootingFps, true),
+      idle_shooting: twoFrame('idle_shooting', options.idleShootingFps ?? shootingFps, idleShootingLoop),
+      shooting: twoFrame('shooting', shootingFps, shootingLoop),
       dead: singleFrame('dead_1.png'),
     },
   };
@@ -52,10 +54,10 @@ export function createStandardFrameSet(folder, options = {}) {
 export const FRAME_SPRITES = {
   units: {
     rifleman: createStandardFrameSet('rifleman', { drawSize: 42 }),
-    rocketeer: createStandardFrameSet('rocketeer', { drawSize: 44 }),
+    rocketeer: createStandardFrameSet('rocketeer', { drawSize: 44, shootingLoop: false }),
   },
   captains: {
-    mercer: createStandardFrameSet('captain_mercer', { drawSize: 44 }),
+    mercer: createStandardFrameSet('captain_mercer', { drawSize: 44, shootingLoop: false }),
     vale: createStandardFrameSet('captain_vale', { drawSize: 42 }),
   },
   enemies: {
