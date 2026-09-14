@@ -28,8 +28,9 @@ export function createStandardFrameSet(folder, options = {}) {
     offsetY: options.offsetY ?? 0,
     smoothing: options.smoothing ?? true,
     preserveAspect: options.preserveAspect ?? true,
-    flipWithDirection: options.flipWithDirection ?? false,
+    forwardAngle: Number.isFinite(options.forwardAngle) ? options.forwardAngle : Math.PI / 2,
     animations: {
+      idle: singleFrame('idle_1.png'),
       running: twoFrame('running', options.runningFps ?? 8, true),
       shooting: twoFrame('shooting', options.shootingFps ?? 12, false),
       dead: singleFrame('dead_1.png'),
@@ -43,8 +44,8 @@ export const FRAME_SPRITES = {
     rocketeer: createStandardFrameSet('rocketeer', { drawSize: 44 }),
   },
   captains: {
-    mercer: null,
-    vale: null,
+    mercer: createStandardFrameSet('captain_mercer', { drawSize: 44 }),
+    vale: createStandardFrameSet('captain_vale', { drawSize: 42 }),
   },
   enemies: {
     crawler: createStandardFrameSet('crawler', { drawSize: 34 }),

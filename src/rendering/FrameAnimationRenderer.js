@@ -37,10 +37,20 @@ export class FrameAnimationRenderer {
     }
   }
 
+  findLoadedFrame(definition, animation) {
+    return (animation?.frames ?? [])
+      .map((frame) => this.getImage(resolveFramePath(definition, frame)))
+      .find((candidate) => candidate?.loaded && !candidate.failed) ?? null;
+  }
+
   draw(ctx, definition, animationName, time, x, y, options = {}) {
     if (!definition) return false;
 
-    const animation = definition.animations?.[animationName]
+    const shouldUseIdle = animationName === 'running'
+      && Math.max(0, Number(time) || 0) === 0
+      && definition.animations?.idle;
+    const resolvedAnimationName = shouldUseIdle ? 'idle' : animationName;
+    const animation = definition.animations?.[resolvedAnimationName]
       ?? definition.animations?.running;
     if (!animation?.frames?.length) return false;
     this.preloadAnimation(definition, animation);
@@ -59,9 +69,15 @@ export class FrameAnimationRenderer {
     // If the preferred frame is still loading, use another loaded frame from
     // the same animation rather than making the unit blink out.
     if (!record?.loaded || record.failed) {
-      record = frames
-        .map((frame) => this.getImage(resolveFramePath(definition, frame)))
-        .find((candidate) => candidate?.loaded && !candidate.failed) ?? null;
+      record = this.findLoadedFrame(definition, animation);
+    }
+
+    // New art can be added incrementally. If idle/shooting/dead is missing,
+    // keep rendering the unit with the first available running frame.
+    if ((!record?.loaded || record.failed) && resolvedAnimationName !== 'running') {
+      const running = definition.animations?.running;
+      this.preloadAnimation(definition, running);
+      record = this.findLoadedFrame(definition, running);
     }
     if (!record?.loaded || record.failed) return false;
 
