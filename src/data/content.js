@@ -117,25 +117,58 @@ function rarityValue(rarity, values) {
   return values[rarity.id] ?? values.common;
 }
 
-function percentageUpgrade({ id, name, tag, maxRank, values, target, suffix = '' }) {
+function applyUnitStat(game, unitType, stat, amount, mode) {
+  const modifiers = game.unitModifiers?.[unitType];
+  if (!modifiers || !(stat in modifiers)) return;
+
+  if (mode === 'flat') {
+    modifiers[stat] += amount;
+    return;
+  }
+
+  modifiers[stat] *= 1 + amount / 100;
+}
+
+function unitStatUpgrade({
+  unitType,
+  id,
+  name,
+  stat,
+  maxRank,
+  values,
+  label,
+  mode = 'percent',
+}) {
   return {
-    id, name, tag, maxRank,
+    id: `${unitType}-${id}`,
+    name,
+    tag: UNIT_CLASSES[unitType].label,
+    kind: 'stat',
+    unitType,
+    stat,
+    maxRank,
     describe(rarity) {
-      const value = rarityValue(rarity, values);
-      return `+${value}% ${suffix}`;
+      const amount = rarityValue(rarity, values);
+      const suffix = mode === 'flat' ? '' : '%';
+      return `+${amount}${suffix} ${UNIT_CLASSES[unitType].label} ${label}.`;
     },
     apply(game, rarity) {
-      game.modifiers[target] *= 1 + rarityValue(rarity, values) / 100;
+      applyUnitStat(game, unitType, stat, rarityValue(rarity, values), mode);
     },
   };
 }
 
 function recruitmentUpgrade({ id, name, unitType, maxRank }) {
   return {
-    id, name, tag: 'Squad', maxRank, unitType,
+    id,
+    name,
+    tag: UNIT_CLASSES[unitType].label,
+    kind: 'reinforcement',
+    stat: 'unitCount',
+    maxRank,
+    unitType,
     describe() {
-      const label = UNIT_CLASSES[unitType].label;
-      return `Recruit 1 ${label} into the squad.`;
+      return `Recruit 1 ${UNIT_CLASSES[unitType].label} into the squad.`;
     },
     apply(game) {
       game.addSquadUnits(unitType, 1);
@@ -146,84 +179,55 @@ function recruitmentUpgrade({ id, name, unitType, maxRank }) {
 export const UPGRADES = [
   recruitmentUpgrade({
     id: 'rifleman-reinforcements',
-    name: 'Rifleman Reinforcements',
+    name: 'Rifleman Reinforcement',
     unitType: 'rifleman',
     maxRank: 7,
   }),
+  unitStatUpgrade({
+    unitType: 'rifleman', id: 'damage', name: 'High-Velocity Rounds', stat: 'damage', maxRank: 8,
+    values: { common: 20, uncommon: 28, rare: 40, epic: 60 }, label: 'damage',
+  }),
+  unitStatUpgrade({
+    unitType: 'rifleman', id: 'fire-rate', name: 'Accelerated Cycling', stat: 'fireRate', maxRank: 8,
+    values: { common: 15, uncommon: 21, rare: 30, epic: 45 }, label: 'fire rate',
+  }),
+  unitStatUpgrade({
+    unitType: 'rifleman', id: 'range', name: 'Long-Range Optics', stat: 'range', maxRank: 5,
+    values: { common: 10, uncommon: 14, rare: 20, epic: 30 }, label: 'weapon range',
+  }),
+  unitStatUpgrade({
+    unitType: 'rifleman', id: 'projectile-speed', name: 'Rail Accelerator', stat: 'projectileSpeed', maxRank: 5,
+    values: { common: 18, uncommon: 25, rare: 36, epic: 52 }, label: 'projectile speed',
+  }),
+  unitStatUpgrade({
+    unitType: 'rifleman', id: 'pierce', name: 'Penetrator Core', stat: 'pierce', maxRank: 4,
+    values: { common: 1, uncommon: 1, rare: 2, epic: 3 }, label: 'projectile pierce', mode: 'flat',
+  }),
+
   recruitmentUpgrade({
     id: 'rocketeer-reinforcements',
-    name: 'Rocketeer Reinforcements',
+    name: 'Rocketeer Reinforcement',
     unitType: 'rocketeer',
     maxRank: 5,
   }),
-  percentageUpgrade({
-    id: 'damage', name: 'Overcharged Rounds', tag: 'Weapon', maxRank: 8,
-    values: { common: 20, uncommon: 28, rare: 40, epic: 60 },
-    target: 'damage', suffix: 'weapon damage.',
+  unitStatUpgrade({
+    unitType: 'rocketeer', id: 'damage', name: 'High-Yield Warheads', stat: 'damage', maxRank: 8,
+    values: { common: 20, uncommon: 28, rare: 40, epic: 60 }, label: 'damage',
   }),
-  percentageUpgrade({
-    id: 'fire-rate', name: 'Accelerated Cycling', tag: 'Weapon', maxRank: 8,
-    values: { common: 15, uncommon: 21, rare: 30, epic: 45 },
-    target: 'fireRate', suffix: 'attack speed.',
+  unitStatUpgrade({
+    unitType: 'rocketeer', id: 'fire-rate', name: 'Rapid Loader', stat: 'fireRate', maxRank: 8,
+    values: { common: 15, uncommon: 21, rare: 30, epic: 45 }, label: 'fire rate',
   }),
-  percentageUpgrade({
-    id: 'move-speed', name: 'Servo Boost', tag: 'Mobility', maxRank: 5,
-    values: { common: 10, uncommon: 14, rare: 20, epic: 30 },
-    target: 'moveSpeed', suffix: 'movement speed.',
+  unitStatUpgrade({
+    unitType: 'rocketeer', id: 'range', name: 'Targeting Uplink', stat: 'range', maxRank: 5,
+    values: { common: 10, uncommon: 14, rare: 20, epic: 30 }, label: 'weapon range',
   }),
-  {
-    id: 'max-hp', name: 'Reinforced Chassis', tag: 'Defense', maxRank: 5,
-    values: { common: 20, uncommon: 30, rare: 45, epic: 70 },
-    describe(rarity) {
-      const amount = rarityValue(rarity, this.values);
-      return `+${amount} maximum integrity and heal ${amount}.`;
-    },
-    apply(game, rarity) {
-      const amount = rarityValue(rarity, this.values);
-      game.player.maxHp += amount;
-      game.player.hp = Math.min(game.player.maxHp, game.player.hp + amount);
-    },
-  },
-  {
-    id: 'armor', name: 'Reactive Plating', tag: 'Defense', maxRank: 6,
-    values: { common: 6, uncommon: 8, rare: 11, epic: 15 },
-    describe(rarity) {
-      return `-${rarityValue(rarity, this.values)}% contact damage taken.`;
-    },
-    apply(game, rarity) {
-      game.player.armor = Math.min(0.6, game.player.armor + rarityValue(rarity, this.values) / 100);
-    },
-  },
-  {
-    id: 'magnet', name: 'Salvage Magnet', tag: 'Utility', maxRank: 5,
-    values: { common: 34, uncommon: 48, rare: 70, epic: 105 },
-    describe(rarity) {
-      return `+${rarityValue(rarity, this.values)} pickup radius.`;
-    },
-    apply(game, rarity) {
-      game.player.magnetRadius += rarityValue(rarity, this.values);
-    },
-  },
-  {
-    id: 'pierce', name: 'Penetrator Core', tag: 'Weapon', maxRank: 4,
-    values: { common: 1, uncommon: 1, rare: 2, epic: 3 },
-    describe(rarity) {
-      return `+${rarityValue(rarity, this.values)} rifle projectile pierce.`;
-    },
-    apply(game, rarity) {
-      game.modifiers.pierce += rarityValue(rarity, this.values);
-    },
-  },
-  {
-    id: 'projectile-speed', name: 'Rail Accelerator', tag: 'Weapon', maxRank: 5,
-    speedValues: { common: 18, uncommon: 25, rare: 36, epic: 52 },
-    lifeValues: { common: 8, uncommon: 11, rare: 16, epic: 24 },
-    describe(rarity) {
-      return `+${rarityValue(rarity, this.speedValues)}% projectile speed and +${rarityValue(rarity, this.lifeValues)}% range.`;
-    },
-    apply(game, rarity) {
-      game.modifiers.projectileSpeed *= 1 + rarityValue(rarity, this.speedValues) / 100;
-      game.modifiers.projectileLife *= 1 + rarityValue(rarity, this.lifeValues) / 100;
-    },
-  },
+  unitStatUpgrade({
+    unitType: 'rocketeer', id: 'projectile-speed', name: 'Boosted Propellant', stat: 'projectileSpeed', maxRank: 5,
+    values: { common: 18, uncommon: 25, rare: 36, epic: 52 }, label: 'projectile speed',
+  }),
+  unitStatUpgrade({
+    unitType: 'rocketeer', id: 'blast-radius', name: 'Expanded Payload', stat: 'blastRadius', maxRank: 5,
+    values: { common: 15, uncommon: 22, rare: 32, epic: 48 }, label: 'blast radius',
+  }),
 ];
