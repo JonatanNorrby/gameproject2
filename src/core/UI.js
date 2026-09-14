@@ -1,3 +1,5 @@
+const GAME_VERSION = '0.1.0';
+
 export class UI {
   constructor() {
     this.hpText = document.querySelector('#hp-text');
@@ -6,6 +8,7 @@ export class UI {
     this.killsText = document.querySelector('#kills-text');
     this.squadText = document.querySelector('#squad-text');
     this.levelText = document.querySelector('#level-text');
+    this.versionText = document.querySelector('#version-text');
     this.xpText = document.querySelector('#xp-text');
     this.xpBar = document.querySelector('#xp-bar');
     this.startScreen = document.querySelector('#start-screen');
@@ -15,6 +18,7 @@ export class UI {
     this.resultTime = document.querySelector('#result-time');
     this.resultKills = document.querySelector('#result-kills');
     this.resultLevel = document.querySelector('#result-level');
+    this.versionText.textContent = `v${GAME_VERSION}`;
   }
 
   bindStart(handler) { document.querySelector('#start-button').addEventListener('click', handler); }
