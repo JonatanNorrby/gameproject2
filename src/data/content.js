@@ -57,6 +57,40 @@ export const UNIT_CLASSES = {
   },
 };
 
+export const CAPTAINS = {
+  mercer: {
+    id: 'mercer',
+    name: 'Captain Mercer',
+    role: 'Rocketeer',
+    unitType: 'rocketeer',
+    shortLabel: 'MER',
+    color: '#ffd36a',
+    description: 'Starts with a rocket launcher and empowers adjacent Rocketeers.',
+    passiveText: 'Every third shot from adjacent Rocketeers becomes a long-range rocket with 3× blast radius.',
+    effect: {
+      type: 'rocketeer-special-rocket',
+      everyShots: 3,
+      rangeMultiplier: 1.75,
+      aoeMultiplier: 3,
+      color: '#fff08a',
+    },
+  },
+  vale: {
+    id: 'vale',
+    name: 'Captain Vale',
+    role: 'Rifle Commander',
+    unitType: 'rifleman',
+    shortLabel: 'VAL',
+    color: '#7ef9d4',
+    description: 'Starts with an assault rifle and coordinates nearby Riflemen.',
+    passiveText: 'Adjacent Riflemen gain +30% fire rate.',
+    effect: {
+      type: 'rifle-fire-rate',
+      fireRateMultiplier: 1.3,
+    },
+  },
+};
+
 export const ENEMY_TYPES = {
   crawler: {
     label: 'Crawler', radius: 13, speed: 78, hp: 30, damage: 8, xp: 1,

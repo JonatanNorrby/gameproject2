@@ -1,7 +1,7 @@
-import { UNIT_CLASSES } from '../data/content.js';
+import { CAPTAINS, UNIT_CLASSES } from '../data/content.js';
 import { getHexFormationLayout } from '../utils/hexFormation.js';
 
-const GAME_VERSION = 1;
+const GAME_VERSION = 2;
 
 export class UI {
   constructor() {
@@ -21,6 +21,8 @@ export class UI {
     this.resultTime = document.querySelector('#result-time');
     this.resultKills = document.querySelector('#result-kills');
     this.resultLevel = document.querySelector('#result-level');
+    this.captainOptions = document.querySelector('#captain-options');
+    this.selectedCaptainId = Object.keys(CAPTAINS)[0];
 
     this.debugToggle = document.querySelector('#debug-toggle');
     this.debugPanel = document.querySelector('#debug-panel');
@@ -40,10 +42,48 @@ export class UI {
     this.squadBuilderHasCentered = false;
 
     this.versionText.textContent = `v${GAME_VERSION}`;
+    this.renderCaptainOptions();
   }
 
   bindStart(handler) { document.querySelector('#start-button').addEventListener('click', handler); }
   bindRestart(handler) { document.querySelector('#restart-button').addEventListener('click', handler); }
+
+  getSelectedCaptainId() { return this.selectedCaptainId; }
+
+  renderCaptainOptions() {
+    if (!this.captainOptions) return;
+    this.captainOptions.replaceChildren();
+    this.captainOptions.style.gridTemplateColumns = window.innerWidth <= 760 ? '1fr' : 'repeat(2, minmax(0, 1fr))';
+
+    for (const captain of Object.values(CAPTAINS)) {
+      const selected = captain.id === this.selectedCaptainId;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'upgrade-card';
+      button.style.setProperty('--rarity-color', captain.color);
+      button.setAttribute('aria-pressed', String(selected));
+      button.innerHTML = `
+        <span class="upgrade-card__meta">
+          <span class="upgrade-card__tag">${captain.role}</span>
+          <span class="upgrade-card__rarity">${selected ? 'Selected' : 'Captain'}</span>
+        </span>
+        <strong>${captain.name}</strong>
+        <p>${captain.description}</p>
+        <small>${captain.passiveText}</small>
+      `;
+
+      if (selected) {
+        button.style.borderColor = captain.color;
+        button.style.boxShadow = `0 0 0 2px ${captain.color}55, 0 16px 36px ${captain.color}18`;
+      }
+
+      button.addEventListener('click', () => {
+        this.selectedCaptainId = captain.id;
+        this.renderCaptainOptions();
+      });
+      this.captainOptions.append(button);
+    }
+  }
 
   bindDebug({ setInfiniteHp, levelUp }) {
     const setOpen = (open) => {
@@ -82,6 +122,7 @@ export class UI {
     });
 
     window.addEventListener('resize', () => {
+      this.renderCaptainOptions();
       if (!this.squadBuilderScreen.classList.contains('overlay--visible')) return;
       this.squadBuilderHasCentered = false;
       this.renderSquadBuilder();
@@ -149,7 +190,10 @@ export class UI {
     const breakdown = Object.entries(counts)
       .map(([type, count]) => `${count} ${UNIT_CLASSES[type]?.label ?? type}`)
       .join(' • ');
-    this.squadBuilderSummary.textContent = `${squad.length} unit${squad.length === 1 ? '' : 's'}${breakdown ? ` • ${breakdown}` : ''}`;
+    const captainUnit = squad.find((unit) => Boolean(unit.captainId));
+    const captain = captainUnit ? CAPTAINS[captainUnit.captainId] : null;
+    const captainText = captain ? ` • ${captain.name}` : '';
+    this.squadBuilderSummary.textContent = `${squad.length} unit${squad.length === 1 ? '' : 's'}${breakdown ? ` • ${breakdown}` : ''}${captainText}`;
 
     if (squad.length === 0) return;
 
@@ -170,6 +214,7 @@ export class UI {
 
     squad.forEach((unit, index) => {
       const unitClass = UNIT_CLASSES[unit.type] ?? UNIT_CLASSES.rifleman;
+      const unitCaptain = unit.captainId ? CAPTAINS[unit.captainId] : null;
       const slot = layout[index];
       const card = document.createElement('button');
 
@@ -179,20 +224,20 @@ export class UI {
       card.dataset.index = String(index);
       card.dataset.hexQ = String(slot.q);
       card.dataset.hexR = String(slot.r);
-      card.style.setProperty('--unit-color', unitClass.fill);
+      card.style.setProperty('--unit-color', unitCaptain?.color ?? unitClass.fill);
       card.style.width = `${cardWidth}px`;
       card.style.height = `${cardHeight}px`;
       card.style.left = `calc(50% + ${slot.x}px)`;
       card.style.top = `calc(50% + ${slot.y}px)`;
       card.style.padding = dense ? '10px 7px' : '18px 12px';
-      card.setAttribute('aria-label', `Slot ${index + 1}: ${unitClass.label}`);
+      card.setAttribute('aria-label', `Slot ${index + 1}: ${unitCaptain?.name ?? unitClass.label}`);
       if (this.squadBuilderSelection === index) card.classList.add('squad-unit-card--selected');
 
       card.innerHTML = `
         <span class="squad-unit-card__slot">${index + 1}</span>
-        <span class="squad-unit-card__icon">${unitClass.shortLabel}</span>
-        <strong>${unitClass.label}</strong>
-        <small>${unitClass.weapon.kind === 'rocket' ? 'AoE rockets' : 'Automatic rifle'}</small>
+        <span class="squad-unit-card__icon">${unitCaptain?.shortLabel ?? unitClass.shortLabel}</span>
+        <strong>${unitCaptain?.name ?? unitClass.label}</strong>
+        <small>${unitCaptain ? unitCaptain.role : (unitClass.weapon.kind === 'rocket' ? 'AoE rockets' : 'Automatic rifle')}</small>
       `;
 
       const slotLabel = card.querySelector('.squad-unit-card__slot');

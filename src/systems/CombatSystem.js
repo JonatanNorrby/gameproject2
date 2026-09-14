@@ -1,4 +1,5 @@
-import { GAME_BALANCE, UNIT_CLASSES } from '../data/content.js';
+import { CAPTAINS, GAME_BALANCE, UNIT_CLASSES } from '../data/content.js';
+import { areHexSlotsAdjacent } from '../utils/hexFormation.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
 const DAMAGE_FEEDBACK_INTERVAL = 0.16;
@@ -8,12 +9,14 @@ export class CombatSystem {
   constructor(game) {
     this.game = game;
     this.fireCooldowns = new Map();
+    this.shotCounts = new Map();
     this.damageFeedbackCooldown = 0;
     this.damageInvulnerability = 0;
   }
 
   reset() {
     this.fireCooldowns.clear();
+    this.shotCounts.clear();
     this.damageFeedbackCooldown = 0;
     this.damageInvulnerability = 0;
   }
@@ -29,40 +32,76 @@ export class CombatSystem {
 
   updateSquadWeapons(dt) {
     const game = this.game;
+    const soldiers = game.getSoldierPositions();
+    const captainSoldier = soldiers.find((soldier) => Boolean(soldier.unit.captainId));
+    const captain = captainSoldier ? CAPTAINS[captainSoldier.unit.captainId] : null;
     const activeUnitIds = new Set();
 
-    for (const soldier of game.getSoldierPositions()) {
+    for (const soldier of soldiers) {
       const unit = soldier.unit;
       const unitClass = UNIT_CLASSES[unit.type] ?? UNIT_CLASSES.rifleman;
       const weapon = unitClass.weapon;
+      const adjacentToCaptain = Boolean(
+        captainSoldier
+        && captain
+        && unit.id !== captainSoldier.unit.id
+        && areHexSlotsAdjacent(soldier.hex, captainSoldier.hex)
+      );
+      const valeFireRate = (
+        adjacentToCaptain
+        && captain?.effect.type === 'rifle-fire-rate'
+        && unit.type === 'rifleman'
+      ) ? captain.effect.fireRateMultiplier : 1;
+
       activeUnitIds.add(unit.id);
 
-      const cooldown = (this.fireCooldowns.get(unit.id) ?? 0.15) - dt;
+      const cooldown = (this.fireCooldowns.get(unit.id) ?? 0.15) - dt * valeFireRate;
       this.fireCooldowns.set(unit.id, cooldown);
       if (cooldown > 0) continue;
 
-      const target = this.findNearestTarget(soldier.x, soldier.y, weapon.range);
+      const mercerEligible = Boolean(
+        adjacentToCaptain
+        && captain?.effect.type === 'rocketeer-special-rocket'
+        && unit.type === 'rocketeer'
+      );
+      if (!mercerEligible) this.shotCounts.delete(unit.id);
+      const nextShotCount = mercerEligible ? (this.shotCounts.get(unit.id) ?? 0) + 1 : 0;
+      const mercerSpecial = mercerEligible && nextShotCount % captain.effect.everyShots === 0;
+      const rangeMultiplier = mercerSpecial ? captain.effect.rangeMultiplier : 1;
+      const target = this.findNearestTarget(soldier.x, soldier.y, weapon.range * rangeMultiplier);
       if (!target) continue;
 
-      this.fireWeapon(soldier, unitClass, target);
+      this.fireWeapon(soldier, unitClass, target, mercerSpecial ? {
+        special: 'mercer-rocket',
+        rangeMultiplier: captain.effect.rangeMultiplier,
+        aoeMultiplier: captain.effect.aoeMultiplier,
+        color: captain.effect.color,
+      } : null);
+      if (mercerEligible) this.shotCounts.set(unit.id, nextShotCount);
       this.fireCooldowns.set(unit.id, weapon.cooldown / game.modifiers.fireRate);
     }
 
     for (const unitId of this.fireCooldowns.keys()) {
       if (!activeUnitIds.has(unitId)) this.fireCooldowns.delete(unitId);
     }
+    for (const unitId of this.shotCounts.keys()) {
+      if (!activeUnitIds.has(unitId)) this.shotCounts.delete(unitId);
+    }
   }
 
-  fireWeapon(soldier, unitClass, target) {
+  fireWeapon(soldier, unitClass, target, shotEffect = null) {
     const game = this.game;
     const weapon = unitClass.weapon;
     const direction = normalize(target.x - soldier.x, target.y - soldier.y);
     const speed = weapon.projectileSpeed * game.modifiers.projectileSpeed;
     const explosive = weapon.kind === 'rocket';
+    const rangeMultiplier = shotEffect?.rangeMultiplier ?? 1;
+    const aoeMultiplier = shotEffect?.aoeMultiplier ?? 1;
 
     game.entities.projectiles.push({
       id: game.entities.createId(),
       kind: weapon.kind,
+      special: shotEffect?.special ?? null,
       sourceType: soldier.unit.type,
       x: soldier.x + direction.x * (GAME_BALANCE.player.soldierRadius + weapon.projectileRadius + 2),
       y: soldier.y + direction.y * (GAME_BALANCE.player.soldierRadius + weapon.projectileRadius + 2),
@@ -70,10 +109,10 @@ export class CombatSystem {
       vy: direction.y * speed,
       radius: weapon.projectileRadius,
       damage: weapon.damage * game.modifiers.damage,
-      life: weapon.projectileLife * game.modifiers.projectileLife,
+      life: weapon.projectileLife * game.modifiers.projectileLife * rangeMultiplier,
       pierce: explosive ? weapon.pierce : weapon.pierce + game.modifiers.pierce,
-      aoeRadius: weapon.aoeRadius ?? 0,
-      color: weapon.color,
+      aoeRadius: (weapon.aoeRadius ?? 0) * aoeMultiplier,
+      color: shotEffect?.color ?? weapon.color,
       hitIds: new Set(),
       dead: false,
     });
