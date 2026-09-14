@@ -34,16 +34,21 @@ export class ProgressionSystem {
 
     const choices = this.getChoices(3);
     if (choices.length === 0) return;
+
+    const finishLevelUp = () => {
+      this.ui.hideLevelUp();
+      this.game.resume('levelup');
+      if (player.xp >= player.xpToNext) this.levelUp();
+    };
+
     this.game.pause('levelup');
     this.ui.showLevelUp(choices, (choice) => {
       const { upgrade, rarity } = choice;
       const rank = (this.ranks.get(upgrade.id) || 0) + 1;
       this.ranks.set(upgrade.id, rank);
       upgrade.apply(this.game, rarity);
-      this.ui.hideLevelUp();
-      this.game.resume('levelup');
-      if (player.xp >= player.xpToNext) this.levelUp();
-    }, this.ranks);
+      finishLevelUp();
+    }, this.ranks, finishLevelUp);
   }
 
   getChoices(count) {
