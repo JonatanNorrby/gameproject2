@@ -4,7 +4,7 @@
   left: 50%;
   width: min(640px, calc(100vw - 34px));
   transform: translateX(-50%) translateY(-10px);
-  z-index: 2200;
+  z-index: 15;
   padding: 11px 14px 10px;
   border: 1px solid rgba(255, 93, 143, .38);
   border-radius: 12px;
