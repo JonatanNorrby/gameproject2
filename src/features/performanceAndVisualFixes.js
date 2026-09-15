@@ -14,12 +14,13 @@ UNIT_CLASSES.rifleman.weapon.range = 125 * RIFLEMAN_RANGE_MULTIPLIER;
 if (CAPTAINS[VALE_ID]?.effect) {
   Object.assign(CAPTAINS[VALE_ID].effect, {
     moveDecayPerSecond: 0,
+    targetChangeRetention: 1,
     focusBuffDuration: VALE_FOCUS_BUFF_DURATION,
   });
 }
 
 if (CAPTAINS[VALE_ID]) {
-  CAPTAINS[VALE_ID].passiveText = 'Vale and adjacent Riflemen build Focus while firing, even while moving. Reaching full Focus activates the full bonus for 5 seconds: +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target on every attack.';
+  CAPTAINS[VALE_ID].passiveText = 'Vale and adjacent Riflemen build Focus with every shot, even while moving or changing targets. Reaching full Focus activates the full bonus for 5 seconds: +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target on every attack.';
 }
 
 function loadSquadBuilderVisualFixes() {
@@ -118,14 +119,11 @@ function createValeFocusCombatSystem(ParentCombatSystem) {
         state.targetId = null;
       }
 
-      if (state.targetId !== null && state.targetId !== target.id) {
-        state.focus *= effect.targetChangeRetention;
-      }
-
+      // Target changes no longer throw away accumulated Focus. The target is
+      // still tracked for coordinated volleys, but every eligible shot fills
+      // the same meter continuously until the timed buff activates.
       state.targetId = target.id;
       state.lastShotAt = now;
-
-      // Movement no longer penalizes Focus: moving shots build Focus normally.
       state.focus = Math.min(1, state.focus + effect.focusGainPerShot);
 
       if (state.focus >= FOCUS_EPSILON) {
