@@ -13,14 +13,6 @@ export const GROUND_DROPS = {
     description: 'Pull every XP gem currently on the battlefield into the squad.',
     kind: 'instant',
   },
-  nuke: {
-    id: 'nuke',
-    label: 'Nuke',
-    symbol: 'N',
-    color: '#ff7a62',
-    description: 'Launch an expanding blast wave that destroys every enemy currently spawned.',
-    kind: 'instant',
-  },
   fury: {
     id: 'fury',
     label: 'Fury',
