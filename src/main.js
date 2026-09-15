@@ -1,8 +1,9 @@
 import { Game, UI } from './features/performanceAndVisualFixes.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
+import { resetUnlockProgress } from './data/unlocks.js';
 
-const GAME_VERSION = 52;
+const GAME_VERSION = 53;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
@@ -60,6 +61,25 @@ ui.bindDebug({
   levelUp() {
     game.progression.debugLevelUp();
   },
+});
+
+const resetProgressButton = document.querySelector('#reset-progress-button');
+resetProgressButton?.addEventListener('click', () => {
+  const confirmed = window.confirm(
+    'Reset all unlock progress? Captain Vale will remain available, while all earned unlocks will be locked again.',
+  );
+  if (!confirmed) return;
+
+  resetUnlockProgress();
+  ui.selectedCaptainId = null;
+  ui.captainSelectionRequired = false;
+  ui.renderCaptainOptions?.();
+  ui.renderSelectedCaptainSummary?.();
+
+  resetProgressButton.textContent = 'Progress Reset';
+  window.setTimeout(() => {
+    resetProgressButton.textContent = 'Reset Progress';
+  }, 1600);
 });
 
 for (const button of document.querySelectorAll('[data-debug-drop]')) {
