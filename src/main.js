@@ -1,8 +1,8 @@
-import { Game, UI } from './features/captainReworks.js';
+import { Game, UI } from './features/captainWeaponsAndDamageFlash.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 39;
+const GAME_VERSION = 40;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
