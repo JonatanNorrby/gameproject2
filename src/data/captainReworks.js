@@ -1,6 +1,6 @@
 export const VALE_COORDINATED_FIRE = Object.freeze({
   description: 'Starts with an upgraded burst rifle and turns nearby Riflemen into a disciplined focus-fire team.',
-  passiveText: 'Vale and adjacent Riflemen build Focus by sustaining fire on the same target. At max Focus they gain +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds every time he attacks.',
+  passiveText: 'Vale and adjacent Riflemen build Focus by sustaining fire on the same target. At max Focus they gain +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target every time he attacks.',
   effect: Object.freeze({
     type: 'coordinated-fire',
     focusGainPerShot: 0.16,
@@ -36,7 +36,8 @@ export const MERCER_CHAIN_REACTION = Object.freeze({
 
 export const CAPTAIN_WEAPON_TUNING = Object.freeze({
   riflemanBaseCooldown: 0.75,
-  valeBurstAngles: Object.freeze([-0.055, 0, 0.055]),
+  valeBurstCount: 3,
+  valeBurstShotInterval: 0.13,
   mercerBurstCount: 6,
   mercerBurstDamageMultiplier: 0.18,
   mercerBurstSpeed: 260,
