@@ -1,6 +1,6 @@
 export const VALE_COORDINATED_FIRE = Object.freeze({
-  description: 'Starts with an assault rifle and turns nearby Riflemen into a disciplined focus-fire team.',
-  passiveText: 'Adjacent Riflemen build Focus by sustaining fire on the same target. At max Focus they gain +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Moving or changing targets drains Focus.',
+  description: 'Starts with an upgraded burst rifle and turns nearby Riflemen into a disciplined focus-fire team.',
+  passiveText: 'Vale and adjacent Riflemen build Focus by sustaining fire on the same target. At max Focus they gain +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds every time he attacks.',
   effect: Object.freeze({
     type: 'coordinated-fire',
     focusGainPerShot: 0.16,
@@ -17,12 +17,9 @@ export const VALE_COORDINATED_FIRE = Object.freeze({
 });
 
 export const MERCER_CHAIN_REACTION = Object.freeze({
-  description: 'Starts with a rocket launcher and turns nearby Rocketeers into a cascading demolition team.',
-  passiveText: 'Adjacent Rocketeer explosions mark enemies. Every third rocket is a Heavy Warhead that detonates marks and chains explosions through other marked enemies.',
+  description: 'Starts with an upgraded fragmentation rocket launcher and turns nearby Rocketeers into a cascading demolition team.',
+  passiveText: 'Mercer and adjacent Rocketeer explosions mark enemies. Every third rocket is a Heavy Warhead that detonates marks into chain reactions. Mercer rockets scatter light burst rounds after exploding.',
   effect: Object.freeze({
-    // Keep the legacy special-shot type so the existing per-Rocketeer every-third-shot
-    // counter remains authoritative. Range/AoE multipliers are neutralized: the new
-    // payoff is mark detonation and cascading explosions instead.
     type: 'rocketeer-special-rocket',
     mechanic: 'chain-reaction',
     everyShots: 3,
@@ -35,4 +32,15 @@ export const MERCER_CHAIN_REACTION = Object.freeze({
     color: '#ffe780',
     markColor: '#ff9f43',
   }),
+});
+
+export const CAPTAIN_WEAPON_TUNING = Object.freeze({
+  riflemanBaseCooldown: 0.75,
+  valeBurstAngles: Object.freeze([-0.055, 0, 0.055]),
+  mercerBurstCount: 6,
+  mercerBurstDamageMultiplier: 0.18,
+  mercerBurstSpeed: 260,
+  mercerBurstLife: 0.42,
+  mercerBurstRadius: 3,
+  mercerBurstColor: '#ffd36a',
 });
