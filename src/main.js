@@ -1,8 +1,8 @@
-import { Game, UI } from './features/captainThorne.js';
+import { Game, UI } from './features/projectileBehavior.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 36;
+const GAME_VERSION = 37;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
