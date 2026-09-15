@@ -2,7 +2,7 @@ import { Game, UI } from './features/performanceAndVisualFixes.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 49;
+const GAME_VERSION = 50;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
