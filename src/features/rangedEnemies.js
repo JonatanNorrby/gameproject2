@@ -5,9 +5,45 @@ import { distanceSq, normalize } from '../utils/math.js';
 
 const RANGED_DAMAGE_FEEDBACK_INTERVAL = 0.16;
 const RANGED_HIT_INVULNERABILITY_DURATION = 0.1;
+const BURST_SPITTER_TYPE = 'burst_spitter';
 
 if (!FRAME_SPRITES.enemies.spitter) {
   FRAME_SPRITES.enemies.spitter = createStandardFrameSet('spitter', { drawSize: 38 });
+}
+
+// Keep ranged enemies uncommon, but make them appear a little more often than before.
+Object.assign(ENEMY_TYPES.spitter, {
+  weight: 0.42,
+  maxActive: 4,
+});
+
+if (!ENEMY_TYPES[BURST_SPITTER_TYPE]) {
+  ENEMY_TYPES[BURST_SPITTER_TYPE] = {
+    label: 'Burst Spitter',
+    radius: 13,
+    speed: 55,
+    hp: 52,
+    damage: 0,
+    xp: 4,
+    fill: '#d463c7',
+    outline: '#ffb5ef',
+    unlockAt: 85,
+    weight: 0.2,
+    maxActive: 2,
+    ranged: {
+      range: 350,
+      preferredRange: 295,
+      retreatRange: 210,
+      cooldown: 4.2,
+      burstCount: 3,
+      burstSpacing: 0.16,
+      projectileSpeed: 100,
+      projectileRadius: 7,
+      projectileLife: 5,
+      damage: 8,
+      color: '#ff7ddd',
+    },
+  };
 }
 
 function createRangedEnemyCombatSystem(ParentCombatSystem) {
@@ -46,6 +82,7 @@ function createRangedEnemyCombatSystem(ParentCombatSystem) {
 
         enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
         enemy.rangedCooldown = Math.max(0, (enemy.rangedCooldown ?? 0) - dt);
+        enemy.rangedBurstTimer = Math.max(0, (enemy.rangedBurstTimer ?? 0) - dt);
 
         const toPlayerX = player.x - enemy.x;
         const toPlayerY = player.y - enemy.y;
@@ -62,19 +99,65 @@ function createRangedEnemyCombatSystem(ParentCombatSystem) {
           enemy.y -= moveDirection.y * enemy.speed * dt;
         }
 
+        if ((enemy.rangedBurstRemaining ?? 0) > 0) {
+          if (enemy.rangedBurstTimer > 0) continue;
+
+          const burstTarget = this.getLockedBurstTarget(enemy, soldiers);
+          if (!burstTarget) {
+            this.finishEnemyBurst(enemy, ranged);
+            continue;
+          }
+
+          this.fireEnemyProjectile(enemy, ranged, burstTarget);
+          enemy.rangedBurstRemaining -= 1;
+          if (enemy.rangedBurstRemaining > 0) {
+            enemy.rangedBurstTimer = ranged.burstSpacing ?? 0.16;
+          } else {
+            this.finishEnemyBurst(enemy, ranged);
+          }
+          continue;
+        }
+
         if (enemy.rangedCooldown > 0) continue;
 
         const target = transformerActive
-          ? { x: player.x, y: player.y }
+          ? { x: player.x, y: player.y, targetsPlayer: true }
           : this.findNearestSoldierTarget(enemy.x, enemy.y, soldiers);
         if (!target) continue;
 
         const attackRange = ranged.range ?? 0;
         if (distanceSq(enemy.x, enemy.y, target.x, target.y) > attackRange * attackRange) continue;
 
+        const burstCount = Math.max(1, Math.floor(ranged.burstCount ?? 1));
         this.fireEnemyProjectile(enemy, ranged, target);
-        enemy.rangedCooldown = ranged.cooldown * (0.9 + Math.random() * 0.2);
+
+        if (burstCount > 1) {
+          enemy.rangedBurstRemaining = burstCount - 1;
+          enemy.rangedBurstTimer = ranged.burstSpacing ?? 0.16;
+          enemy.rangedBurstTargetUnitId = target.unit?.id ?? null;
+          enemy.rangedBurstTargetsPlayer = Boolean(target.targetsPlayer);
+        } else {
+          this.finishEnemyBurst(enemy, ranged);
+        }
       }
+    }
+
+    getLockedBurstTarget(enemy, soldiers) {
+      if (enemy.rangedBurstTargetsPlayer) {
+        return { x: this.game.player.x, y: this.game.player.y, targetsPlayer: true };
+      }
+      if (!Number.isFinite(enemy.rangedBurstTargetUnitId)) return null;
+      return soldiers.find((soldier) => (
+        !soldier.unit.dead && soldier.unit.id === enemy.rangedBurstTargetUnitId
+      )) ?? null;
+    }
+
+    finishEnemyBurst(enemy, ranged) {
+      enemy.rangedBurstRemaining = 0;
+      enemy.rangedBurstTimer = 0;
+      enemy.rangedBurstTargetUnitId = null;
+      enemy.rangedBurstTargetsPlayer = false;
+      enemy.rangedCooldown = ranged.cooldown * (0.9 + Math.random() * 0.2);
     }
 
     findNearestSoldierTarget(x, y, soldiers) {
