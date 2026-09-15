@@ -1,0 +1,118 @@
+.boss-hud {
+  position: fixed;
+  top: 82px;
+  left: 50%;
+  width: min(640px, calc(100vw - 34px));
+  transform: translateX(-50%) translateY(-10px);
+  z-index: 2200;
+  padding: 11px 14px 10px;
+  border: 1px solid rgba(255, 93, 143, .38);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(18, 10, 19, .94), rgba(8, 8, 13, .9));
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .38), 0 0 28px rgba(255, 93, 143, .12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease, border-color .2s ease;
+}
+
+.boss-hud--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.boss-hud--enraged {
+  border-color: rgba(255, 66, 95, .76);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .42), 0 0 34px rgba(255, 66, 95, .22);
+}
+
+.boss-hud__topline,
+.boss-hud__details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.boss-hud__topline {
+  margin-bottom: 7px;
+}
+
+.boss-hud__label,
+.boss-hud__state,
+.boss-hud__details {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.boss-hud__label {
+  color: #ff8cac;
+}
+
+.boss-hud__name {
+  flex: 1;
+  color: #fff2f6;
+  font-size: 13px;
+  letter-spacing: .12em;
+  text-align: center;
+}
+
+.boss-hud__state {
+  min-width: 94px;
+  color: #ff6a86;
+  text-align: right;
+}
+
+.boss-hud--enraged .boss-hud__state {
+  color: #ff425f;
+  text-shadow: 0 0 10px rgba(255, 66, 95, .58);
+}
+
+.boss-hud__bar {
+  height: 13px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+}
+
+.boss-hud__fill {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #a62f5d, #ff5d8f 70%, #ffc0d3);
+  box-shadow: 0 0 16px rgba(255, 93, 143, .48);
+  transition: width .12s linear;
+}
+
+.boss-hud--enraged .boss-hud__fill {
+  background: linear-gradient(90deg, #a72d37, #ff425f 72%, #ff9cab);
+  box-shadow: 0 0 18px rgba(255, 66, 95, .62);
+}
+
+.boss-hud__details {
+  margin-top: 6px;
+  color: #9d94a3;
+  letter-spacing: .07em;
+}
+
+.boss-hud__armor {
+  color: #c6adcf;
+}
+
+@media (max-width: 760px) {
+  .boss-hud {
+    top: 128px;
+    padding: 9px 11px 8px;
+  }
+
+  .boss-hud__name {
+    font-size: 11px;
+  }
+
+  .boss-hud__state {
+    min-width: 74px;
+    font-size: 8px;
+  }
+}
