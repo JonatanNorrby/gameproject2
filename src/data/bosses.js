@@ -3,7 +3,7 @@ export const WARDEN_BOSS = Object.freeze({
   name: 'The Warden',
   spawnLevel: 15,
   radius: 64,
-  maxHp: 2200,
+  maxHp: 6600,
   xpReward: 0,
   permanentUpgradePoints: 1,
   speed: 52,
