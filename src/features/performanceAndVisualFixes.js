@@ -3,6 +3,7 @@ import { CAPTAINS, GAME_BALANCE, UNIT_CLASSES } from '../data/content.js';
 
 const VALE_ID = 'vale';
 const RIFLEMAN_TYPE = 'rifleman';
+const ROCKETEER_TYPE = 'rocketeer';
 const FOCUS_EPSILON = 0.999;
 const VALE_FOCUS_BUFF_DURATION = 5;
 const RIFLEMAN_RANGE_MULTIPLIER = 1.5;
@@ -158,6 +159,119 @@ export class Game extends PreviousGame {
 
   startNukeWave() {
     this.nukeWave = null;
+  }
+
+  drawRiflemanProjectile(ctx, projectile) {
+    const speed = Math.hypot(projectile.vx, projectile.vy) || 1;
+    const dirX = projectile.vx / speed;
+    const dirY = projectile.vy / speed;
+    const halfLength = 5;
+    const x1 = projectile.x - dirX * halfLength;
+    const y1 = projectile.y - dirY * halfLength;
+    const x2 = projectile.x + dirX * halfLength;
+    const y2 = projectile.y + dirY * halfLength;
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
+    ctx.lineWidth = 5;
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawRocketeerProjectile(ctx, projectile) {
+    const angle = Math.atan2(projectile.vy, projectile.vx);
+
+    ctx.save();
+    ctx.translate(projectile.x, projectile.y);
+    ctx.rotate(angle);
+
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = projectile.color ?? '#ffb35c';
+    ctx.fillStyle = projectile.color ?? '#ffb35c';
+    ctx.strokeStyle = 'rgba(255,244,210,.95)';
+    ctx.lineWidth = 1.5;
+
+    // Compact arrow-like rocket: pointed nose, narrow body, small rear fins.
+    ctx.beginPath();
+    ctx.moveTo(11, 0);
+    ctx.lineTo(1, -5);
+    ctx.lineTo(-3, -3);
+    ctx.lineTo(-7, -6);
+    ctx.lineTo(-6, -1.5);
+    ctx.lineTo(-9, 0);
+    ctx.lineTo(-6, 1.5);
+    ctx.lineTo(-7, 6);
+    ctx.lineTo(-3, 3);
+    ctx.lineTo(1, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Small bright exhaust flare behind the arrow body.
+    ctx.strokeStyle = '#fff1b8';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = '#ffd36a';
+    ctx.beginPath();
+    ctx.moveTo(-8, 0);
+    ctx.lineTo(-14, 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawDefaultProjectile(ctx, projectile) {
+    ctx.save();
+    ctx.fillStyle = projectile.color ?? '#bffcf0';
+    ctx.shadowBlur = projectile.kind === 'rocket' ? 18 : 12;
+    ctx.shadowColor = projectile.color ?? '#7ef9d4';
+
+    if (projectile.kind === 'rocket') {
+      const speed = Math.hypot(projectile.vx, projectile.vy) || 1;
+      const tailX = projectile.x - (projectile.vx / speed) * 15;
+      const tailY = projectile.y - (projectile.vy / speed) * 15;
+      ctx.strokeStyle = '#ffe19d';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(projectile.x, projectile.y);
+      ctx.lineTo(tailX, tailY);
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  drawProjectiles(ctx) {
+    for (const projectile of this.entities.projectiles) {
+      if (projectile.sourceType === RIFLEMAN_TYPE && projectile.kind === 'bullet') {
+        this.drawRiflemanProjectile(ctx, projectile);
+        continue;
+      }
+
+      if (projectile.sourceType === ROCKETEER_TYPE && projectile.kind === 'rocket') {
+        this.drawRocketeerProjectile(ctx, projectile);
+        continue;
+      }
+
+      this.drawDefaultProjectile(ctx, projectile);
+    }
   }
 
   drawPlayer(ctx) {
