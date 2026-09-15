@@ -4,7 +4,7 @@ import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { resetUnlockProgress } from './data/unlocks.js';
 import { resetMetaUpgradeProgress } from './data/metaUpgrades.js';
 
-const GAME_VERSION = 64;
+const GAME_VERSION = 65;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
@@ -80,7 +80,7 @@ function installDebugLevelTarget() {
       <small>Jump directly to a target level without upgrade screens</small>
     </span>
     <span style="display:flex;flex-direction:row;align-items:center;gap:6px;">
-      <input id="debug-level-target" type="number" min="1" step="1" value="15" aria-label="Target level" style="width:64px;border:1px solid rgba(126,249,212,.25);border-radius:7px;padding:7px;background:rgba(255,255,255,.05);color:#f4f7fb;font-weight:900;" />
+      <input id="debug-level-target" type="number" min="1" step="1" value="10" aria-label="Target level" style="width:64px;border:1px solid rgba(126,249,212,.25);border-radius:7px;padding:7px;background:rgba(255,255,255,.05);color:#f4f7fb;font-weight:900;" />
       <button id="debug-level-target-apply" type="button" style="border:1px solid rgba(126,249,212,.35);border-radius:7px;padding:7px 9px;background:rgba(126,249,212,.08);color:#7ef9d4;font-weight:950;cursor:pointer;">GO</button>
     </span>
   `;
