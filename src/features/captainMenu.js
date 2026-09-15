@@ -21,6 +21,12 @@ export { Game };
 export class UI extends FormationUI {
   constructor() {
     super();
+
+    // The base UI historically selected the first Captain automatically.
+    // Runs now require an explicit player choice instead.
+    this.selectedCaptainId = null;
+    this.captainSelectionRequired = false;
+
     this.captainSelectionScreen = document.querySelector('#captain-select-screen');
     this.captainMenuOpen = document.querySelector('#captain-menu-open');
     this.captainMenuBack = document.querySelector('#captain-menu-back');
@@ -28,6 +34,7 @@ export class UI extends FormationUI {
     this.selectedCaptainSummary = document.querySelector('#selected-captain-summary');
 
     this.bindCaptainSelectionMenu();
+    this.renderCaptainOptions();
     this.renderSelectedCaptainSummary();
   }
 
@@ -60,12 +67,41 @@ export class UI extends FormationUI {
     this.renderSelectedCaptainSummary();
   }
 
+  requireCaptainSelection() {
+    this.captainSelectionRequired = true;
+    this.renderSelectedCaptainSummary();
+
+    const startButton = document.querySelector('#start-button');
+    if (startButton) startButton.textContent = 'Please select a Captain';
+    this.captainMenuOpen?.focus();
+  }
+
   renderSelectedCaptainSummary() {
     const summary = this.selectedCaptainSummary ?? document.querySelector('#selected-captain-summary');
-    const captain = CAPTAINS[this.selectedCaptainId] ?? Object.values(CAPTAINS)[0];
-    if (!summary || !captain) return;
+    if (!summary) return;
 
+    const captain = this.selectedCaptainId ? CAPTAINS[this.selectedCaptainId] : null;
     summary.replaceChildren();
+
+    if (!captain) {
+      const card = document.createElement('div');
+      card.className = 'selected-captain-card selected-captain-card--empty';
+      card.style.setProperty('--captain-color', this.captainSelectionRequired ? '#ff8f8f' : '#8fa7c5');
+      card.innerHTML = `
+        <div class="selected-captain-card__portrait" aria-hidden="true">
+          <span style="font-size:44px;font-weight:1000;color:var(--captain-color);opacity:.8;">?</span>
+        </div>
+        <div class="selected-captain-card__info">
+          <span class="selected-captain-card__label">CAPTAIN REQUIRED</span>
+          <strong>Please select a Captain</strong>
+          <span class="selected-captain-card__role">Choose who will lead the squad before starting</span>
+        </div>
+      `;
+      summary.append(card);
+
+      if (this.captainMenuOpen) this.captainMenuOpen.textContent = 'Select Captain';
+      return;
+    }
 
     const card = document.createElement('div');
     card.className = 'selected-captain-card';
@@ -87,6 +123,7 @@ export class UI extends FormationUI {
     );
 
     summary.append(card);
+    if (this.captainMenuOpen) this.captainMenuOpen.textContent = 'Change Captain';
   }
 
   renderCaptainOptions() {
@@ -138,6 +175,7 @@ export class UI extends FormationUI {
 
       button.addEventListener('click', () => {
         this.selectedCaptainId = captain.id;
+        this.captainSelectionRequired = false;
         this.renderCaptainOptions();
         this.renderSelectedCaptainSummary();
       });
@@ -145,10 +183,12 @@ export class UI extends FormationUI {
       options.append(button);
     }
 
-    const selectedCaptain = CAPTAINS[this.selectedCaptainId] ?? Object.values(CAPTAINS)[0];
+    const selectedCaptain = this.selectedCaptainId ? CAPTAINS[this.selectedCaptainId] : null;
     const startButton = document.querySelector('#start-button');
-    if (startButton && selectedCaptain) {
-      startButton.textContent = `Begin Run — ${selectedCaptain.name}`;
+    if (startButton) {
+      startButton.textContent = selectedCaptain
+        ? `Begin Run — ${selectedCaptain.name}`
+        : 'Begin Run';
     }
 
     this.renderSelectedCaptainSummary();
