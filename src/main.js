@@ -1,10 +1,10 @@
-import { Game, UI } from './features/wardenBoss.js';
+import { Game, UI } from './features/wardenRewards.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { resetUnlockProgress } from './data/unlocks.js';
 import { resetMetaUpgradeProgress } from './data/metaUpgrades.js';
 
-const GAME_VERSION = 56;
+const GAME_VERSION = 57;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
