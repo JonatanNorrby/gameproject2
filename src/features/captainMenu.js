@@ -1,6 +1,11 @@
-import { Game, UI as FormationUI } from './squadFormation.js';
+import { Game as FormationGame, UI as FormationUI } from './squadFormation.js';
 import { CAPTAINS } from '../data/content.js';
 import { getSpritePortraitSources } from '../data/sprites.js';
+import {
+  evaluateUnlocks,
+  getCaptainUnlockDefinition,
+  isCaptainUnlocked,
+} from '../data/unlocks.js';
 
 function applyImageSources(image, sources) {
   if (!image || !sources?.length) return;
@@ -16,7 +21,18 @@ function applyImageSources(image, sources) {
   image.src = sources[sourceIndex];
 }
 
-export { Game };
+export class Game extends FormationGame {
+  addSquadUnits(type, amount = 1) {
+    super.addSquadUnits(type, amount);
+
+    const newlyUnlocked = evaluateUnlocks({
+      squad: this.player?.squad ?? [],
+    });
+    if (newlyUnlocked.length > 0) {
+      this.ui?.handleUnlocksChanged?.(newlyUnlocked);
+    }
+  }
+}
 
 export class UI extends FormationUI {
   constructor() {
@@ -26,6 +42,7 @@ export class UI extends FormationUI {
     // Runs now require an explicit player choice instead.
     this.selectedCaptainId = null;
     this.captainSelectionRequired = false;
+    this.unlockNoticeTimer = null;
 
     this.captainSelectionScreen = document.querySelector('#captain-select-screen');
     this.captainMenuOpen = document.querySelector('#captain-menu-open');
@@ -36,6 +53,12 @@ export class UI extends FormationUI {
     this.bindCaptainSelectionMenu();
     this.renderCaptainOptions();
     this.renderSelectedCaptainSummary();
+  }
+
+  getSelectedCaptainId() {
+    return this.selectedCaptainId && isCaptainUnlocked(this.selectedCaptainId)
+      ? this.selectedCaptainId
+      : null;
   }
 
   bindCaptainSelectionMenu() {
@@ -76,11 +99,58 @@ export class UI extends FormationUI {
     this.captainMenuOpen?.focus();
   }
 
+  handleUnlocksChanged(unlocks) {
+    this.renderCaptainOptions();
+    this.showUnlockNotification(unlocks);
+  }
+
+  showUnlockNotification(unlocks) {
+    if (!unlocks?.length) return;
+
+    let notice = document.querySelector('#unlock-notice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'unlock-notice';
+      Object.assign(notice.style, {
+        position: 'fixed',
+        left: '50%',
+        top: '22px',
+        transform: 'translateX(-50%)',
+        zIndex: '5000',
+        minWidth: '260px',
+        maxWidth: 'min(520px, calc(100vw - 32px))',
+        padding: '14px 18px',
+        border: '1px solid rgba(247,201,75,.7)',
+        borderRadius: '12px',
+        background: 'rgba(10,14,22,.96)',
+        color: '#f7c94b',
+        boxShadow: '0 0 30px rgba(247,201,75,.28), 0 14px 40px rgba(0,0,0,.45)',
+        fontFamily: 'Inter, sans-serif',
+        fontWeight: '900',
+        letterSpacing: '.04em',
+        textAlign: 'center',
+        pointerEvents: 'none',
+      });
+      document.body.append(notice);
+    }
+
+    const names = unlocks.map((unlock) => unlock.label).join(' & ');
+    notice.textContent = `UNLOCKED — ${names}`;
+    notice.style.display = 'block';
+
+    if (this.unlockNoticeTimer) window.clearTimeout(this.unlockNoticeTimer);
+    this.unlockNoticeTimer = window.setTimeout(() => {
+      notice.style.display = 'none';
+    }, 4200);
+  }
+
   renderSelectedCaptainSummary() {
     const summary = this.selectedCaptainSummary ?? document.querySelector('#selected-captain-summary');
     if (!summary) return;
 
-    const captain = this.selectedCaptainId ? CAPTAINS[this.selectedCaptainId] : null;
+    const selectedId = this.getSelectedCaptainId();
+    if (!selectedId && this.selectedCaptainId) this.selectedCaptainId = null;
+    const captain = selectedId ? CAPTAINS[selectedId] : null;
     summary.replaceChildren();
 
     if (!captain) {
@@ -134,56 +204,77 @@ export class UI extends FormationUI {
     }
 
     this.captainOptions = options;
+    if (this.selectedCaptainId && !isCaptainUnlocked(this.selectedCaptainId)) {
+      this.selectedCaptainId = null;
+    }
+
     options.replaceChildren();
     options.style.gridTemplateColumns = window.innerWidth <= 760
       ? '1fr'
       : 'repeat(2, minmax(0, 1fr))';
 
     for (const captain of Object.values(CAPTAINS)) {
-      const selected = captain.id === this.selectedCaptainId;
+      const unlocked = isCaptainUnlocked(captain.id);
+      const unlockDefinition = getCaptainUnlockDefinition(captain.id);
+      const selected = unlocked && captain.id === this.selectedCaptainId;
       const button = document.createElement('button');
       button.type = 'button';
+      button.disabled = !unlocked;
       button.className = 'upgrade-card captain-select-card';
       button.style.setProperty('--rarity-color', captain.color);
-      button.style.opacity = selected ? '1' : '0.72';
-      button.style.filter = selected ? 'none' : 'saturate(.72) brightness(.84)';
+      button.style.opacity = selected ? '1' : unlocked ? '0.72' : '0.38';
+      button.style.filter = selected
+        ? 'none'
+        : unlocked
+          ? 'saturate(.72) brightness(.84)'
+          : 'grayscale(.85) saturate(.25) brightness(.52)';
+      button.style.cursor = unlocked ? 'pointer' : 'not-allowed';
       button.style.border = selected
         ? `3px solid ${captain.color}`
-        : `1px solid ${captain.color}55`;
+        : unlocked
+          ? `1px solid ${captain.color}55`
+          : '1px solid rgba(255,255,255,.12)';
       button.style.background = selected
         ? `linear-gradient(160deg, ${captain.color}2e, rgba(255,255,255,.055))`
-        : `linear-gradient(160deg, ${captain.color}0d, rgba(255,255,255,.018))`;
+        : unlocked
+          ? `linear-gradient(160deg, ${captain.color}0d, rgba(255,255,255,.018))`
+          : 'linear-gradient(160deg, rgba(255,255,255,.025), rgba(0,0,0,.18))';
       button.style.boxShadow = selected
         ? `0 0 0 3px ${captain.color}38, 0 0 34px ${captain.color}50, 0 18px 40px rgba(0,0,0,.34)`
         : 'none';
       button.setAttribute('aria-pressed', String(selected));
       button.setAttribute(
         'aria-label',
-        `${captain.name}${selected ? ', selected' : ', select captain'}`,
+        unlocked
+          ? `${captain.name}${selected ? ', selected' : ', select captain'}`
+          : `${captain.name}, locked. ${unlockDefinition?.requirementText ?? ''}`,
       );
       button.innerHTML = `
         ${selected ? `<span class="captain-select-card__selected">✓ SELECTED</span>` : ''}
         <span class="upgrade-card__meta">
           <span class="upgrade-card__tag">${captain.role}</span>
-          <span class="upgrade-card__rarity">${selected ? 'ACTIVE' : 'SELECT'}</span>
+          <span class="upgrade-card__rarity">${selected ? 'ACTIVE' : unlocked ? 'SELECT' : 'LOCKED'}</span>
         </span>
         <strong>${captain.name}</strong>
-        <p>${captain.description}</p>
-        <small>${captain.passiveText}</small>
+        <p>${unlocked ? captain.description : 'Complete the requirement below to unlock this Captain.'}</p>
+        <small>${unlocked ? captain.passiveText : `Unlock: ${unlockDefinition?.requirementText ?? 'Requirement unavailable.'}`}</small>
       `;
       this.addPortrait(button, getSpritePortraitSources({ captainId: captain.id }));
 
-      button.addEventListener('click', () => {
-        this.selectedCaptainId = captain.id;
-        this.captainSelectionRequired = false;
-        this.renderCaptainOptions();
-        this.renderSelectedCaptainSummary();
-      });
+      if (unlocked) {
+        button.addEventListener('click', () => {
+          this.selectedCaptainId = captain.id;
+          this.captainSelectionRequired = false;
+          this.renderCaptainOptions();
+          this.renderSelectedCaptainSummary();
+        });
+      }
 
       options.append(button);
     }
 
-    const selectedCaptain = this.selectedCaptainId ? CAPTAINS[this.selectedCaptainId] : null;
+    const selectedCaptainId = this.getSelectedCaptainId();
+    const selectedCaptain = selectedCaptainId ? CAPTAINS[selectedCaptainId] : null;
     const startButton = document.querySelector('#start-button');
     if (startButton) {
       startButton.textContent = selectedCaptain
