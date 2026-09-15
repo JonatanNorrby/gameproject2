@@ -11,6 +11,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Rocketeer: slower explosive rockets with AoE damage
 - Shockblade: jump-pack melee unit that lunges at nearby enemies and cuts a forward half-moon arc while invulnerable
 - Multiple enemy archetypes that unlock over time
+- Spitter: scarce ranged enemy that keeps its distance and fires very slow, dodgeable acid shots
 - XP pickups and level-ups
 - Randomized, infinitely repeatable upgrade choices with rarity-based stat bonuses
 - Reinforcement upgrades that can introduce new squad classes
@@ -48,6 +49,8 @@ Unit classes are defined in `src/data/content.js`. When adding a class, also rev
 The current classes are `rifleman`, `rocketeer`, and `shockblade`.
 
 New enemies, upgrades, and balance values should normally be added to `src/data/content.js`. Existing gameplay behavior should be extended in the relevant system or feature layer instead of creating versioned or one-off scripts.
+
+Ranged enemies should define their ranged behavior in the enemy data, use a low enough spawn weight and/or `maxActive` cap to remain manageable, and use slow, readable projectiles when the player is expected to dodge them.
 
 ## Run locally
 

@@ -22,12 +22,22 @@ export class SpawnSystem {
 
   spawnEnemy() {
     const elapsed = this.game.elapsed;
+    const activeCounts = new Map();
+    for (const enemy of this.game.entities.enemies) {
+      if (enemy.dead) continue;
+      activeCounts.set(enemy.type, (activeCounts.get(enemy.type) ?? 0) + 1);
+    }
+
     const available = Object.entries(ENEMY_TYPES)
-      .filter(([, type]) => elapsed >= type.unlockAt)
+      .filter(([key, type]) => (
+        elapsed >= type.unlockAt
+        && (!Number.isFinite(type.maxActive) || (activeCounts.get(key) ?? 0) < type.maxActive)
+      ))
       .map(([key, type]) => ({ value: key, weight: type.weight }));
     const key = chooseWeighted(available);
     const type = ENEMY_TYPES[key];
     const difficulty = 1 + elapsed * 0.008;
+    const damageScaling = Math.min(1.8, 1 + elapsed * 0.005);
 
     const angle = Math.random() * Math.PI * 2;
     const distance = randomRange(500, 720);
@@ -41,7 +51,9 @@ export class SpawnSystem {
       speed: type.speed * Math.min(1.42, 1 + elapsed * 0.0018),
       maxHp: type.hp * difficulty,
       hp: type.hp * difficulty,
-      damage: type.damage * Math.min(1.8, 1 + elapsed * 0.005),
+      damage: type.damage * damageScaling,
+      rangedDamage: type.ranged ? type.ranged.damage * damageScaling : 0,
+      rangedCooldown: type.ranged ? randomRange(type.ranged.cooldown * 0.5, type.ranged.cooldown) : 0,
       xp: type.xp,
       hitFlash: 0,
       dead: false,

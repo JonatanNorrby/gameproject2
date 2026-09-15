@@ -14,6 +14,7 @@ assets/
   crawler/
   runner/
   brute/
+  spitter/
 ```
 
 Every standard animated character uses these exact file names:
@@ -52,6 +53,8 @@ Captain art is independent of the base unit class:
 - Normal Rocketeers use `assets/rocketeer/`.
 - Shockblades use `assets/shockblade/`.
 
+Enemy art follows the same one-frame-per-file structure. The current enemy folders are `crawler`, `runner`, `brute`, and `spitter`.
+
 ## Runtime states
 
 - Stationary: displays `idle_1.png` facing south.
@@ -64,6 +67,7 @@ Captain art is independent of the base unit class:
 - Taking damage keeps the current animation art and uses the game's red flash, shake, outline, and particles for feedback. No damage-specific PNGs are required.
 - Unit death removes the unit from the live squad and places `dead_1.png` at its exact world position for the rest of the run.
 - Captain death ends the run. Other unit deaths do not.
+- Enemy rendering currently uses the `running` animation while alive. Spitter firing is driven by gameplay timing and its projectile effect, so a dedicated firing frame is optional for now.
 
 ### Shockblade art notes
 
@@ -76,6 +80,15 @@ Shockblade is a melee class with laser swords and a jump pack.
 - `idle_shooting_*` may mirror the same attack poses for asset consistency, although the current melee runtime uses the moving `shooting` pair during the lunge.
 - `dead_1.png`: defeated Shockblade.
 - The game renders the half-moon energy slash procedurally, so the character frame does not need to contain the entire slash arc.
+
+### Spitter art notes
+
+Spitter is the scarce ranged enemy.
+
+- Keep its silhouette clearly different from melee enemies at gameplay scale.
+- `running_1.png` / `running_2.png` should work both while approaching and retreating.
+- The projectile is rendered procedurally as a bright slow acid orb with a visible trail/ring, so do not bake the projectile into the character art.
+- The gameplay system keeps only a small number of Spitters active at once.
 
 ## UI portraits
 

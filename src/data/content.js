@@ -133,6 +133,21 @@ export const ENEMY_TYPES = {
     label: 'Brute', radius: 23, speed: 48, hp: 110, damage: 18, xp: 4,
     fill: '#8f62d8', outline: '#c3a5ff', unlockAt: 34, weight: 2,
   },
+  spitter: {
+    label: 'Spitter', radius: 14, speed: 52, hp: 46, damage: 0, xp: 3,
+    fill: '#6fcb62', outline: '#baff98', unlockAt: 65, weight: 0.35, maxActive: 3,
+    ranged: {
+      range: 340,
+      preferredRange: 285,
+      retreatRange: 205,
+      cooldown: 3.5,
+      projectileSpeed: 85,
+      projectileRadius: 9,
+      projectileLife: 5.4,
+      damage: 14,
+      color: '#a8ff72',
+    },
+  },
 };
 
 export const RARITIES = [
@@ -147,13 +162,6 @@ const STAT_BUFF_BY_RARITY = Object.freeze({
   uncommon: 10,
   rare: 15,
   epic: 20,
-});
-
-const REINFORCEMENT_COUNT_BY_RARITY = Object.freeze({
-  common: 1,
-  uncommon: 2,
-  rare: 3,
-  epic: 4,
 });
 
 function rarityValue(rarity, values) {
@@ -202,6 +210,13 @@ function unitStatUpgrade({
   };
 }
 
+const REINFORCEMENT_COUNT_BY_RARITY = Object.freeze({
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  epic: 4,
+});
+
 function recruitmentUpgrade({ id, name, unitType, maxRank }) {
   return {
     id,
@@ -213,7 +228,7 @@ function recruitmentUpgrade({ id, name, unitType, maxRank }) {
     unitType,
     describe(rarity) {
       const amount = rarityValue(rarity, REINFORCEMENT_COUNT_BY_RARITY);
-      return `Recruit ${amount} ${UNIT_CLASSES[unitType].label} unit${amount === 1 ? '' : 's'} into the squad.`;
+      return `Recruit ${amount} ${UNIT_CLASSES[unitType].label}${amount === 1 ? '' : 's'} into the squad.`;
     },
     apply(game, rarity) {
       game.addSquadUnits(unitType, rarityValue(rarity, REINFORCEMENT_COUNT_BY_RARITY));

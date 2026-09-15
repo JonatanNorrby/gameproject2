@@ -1,8 +1,8 @@
-import { Game, UI } from './features/upgradeBonusDisplay.js';
+import { Game, UI } from './features/rangedEnemies.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 33;
+const GAME_VERSION = 34;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
