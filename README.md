@@ -6,13 +6,15 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 
 - WASD / arrow-key movement
 - Touch drag movement
-- Automatic combat with ranged and melee squad classes
-- Rifleman: rapid ranged bullet fire
+- Automatic combat with ranged, melee, and support squad classes
+- Rifleman: automatic bullet fire with pierce upgrades
 - Rocketeer: slower explosive rockets with AoE damage
 - Shockblade: jump-pack melee unit that lunges at nearby enemies and cuts a forward half-moon arc while invulnerable
-- Captain Vale: Rifleman commander with an adjacency fire-rate bonus
-- Captain Mercer: Rocketeer commander with an adjacency special-rocket bonus
-- Captain Thorne: heavily armored Shockblade-class melee Captain with a slow 360-degree greatsword sweep, lifesteal, and a squad-wide 360-degree Shockblade passive
+- Drone Pilot: low-HP support unit that operates a separate battlefield drone; the drone seeks distant enemy groups and drops stun grenades
+- Anti Air: two-hex support unit that only intercepts incoming enemy projectiles with accelerating homing interceptors
+- Captain Vale: Coordinated Fire commander; Vale and adjacent Riflemen build Focus on sustained same-target fire, and Vale fires three-round bursts
+- Captain Mercer: Chain Reaction commander; Mercer and adjacent Rocketeers mark enemies for heavy-warhead cascades, while Mercer's own rockets scatter light burst rounds
+- Captain Thorne: heavily armored Shockblade-class melee Captain with a slow 360-degree greatsword sweep, lifesteal, and every-fifth-attack 360-degree Shockblade support
 - Multiple enemy archetypes that unlock over time
 - Spitter: scarce ranged enemy that keeps its distance and fires very slow, dodgeable acid shots
 - XP pickups and level-ups
@@ -20,42 +22,44 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Reinforcement upgrades that can introduce new squad classes
 - Freeform connected squad formation editing
 - Ground powerups with animated Magnet, Nuke, and Fury effects
-- Per-unit health, Captain-only run failure, and persistent corpses
+- Per-unit health, Captain-only run failure, persistent corpses, and per-unit red damage flashes
 - Endless difficulty scaling
-- Death / restart loop
+- Death / return-to-menu loop
 - Responsive canvas UI
 
 ## Architecture
-
-The project is intentionally modular without turning every feature into a new script:
 
 ```text
 src/
   core/      Game lifecycle, input, UI, entity storage
   systems/   Larger gameplay domains (combat, spawning, progression)
-  data/      Data-driven content and balance definitions
+  data/      Data-driven content, balance definitions, and specialized unit data
   features/  Layered gameplay/UI extensions that preserve earlier systems
   utils/     Shared low-level helpers
 styles/      Site/game styling
 assets/      Character frames, upgrade/class icons, and optional projectile images
 ```
 
-Unit classes are defined in `src/data/content.js`. When adding a class, also review:
+Core unit classes are defined in `src/data/content.js`. Specialized support-class definitions and upgrades live in `src/data/supportUnits.js`. When adding a class, review all of the following:
 
 - `src/data/sprites.js` for animation-folder registration.
 - `src/data/upgradeIcons.js` for the class badge and upgrade-card mappings.
 - `src/data/unitModifiers.js` / Squad Builder stat presentation when the class uses non-standard combat stats.
+- `src/data/projectiles.js` when the class creates a projectile entity.
 - `assets/ANIMATION_FRAMEWORK.md`.
 - `assets/icons/README.md` and `assets/icons/unit_class/README.md`.
-- `assets/projectiles/README.md` if the class fires a projectile, or document explicitly that it does not.
+- `assets/projectiles/README.md` plus its relevant subfolder README when the class fires a projectile, or document explicitly that it does not.
+- A purposeful README inside the class's own `assets/<class>/` folder so Git tracks the asset contract before PNGs exist.
 
-The current classes are `rifleman`, `rocketeer`, and `shockblade`.
+The current classes are `rifleman`, `rocketeer`, `shockblade`, `drone_pilot`, and `anti_air`.
 
-Captains normally build on a unit class. Captain-specific combat behavior can live in a feature layer while still reusing that class's stat-upgrade modifiers. Captain Thorne is registered by `src/features/captainThorne.js`, uses Shockblade upgrades, and has independent Captain weapon/defense values.
+Drone Pilot owns one battlefield drone per living pilot. Drones are not squad units, do not occupy formation hexes, have independent HP, and can be targeted by ranged enemies. Anti Air occupies two horizontal formation hexes but counts as one squad unit; its artwork is centered between those spaces and both spaces count as its damage hitbox.
 
-New enemies, upgrades, and balance values should normally be added to `src/data/content.js`. Existing gameplay behavior should be extended in the relevant system or feature layer instead of creating versioned or one-off scripts.
+Captains normally build on a unit class. Captain-specific combat behavior lives in feature layers while still reusing that class's stat-upgrade modifiers.
 
-Ranged enemies should define their ranged behavior in the enemy data, use a low enough spawn weight and/or `maxActive` cap to remain manageable, and use slow, readable projectiles when the player is expected to dodge them.
+New enemies, upgrades, and balance values should normally be added to the relevant data module. Existing gameplay behavior should be extended in the relevant system or feature layer instead of replacing unrelated systems.
+
+Ranged enemies should define their ranged behavior in enemy data, use a low enough spawn weight and/or `maxActive` cap to remain manageable, and use slow, readable projectiles when the player is expected to dodge them.
 
 ## Run locally
 

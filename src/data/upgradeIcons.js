@@ -14,6 +14,8 @@ export const CLASS_ICON_FILES = Object.freeze({
   rifleman: 'rifleman.png',
   rocketeer: 'rocketeer.png',
   shockblade: 'shockblade.png',
+  drone_pilot: 'drone_pilot.png',
+  anti_air: 'anti_air.png',
 });
 
 export const UPGRADE_ICON_METADATA = Object.freeze({
@@ -34,6 +36,14 @@ export const UPGRADE_ICON_METADATA = Object.freeze({
   'shockblade-fire-rate': { generic: 'fireRate', class: 'shockblade' },
   'shockblade-range': { generic: 'range', class: 'shockblade' },
   'shockblade-blast-radius': { generic: 'blastRadius', class: 'shockblade' },
+  'drone_pilot-reinforcements': { generic: 'reinforcement', class: 'drone_pilot' },
+  'drone_pilot-fire-rate': { generic: 'fireRate', class: 'drone_pilot' },
+  'drone_pilot-range': { generic: 'range', class: 'drone_pilot' },
+  'drone_pilot-blast-radius': { generic: 'blastRadius', class: 'drone_pilot' },
+  'anti_air-reinforcements': { generic: 'reinforcement', class: 'anti_air' },
+  'anti_air-fire-rate': { generic: 'fireRate', class: 'anti_air' },
+  'anti_air-range': { generic: 'range', class: 'anti_air' },
+  'anti_air-projectile-speed': { generic: 'projectileSpeed', class: 'anti_air' },
 });
 
 const GENERIC_FALLBACKS = Object.freeze({
@@ -50,6 +60,8 @@ const CLASS_FALLBACKS = Object.freeze({
   rifleman: 'RIF',
   rocketeer: 'RKT',
   shockblade: 'SHK',
+  drone_pilot: 'DRN',
+  anti_air: 'AA',
 });
 
 function inferredGenericKey(upgrade) {

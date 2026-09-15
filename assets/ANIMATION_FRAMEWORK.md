@@ -2,13 +2,15 @@
 
 Animated game art uses **one PNG file per frame**. Do not use sprite sheets.
 
-Each unit, Captain, or enemy gets its own folder directly under `assets/`:
+Each standard unit, Captain, or enemy gets its own folder directly under `assets/`:
 
 ```text
 assets/
   rifleman/
   rocketeer/
   shockblade/
+  drone_pilot/
+  anti_air/
   captain_vale/
   captain_mercer/
   captain_thorne/
@@ -44,18 +46,8 @@ dead_1.png
 - **Draw source art facing south/down (6 o'clock).**
 - Idle and normal idle-shooting are shown facing south/down.
 - Running and normal moving-shooting rotate at runtime to match the squad's movement direction.
-- If a future asset is authored facing a different direction, its sprite definition can override `forwardAngle`.
 
-Captain art is independent of the base unit class:
-
-- Captain Vale uses `assets/captain_vale/`.
-- Captain Mercer uses `assets/captain_mercer/`.
-- Captain Thorne uses `assets/captain_thorne/`.
-- Normal Riflemen use `assets/rifleman/`.
-- Normal Rocketeers use `assets/rocketeer/`.
-- Shockblades use `assets/shockblade/`.
-
-Captain Thorne belongs to the Shockblade class for upgrades and reinforcement/class-icon logic, but always uses his own `captain_thorne` character artwork.
+Captain art is independent of the base unit class. Unit folders currently include `rifleman`, `rocketeer`, `shockblade`, `drone_pilot`, and `anti_air`. Captain folders are `captain_vale`, `captain_mercer`, and `captain_thorne`.
 
 Enemy art follows the same one-frame-per-file structure. The current enemy folders are `crawler`, `runner`, `brute`, and `spitter`.
 
@@ -63,62 +55,48 @@ Enemy art follows the same one-frame-per-file structure. The current enemy folde
 
 - Stationary: displays `idle_1.png` facing south.
 - Moving: alternates `running_1.png` / `running_2.png`.
-- Standing still and attacking: uses `idle_shooting_1.png` / `idle_shooting_2.png` for ordinary ranged units.
+- Standing still and attacking: uses `idle_shooting_1.png` / `idle_shooting_2.png`.
 - Moving and attacking: uses `shooting_1.png` / `shooting_2.png`.
-- Rifleman / Captain Vale can loop the two firing frames during their firing window.
-- Rocketeer / Captain Mercer use one non-looping two-frame firing cycle per shot.
-- Shockblade uses one non-looping `shooting_1.png` / `shooting_2.png` cycle for its jump-slash attack. The runtime physically lunges the unit forward and then returns it to its formation slot.
-- Captain Thorne uses one slow non-looping firing cycle for his two-handed 360-degree greatsword sweep. Thorne does not lunge.
-- Taking damage keeps the current animation art and uses the game's red flash, shake, outline, and particles for feedback. No damage-specific PNGs are required.
-- Unit death removes the unit from the live squad and places `dead_1.png` at its exact world position for the rest of the run.
-- Captain death ends the run. Other unit deaths do not.
-- Enemy rendering currently uses the `running` animation while alive. Spitter firing is driven by gameplay timing and its projectile effect, so a dedicated firing frame is optional for now.
+- Rifleman / Captain Vale can loop firing frames during their firing window.
+- Rocketeer / Captain Mercer use one non-looping firing cycle per shot.
+- Shockblade uses one non-looping attack cycle for its jump-slash.
+- Captain Thorne uses one slow non-looping cycle for his two-handed 360-degree sweep.
+- Drone Pilot uses its shooting frames when issuing a stun-drone attack command; the separate drone itself uses one static `drone.png` and is not a standard character animation.
+- Anti Air uses its shooting frames when launching an interceptor. Because the unit spans two horizontal formation hexes, keep the chassis centered on a wide transparent canvas.
+- Taking damage keeps the current animation art and flashes that specific artwork red with partial opacity. No damage-specific PNGs are required.
+- Unit death removes the unit from the live squad and leaves `dead_1.png` at its world position.
 
 ### Shockblade art notes
 
-Shockblade is a melee class with laser swords and a jump pack.
+Shockblade is a melee class with laser swords and a jump pack. `shooting_1.png` is the jump/wind-up and `shooting_2.png` is the slash. The runtime renders the energy arc procedurally.
 
-- `idle_1.png`: ready stance with both laser swords visible.
-- `running_1.png` / `running_2.png`: movement / jump-pack-ready locomotion.
-- `shooting_1.png`: jump or wind-up frame.
-- `shooting_2.png`: forward laser-sword sweep frame.
-- `idle_shooting_*` may mirror the same attack poses for asset consistency, although the current melee runtime uses the moving `shooting` pair during the lunge.
-- `dead_1.png`: defeated Shockblade.
-- Normally the game renders a forward half-moon energy slash.
-- While Captain Thorne leads the squad, every Shockblade receives a second rear sweep and therefore attacks in a full 360-degree area.
+### Drone Pilot art notes
+
+- Standard pilot character frames live in `assets/drone_pilot/`.
+- `idle_1.png` is also used for reinforcement portraits.
+- Add one extra static transparent file named `drone.png` for the battlefield support drone.
+- The drone is drawn independently of formation positions and has its own HP.
+- Stun grenade/explosion visuals are procedural; do not bake them into `drone.png`.
+
+### Anti Air art notes
+
+- Standard frames live in `assets/anti_air/`.
+- The runtime centers the artwork between two horizontal formation hexes.
+- Draw the vehicle/platform wide enough to visually occupy both spaces while keeping transparent padding.
+- The interceptor itself belongs in the projectile asset system, not in the unit animation frames.
 
 ### Captain Thorne art notes
 
-Thorne is a large armored melee Captain carrying one oversized two-handed sword.
-
-- `idle_1.png`: heavy ready stance with the two-handed sword clearly visible.
-- `running_1.png` / `running_2.png`: grounded heavy movement; no jump pack.
-- `shooting_1.png`: deliberate two-handed wind-up.
-- `shooting_2.png`: broad spinning / follow-through pose suitable for the 360-degree sweep.
-- `idle_shooting_*` can reuse equivalent wind-up/sweep poses if separate stationary art is not available yet.
-- `dead_1.png`: defeated Thorne.
-- Leave additional transparent padding around the sword compared with standard units.
-- The full 360-degree energy arc is rendered procedurally.
+Thorne is a large armored melee Captain carrying one oversized two-handed sword. Leave extra transparent padding around the weapon; the full energy arc is procedural.
 
 ### Spitter art notes
 
-Spitter is the scarce ranged enemy.
-
-- Keep its silhouette clearly different from melee enemies at gameplay scale.
-- `running_1.png` / `running_2.png` should work both while approaching and retreating.
-- The projectile is rendered procedurally as a bright slow acid orb with a visible trail/ring, so do not bake the projectile into the character art.
-- The gameplay system keeps only a small number of Spitters active at once.
+Spitter is the scarce ranged enemy. Its slow acid projectile is rendered separately, so do not bake the projectile into the character art.
 
 ## UI portraits
 
-The game reuses each character's `idle_1.png` as static artwork:
+The game reuses each unit's `idle_1.png` for reinforcement cards. Captain selection uses the Captain folder's `idle_1.png`. If an idle portrait is missing, the UI falls back to the same character's `running_1.png`.
 
-- Captain selection uses the selected Captain folder's `idle_1.png`.
-- Captain Thorne selection therefore reads from `assets/captain_thorne/idle_1.png`.
-- Unit reinforcement upgrades use that unit class folder's `idle_1.png`.
-- Shockblade reinforcement therefore reads from `assets/shockblade/idle_1.png`.
-- If `idle_1.png` is not available yet, UI portraits temporarily fall back to the same character's `running_1.png`.
+Missing live animation images fall back to an available idle/running frame while art is being added. Corpse rendering requests `dead_1.png` strictly; if unavailable, the game draws a procedural corpse marker.
 
-Missing `idle_shooting` frames fall back to normal shooting frames. Other missing live animation images fall back to an available idle/running frame while art is being added. Corpse rendering requests `dead_1.png` strictly; if it is unavailable, the game draws a simple procedural corpse marker instead of showing a living frame.
-
-Animation definitions live in `src/data/sprites.js` plus feature-specific registrations. Rendering is handled by `src/rendering/FrameAnimationRenderer.js`.
+Animation definitions live in `src/data/sprites.js` plus feature-specific static support art. Rendering is handled by `src/rendering/FrameAnimationRenderer.js`.

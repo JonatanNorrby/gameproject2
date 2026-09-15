@@ -3,11 +3,13 @@ const PROJECTILE_ROOT = './assets/projectiles';
 export const GENERIC_PROJECTILE_FILES = Object.freeze({
   bullet: 'bullet.png',
   rocket: 'rocket.png',
+  interceptor: 'interceptor.png',
 });
 
 export const CLASS_PROJECTILE_FILES = Object.freeze({
   rifleman: 'rifleman.png',
   rocketeer: 'rocketeer.png',
+  anti_air: 'anti_air.png',
 });
 
 export function getProjectileImageSpec(projectile) {
@@ -18,11 +20,12 @@ export function getProjectileImageSpec(projectile) {
   if (classFile) sources.push(`${PROJECTILE_ROOT}/unit_class/${classFile}`);
   if (genericFile) sources.push(`${PROJECTILE_ROOT}/generic/${genericFile}`);
 
+  const interceptor = projectile?.kind === 'interceptor';
   return {
     sources,
     // Source art should point to the right/east. The renderer rotates it to velocity.
     forwardAngle: 0,
-    visualScale: projectile?.kind === 'rocket' ? 4.6 : 3.8,
-    minSize: projectile?.kind === 'rocket' ? 28 : 16,
+    visualScale: interceptor ? 4.2 : projectile?.kind === 'rocket' ? 4.6 : 3.8,
+    minSize: interceptor ? 18 : projectile?.kind === 'rocket' ? 28 : 16,
   };
 }

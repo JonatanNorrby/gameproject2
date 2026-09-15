@@ -36,19 +36,27 @@ export function getEffectiveUnitStats(unitType, modifierState) {
   if (!unitClass) return null;
 
   const weapon = unitClass.weapon;
+  const support = unitClass.support ?? null;
   const modifiers = getUnitModifiers(modifierState, unitType);
+  const baseCooldown = support?.cooldown ?? weapon.cooldown;
+  const baseRange = support?.range ?? weapon.range;
+  const baseProjectileSpeed = support?.projectileSpeed ?? weapon.projectileSpeed ?? 0;
+  const baseBlastRadius = support?.aoeRadius ?? weapon.aoeRadius ?? 0;
 
   return {
     unitType,
     label: unitClass.label,
-    kind: weapon.kind,
+    kind: support?.kind ?? weapon.kind,
+    supportKind: support?.kind ?? null,
     damage: weapon.damage * modifiers.damage,
-    fireRate: (1 / weapon.cooldown) * modifiers.fireRate,
-    cooldown: weapon.cooldown / modifiers.fireRate,
-    range: weapon.range * modifiers.range,
-    projectileSpeed: (weapon.projectileSpeed ?? 0) * modifiers.projectileSpeed,
+    fireRate: (1 / baseCooldown) * modifiers.fireRate,
+    cooldown: baseCooldown / modifiers.fireRate,
+    range: baseRange * modifiers.range,
+    projectileSpeed: baseProjectileSpeed * modifiers.projectileSpeed,
     pierce: (weapon.pierce ?? 0) + modifiers.pierce,
-    blastRadius: (weapon.aoeRadius ?? 0) * modifiers.blastRadius,
+    blastRadius: baseBlastRadius * modifiers.blastRadius,
+    stunDuration: support?.stunDuration ?? 0,
+    droneHp: support?.droneHp ?? 0,
     lungeDistance: weapon.kind === 'melee'
       ? Math.max(0, weapon.range * modifiers.range - 30)
       : (weapon.lungeDistance ?? 0) * modifiers.range,

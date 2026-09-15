@@ -6,17 +6,18 @@ Lookup priority:
 
 1. `unit_class/` image for the firing unit class.
 2. `generic/` image for the projectile kind.
-3. Existing procedural bullet/rocket rendering if no PNG loads.
+3. Procedural rendering if no PNG loads.
 
-Use transparent PNGs. A 256 x 256 source canvas is recommended for consistency with the rest of the art pipeline. Projectile artwork should point to the right/east in the source image; the renderer rotates it to match projectile travel direction.
+Use transparent PNGs. A 256 x 256 source canvas is recommended. Projectile artwork should point right/east in the source image; the renderer rotates it to match travel direction.
 
 Current projectile classes:
 
 - Rifleman -> bullet projectile.
 - Rocketeer -> rocket projectile.
-- Captain Vale inherits Rifleman.
-- Captain Mercer inherits Rocketeer.
-- Shockblade is a melee class and intentionally has **no projectile asset**. Its jump and slash are handled by melee combat logic and animation/effect rendering.
-- Captain Thorne is a Shockblade-class melee Captain and intentionally has **no projectile asset**. His two-handed 360-degree sword sweep is handled by melee combat logic and procedural slash effects.
+- Captain Vale inherits Rifleman projectiles.
+- Captain Mercer inherits Rocketeer projectiles; his post-explosion burst rounds are light procedural bullets.
+- Anti Air -> accelerating homing `interceptor` projectile used only against hostile incoming projectiles.
+- Shockblade and Captain Thorne are melee and use no projectile asset.
+- Drone Pilot does not fire a weapon projectile. Its separate drone and stun effect are handled by the support-unit system.
 
-Register new projectile kinds/classes in `src/data/projectiles.js`. Melee-only classes and Captains do not need an entry there.
+Register new projectile kinds/classes in `src/data/projectiles.js`.

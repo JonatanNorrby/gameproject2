@@ -56,6 +56,13 @@ export const FRAME_SPRITES = {
     rifleman: createStandardFrameSet('rifleman', { drawSize: 42 }),
     rocketeer: createStandardFrameSet('rocketeer', { drawSize: 44, shootingLoop: false }),
     shockblade: createStandardFrameSet('shockblade', { drawSize: 44, shootingLoop: false }),
+    drone_pilot: createStandardFrameSet('drone_pilot', { drawSize: 42, shootingLoop: false }),
+    anti_air: createStandardFrameSet('anti_air', {
+      drawSize: 72,
+      drawWidth: 72,
+      drawHeight: 46,
+      shootingLoop: false,
+    }),
   },
   captains: {
     mercer: createStandardFrameSet('captain_mercer', { drawSize: 44, shootingLoop: false }),

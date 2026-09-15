@@ -5,7 +5,7 @@ Stat upgrade cards use two layered icon types:
 - `upgrade_generic/` contains one reusable icon for what a stat upgrade does.
 - `unit_class/` contains one badge icon for the class the upgrade belongs to.
 
-Reinforcement cards are different: they use the full unit portrait from the normal sprite assets plus the same `unit_class/` class badge. They do not use a generic reinforcement icon.
+Reinforcement cards use the full unit portrait from the normal sprite assets plus the same `unit_class/` badge. They do not use a generic reinforcement icon.
 
 Use transparent PNGs on a 256 x 256 source canvas. Keep the important artwork centered with generous padding because the UI scales these files down significantly.
 
@@ -25,7 +25,9 @@ Expected class badge files:
 - `unit_class/rifleman.png`
 - `unit_class/rocketeer.png`
 - `unit_class/shockblade.png`
+- `unit_class/drone_pilot.png`
+- `unit_class/anti_air.png`
 
-Shockblade uses the existing damage, fire-rate, range, and blast-radius generic icons. Its blast-radius icon represents the size of the half-moon slash.
+Drone Pilot currently uses fire-rate, range, and blast-radius icons for stun-grenade cadence, drone operating range, and stun radius. Anti Air uses fire-rate, range, and projectile-speed icons for interceptor cadence, radar/intercept range, and interceptor acceleration/speed.
 
 When adding a new upgrade or class, register its icon key/path in `src/data/upgradeIcons.js`.
