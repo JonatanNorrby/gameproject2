@@ -1,0 +1,75 @@
+/* v43 Squad Builder visual corrections.
+   Loaded after the base formation styles so these rules intentionally win. */
+
+.squad-unit-card--captain {
+  --unit-color: #ffd700 !important;
+  background: linear-gradient(
+    135deg,
+    #fff4a3 0%,
+    #ffd700 24%,
+    #f0b400 52%,
+    #ffd700 76%,
+    #fff0a0 100%
+  ) !important;
+  background-size: 180% 180% !important;
+  animation: captain-hex-gold-pulse 1.8s ease-in-out infinite !important;
+}
+
+.squad-unit-card--captain::before {
+  display: block !important;
+  background: linear-gradient(
+    155deg,
+    rgba(126, 91, 0, .96),
+    rgba(65, 43, 0, .98) 48%,
+    rgba(24, 17, 2, .99) 82%
+  ) !important;
+}
+
+/* The previous masked pseudo-border was not reliable across browsers.
+   The animated drop-shadow below follows the clipped hex outline directly. */
+.squad-unit-card--captain::after {
+  display: none !important;
+}
+
+.squad-unit-card--captain .squad-unit-card__icon {
+  border-color: #ffe97a !important;
+  background: rgba(71, 48, 0, .82) !important;
+  color: #fff2a1 !important;
+  box-shadow: 0 0 16px rgba(255, 215, 0, .5) !important;
+}
+
+.squad-unit-card--captain.squad-unit-card--selected {
+  animation: captain-hex-gold-selected 1.55s ease-in-out infinite !important;
+}
+
+@keyframes captain-hex-gold-pulse {
+  0%, 100% {
+    background-position: 0% 50%;
+    filter:
+      drop-shadow(0 0 4px rgba(255, 215, 0, .42))
+      drop-shadow(0 11px 14px rgba(0, 0, 0, .26));
+  }
+  50% {
+    background-position: 100% 50%;
+    filter:
+      drop-shadow(0 0 10px rgba(255, 224, 82, .88))
+      drop-shadow(0 0 3px rgba(255, 248, 188, .76))
+      drop-shadow(0 11px 14px rgba(0, 0, 0, .28));
+  }
+}
+
+@keyframes captain-hex-gold-selected {
+  0%, 100% {
+    background-position: 0% 50%;
+    filter:
+      drop-shadow(0 0 9px rgba(255, 215, 0, .8))
+      drop-shadow(0 11px 14px rgba(0, 0, 0, .3));
+  }
+  50% {
+    background-position: 100% 50%;
+    filter:
+      drop-shadow(0 0 16px rgba(255, 235, 130, 1))
+      drop-shadow(0 0 5px rgba(255, 255, 220, .85))
+      drop-shadow(0 11px 14px rgba(0, 0, 0, .3));
+  }
+}
