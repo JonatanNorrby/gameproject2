@@ -16,11 +16,24 @@ export class UI extends PreviousUI {
   update(game) {
     super.update(game);
 
-    // The shared boss HUD is reused by both encounters. Restore the first boss
-    // label on later runs after the Broodmother has previously occupied it.
+    // The shared boss HUD is reused by encounters. Restore the first boss label
+    // after later boss layers have occupied it.
     if (game.getActiveWarden?.() && !game.getActiveBroodmother?.() && this.wardenHud) {
       const name = this.wardenHud.querySelector('.boss-hud__name');
       if (name) name.textContent = 'THE WARDEN';
+    }
+
+    // All boss intros share the same arrival element. Always collapse it after
+    // whichever intro is active finishes, instead of leaving cleanup to a
+    // boss-specific UI layer.
+    const anyBossIntroActive = Boolean(
+      game.wardenIntro?.active
+      || game.broodIntro?.active
+      || game.cipherIntro?.active
+    );
+    if (!anyBossIntroActive && this.bossArrivalNotice) {
+      this.bossArrivalNotice.style.opacity = '0';
+      this.bossArrivalNotice.style.transform = 'scale(.9)';
     }
   }
 }
