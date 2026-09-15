@@ -67,7 +67,7 @@ export const UNIT_CLASSES = {
     outline: '#c5ecff',
     weapon: {
       kind: 'melee',
-      damage: 32,
+      damage: 64,
       cooldown: 1.5,
       projectileSpeed: 0,
       projectileRadius: 0,
@@ -75,7 +75,7 @@ export const UNIT_CLASSES = {
       pierce: 1,
       range: 100,
       aoeRadius: 78,
-      lungeDistance: 100,
+      lungeDistance: 70,
       attackDuration: 0.34,
       hitTime: 0.17,
       arcRadians: Math.PI,
@@ -211,11 +211,11 @@ function unitStatUpgrade({
 }
 
 const REINFORCEMENT_COUNT_BY_RARITY = Object.freeze({
-  common: 1,
-  uncommon: 2,
-  rare: 3,
-  epic: 4,
+  rare: 1,
+  epic: 2,
 });
+
+const REINFORCEMENT_RARITY_IDS = Object.freeze(Object.keys(REINFORCEMENT_COUNT_BY_RARITY));
 
 function recruitmentUpgrade({ id, name, unitType, maxRank }) {
   return {
@@ -226,12 +226,14 @@ function recruitmentUpgrade({ id, name, unitType, maxRank }) {
     stat: 'unitCount',
     maxRank,
     unitType,
+    rarityIds: REINFORCEMENT_RARITY_IDS,
     describe(rarity) {
-      const amount = rarityValue(rarity, REINFORCEMENT_COUNT_BY_RARITY);
+      const amount = REINFORCEMENT_COUNT_BY_RARITY[rarity.id] ?? 0;
       return `Recruit ${amount} ${UNIT_CLASSES[unitType].label}${amount === 1 ? '' : 's'} into the squad.`;
     },
     apply(game, rarity) {
-      game.addSquadUnits(unitType, rarityValue(rarity, REINFORCEMENT_COUNT_BY_RARITY));
+      const amount = REINFORCEMENT_COUNT_BY_RARITY[rarity.id] ?? 0;
+      if (amount > 0) game.addSquadUnits(unitType, amount);
     },
   };
 }

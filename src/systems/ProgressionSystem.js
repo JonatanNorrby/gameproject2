@@ -1,7 +1,7 @@
 import { GAME_BALANCE, RARITIES, UPGRADES } from '../data/content.js';
 import { createUnitModifierState } from '../data/unitModifiers.js';
 
-const REINFORCEMENT_CHOICE_WEIGHT = 0.35;
+const REINFORCEMENT_CHOICE_WEIGHT = 1.05;
 const STAT_CHOICE_WEIGHT = 1;
 
 export class ProgressionSystem {
@@ -85,17 +85,24 @@ export class ProgressionSystem {
 
     return selected.map((upgrade) => ({
       upgrade: { ...upgrade, maxRank: '∞' },
-      rarity: this.rollRarity(),
+      rarity: this.rollRarity(upgrade.rarityIds),
     }));
   }
 
-  rollRarity() {
-    const totalWeight = RARITIES.reduce((sum, rarity) => sum + rarity.weight, 0);
+  rollRarity(allowedIds = null) {
+    const allowed = Array.isArray(allowedIds) && allowedIds.length > 0
+      ? new Set(allowedIds)
+      : null;
+    const pool = allowed
+      ? RARITIES.filter((rarity) => allowed.has(rarity.id))
+      : RARITIES;
+    const candidates = pool.length > 0 ? pool : RARITIES;
+    const totalWeight = candidates.reduce((sum, rarity) => sum + rarity.weight, 0);
     let roll = Math.random() * totalWeight;
-    for (const rarity of RARITIES) {
+    for (const rarity of candidates) {
       roll -= rarity.weight;
       if (roll < 0) return rarity;
     }
-    return RARITIES[0];
+    return candidates[0];
   }
 }

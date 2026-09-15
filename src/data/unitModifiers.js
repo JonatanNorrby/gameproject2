@@ -49,7 +49,9 @@ export function getEffectiveUnitStats(unitType, modifierState) {
     projectileSpeed: (weapon.projectileSpeed ?? 0) * modifiers.projectileSpeed,
     pierce: (weapon.pierce ?? 0) + modifiers.pierce,
     blastRadius: (weapon.aoeRadius ?? 0) * modifiers.blastRadius,
-    lungeDistance: (weapon.lungeDistance ?? 0) * modifiers.range,
+    lungeDistance: weapon.kind === 'melee'
+      ? Math.max(0, weapon.range * modifiers.range - 30)
+      : (weapon.lungeDistance ?? 0) * modifiers.range,
     attackDuration: weapon.attackDuration ?? 0,
     arcRadians: weapon.arcRadians ?? 0,
   };

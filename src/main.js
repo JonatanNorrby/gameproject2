@@ -1,8 +1,8 @@
-import { Game, UI } from './features/rangedEnemies.js';
+import { Game, UI } from './features/gameplayPolish.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 34;
+const GAME_VERSION = 35;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
@@ -31,15 +31,14 @@ function markStartingCaptain(captain) {
   game.syncCaptainHealth();
 }
 
-function startRun(captainId, restart = false) {
+function startRun(captainId) {
   const captain = configureCaptain(captainId);
-  if (restart) game.restart();
-  else game.start();
+  game.start();
   markStartingCaptain(captain);
 }
 
 ui.bindStart(() => startRun(ui.getSelectedCaptainId()));
-ui.bindRestart(() => startRun(game.selectedCaptainId ?? ui.getSelectedCaptainId(), true));
+ui.bindRestart(() => window.location.reload());
 ui.bindDebug({
   setInfiniteHp(enabled) {
     game.debug.infiniteHp = enabled;
