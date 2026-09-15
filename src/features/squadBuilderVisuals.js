@@ -1,9 +1,11 @@
 import { Game as PreviousGame, UI as PreviousUI } from './supportUnits.js';
+import '../data/stormlancer.js';
 
 const BUILDER_UNIT_COLORS = Object.freeze({
   rifleman: '#4fa3ff',
   rocketeer: '#ff9f43',
   shockblade: '#a86cff',
+  stormlancer: '#72e9ff',
   anti_air: '#ff5f68',
   drone_pilot: '#ffd84d',
 });
