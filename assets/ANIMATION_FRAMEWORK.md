@@ -11,6 +11,7 @@ assets/
   shockblade/
   captain_vale/
   captain_mercer/
+  captain_thorne/
   crawler/
   runner/
   brute/
@@ -49,9 +50,12 @@ Captain art is independent of the base unit class:
 
 - Captain Vale uses `assets/captain_vale/`.
 - Captain Mercer uses `assets/captain_mercer/`.
+- Captain Thorne uses `assets/captain_thorne/`.
 - Normal Riflemen use `assets/rifleman/`.
 - Normal Rocketeers use `assets/rocketeer/`.
 - Shockblades use `assets/shockblade/`.
+
+Captain Thorne belongs to the Shockblade class for upgrades and reinforcement/class-icon logic, but always uses his own `captain_thorne` character artwork.
 
 Enemy art follows the same one-frame-per-file structure. The current enemy folders are `crawler`, `runner`, `brute`, and `spitter`.
 
@@ -64,6 +68,7 @@ Enemy art follows the same one-frame-per-file structure. The current enemy folde
 - Rifleman / Captain Vale can loop the two firing frames during their firing window.
 - Rocketeer / Captain Mercer use one non-looping two-frame firing cycle per shot.
 - Shockblade uses one non-looping `shooting_1.png` / `shooting_2.png` cycle for its jump-slash attack. The runtime physically lunges the unit forward and then returns it to its formation slot.
+- Captain Thorne uses one slow non-looping firing cycle for his two-handed 360-degree greatsword sweep. Thorne does not lunge.
 - Taking damage keeps the current animation art and uses the game's red flash, shake, outline, and particles for feedback. No damage-specific PNGs are required.
 - Unit death removes the unit from the live squad and places `dead_1.png` at its exact world position for the rest of the run.
 - Captain death ends the run. Other unit deaths do not.
@@ -79,7 +84,21 @@ Shockblade is a melee class with laser swords and a jump pack.
 - `shooting_2.png`: forward laser-sword sweep frame.
 - `idle_shooting_*` may mirror the same attack poses for asset consistency, although the current melee runtime uses the moving `shooting` pair during the lunge.
 - `dead_1.png`: defeated Shockblade.
-- The game renders the half-moon energy slash procedurally, so the character frame does not need to contain the entire slash arc.
+- Normally the game renders a forward half-moon energy slash.
+- While Captain Thorne leads the squad, every Shockblade receives a second rear sweep and therefore attacks in a full 360-degree area.
+
+### Captain Thorne art notes
+
+Thorne is a large armored melee Captain carrying one oversized two-handed sword.
+
+- `idle_1.png`: heavy ready stance with the two-handed sword clearly visible.
+- `running_1.png` / `running_2.png`: grounded heavy movement; no jump pack.
+- `shooting_1.png`: deliberate two-handed wind-up.
+- `shooting_2.png`: broad spinning / follow-through pose suitable for the 360-degree sweep.
+- `idle_shooting_*` can reuse equivalent wind-up/sweep poses if separate stationary art is not available yet.
+- `dead_1.png`: defeated Thorne.
+- Leave additional transparent padding around the sword compared with standard units.
+- The full 360-degree energy arc is rendered procedurally.
 
 ### Spitter art notes
 
@@ -95,10 +114,11 @@ Spitter is the scarce ranged enemy.
 The game reuses each character's `idle_1.png` as static artwork:
 
 - Captain selection uses the selected Captain folder's `idle_1.png`.
+- Captain Thorne selection therefore reads from `assets/captain_thorne/idle_1.png`.
 - Unit reinforcement upgrades use that unit class folder's `idle_1.png`.
 - Shockblade reinforcement therefore reads from `assets/shockblade/idle_1.png`.
 - If `idle_1.png` is not available yet, UI portraits temporarily fall back to the same character's `running_1.png`.
 
 Missing `idle_shooting` frames fall back to normal shooting frames. Other missing live animation images fall back to an available idle/running frame while art is being added. Corpse rendering requests `dead_1.png` strictly; if it is unavailable, the game draws a simple procedural corpse marker instead of showing a living frame.
 
-Animation definitions live in `src/data/sprites.js`. Rendering is handled by `src/rendering/FrameAnimationRenderer.js`.
+Animation definitions live in `src/data/sprites.js` plus feature-specific registrations. Rendering is handled by `src/rendering/FrameAnimationRenderer.js`.

@@ -16,6 +16,7 @@ Current projectile classes:
 - Rocketeer -> rocket projectile.
 - Captain Vale inherits Rifleman.
 - Captain Mercer inherits Rocketeer.
-- Shockblade is a melee class and intentionally has **no projectile asset**. Its jump and half-moon slash are handled by melee combat logic and animation/effect rendering.
+- Shockblade is a melee class and intentionally has **no projectile asset**. Its jump and slash are handled by melee combat logic and animation/effect rendering.
+- Captain Thorne is a Shockblade-class melee Captain and intentionally has **no projectile asset**. His two-handed 360-degree sword sweep is handled by melee combat logic and procedural slash effects.
 
-Register new projectile kinds/classes in `src/data/projectiles.js`. Melee-only classes do not need an entry there.
+Register new projectile kinds/classes in `src/data/projectiles.js`. Melee-only classes and Captains do not need an entry there.

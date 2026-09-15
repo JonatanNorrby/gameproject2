@@ -1,8 +1,8 @@
-import { Game, UI } from './features/gameplayPolish.js';
+import { Game, UI } from './features/captainThorne.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 35;
+const GAME_VERSION = 36;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
@@ -28,6 +28,7 @@ function markStartingCaptain(captain) {
   startingUnit.captainId = captain.id;
   startingUnit.maxHp = captain.maxHp ?? startingUnit.maxHp;
   startingUnit.hp = startingUnit.maxHp;
+  startingUnit.armor = captain.armor ?? 0;
   game.syncCaptainHealth();
 }
 

@@ -10,6 +10,9 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Rifleman: rapid ranged bullet fire
 - Rocketeer: slower explosive rockets with AoE damage
 - Shockblade: jump-pack melee unit that lunges at nearby enemies and cuts a forward half-moon arc while invulnerable
+- Captain Vale: Rifleman commander with an adjacency fire-rate bonus
+- Captain Mercer: Rocketeer commander with an adjacency special-rocket bonus
+- Captain Thorne: heavily armored Shockblade-class melee Captain with a slow 360-degree greatsword sweep, lifesteal, and a squad-wide 360-degree Shockblade passive
 - Multiple enemy archetypes that unlock over time
 - Spitter: scarce ranged enemy that keeps its distance and fires very slow, dodgeable acid shots
 - XP pickups and level-ups
@@ -47,6 +50,8 @@ Unit classes are defined in `src/data/content.js`. When adding a class, also rev
 - `assets/projectiles/README.md` if the class fires a projectile, or document explicitly that it does not.
 
 The current classes are `rifleman`, `rocketeer`, and `shockblade`.
+
+Captains normally build on a unit class. Captain-specific combat behavior can live in a feature layer while still reusing that class's stat-upgrade modifiers. Captain Thorne is registered by `src/features/captainThorne.js`, uses Shockblade upgrades, and has independent Captain weapon/defense values.
 
 New enemies, upgrades, and balance values should normally be added to `src/data/content.js`. Existing gameplay behavior should be extended in the relevant system or feature layer instead of creating versioned or one-off scripts.
 
