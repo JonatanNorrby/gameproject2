@@ -1,7 +1,7 @@
 import { GAME_BALANCE, RARITIES, UPGRADES } from '../data/content.js';
 import { createUnitModifierState } from '../data/unitModifiers.js';
 
-const REINFORCEMENT_CHOICE_WEIGHT = 0.15;
+const REINFORCEMENT_CHOICE_WEIGHT = 0.3;
 const STAT_CHOICE_WEIGHT = 1;
 
 export class ProgressionSystem {
@@ -27,6 +27,28 @@ export class ProgressionSystem {
 
   debugLevelUp() {
     this.levelUp({ consumeXp: false });
+  }
+
+  debugSetLevel(targetLevel) {
+    const player = this.game.player;
+    const parsed = Math.floor(Number(targetLevel));
+    if (!Number.isFinite(parsed)) return player.level;
+
+    const target = Math.max(player.level, Math.max(1, parsed));
+    if (target === player.level) return player.level;
+
+    player.level = target;
+    player.xp = 0;
+    player.xpToNext = Math.ceil(
+      GAME_BALANCE.progression.startingXpToNext
+      * Math.pow(GAME_BALANCE.progression.growth, player.level - 1),
+    );
+
+    // This debug jump is for reaching test content quickly. It deliberately
+    // does not generate one upgrade-choice screen for every skipped level.
+    this.ui.hideLevelUp?.();
+    this.game.resume('levelup');
+    return player.level;
   }
 
   levelUp({ consumeXp = true } = {}) {
