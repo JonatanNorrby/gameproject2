@@ -67,11 +67,18 @@ export const FRAME_SPRITES = {
   captains: {
     mercer: createStandardFrameSet('captain_mercer', { drawSize: 44, shootingLoop: false }),
     vale: createStandardFrameSet('captain_vale', { drawSize: 42 }),
+    thorne: createStandardFrameSet('captain_thorne', {
+      drawSize: 54,
+      shootingFps: 5,
+      shootingLoop: false,
+    }),
   },
   enemies: {
     crawler: createStandardFrameSet('crawler', { drawSize: 34 }),
     runner: createStandardFrameSet('runner', { drawSize: 30 }),
     brute: createStandardFrameSet('brute', { drawSize: 56 }),
+    spitter: createStandardFrameSet('spitter', { drawSize: 38, shootingLoop: false }),
+    burst_spitter: createStandardFrameSet('burst_spitter', { drawSize: 36, shootingLoop: false }),
   },
 };
 
