@@ -149,6 +149,13 @@ const STAT_BUFF_BY_RARITY = Object.freeze({
   epic: 20,
 });
 
+const REINFORCEMENT_COUNT_BY_RARITY = Object.freeze({
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  epic: 4,
+});
+
 function rarityValue(rarity, values) {
   return values[rarity.id] ?? values.common;
 }
@@ -204,11 +211,12 @@ function recruitmentUpgrade({ id, name, unitType, maxRank }) {
     stat: 'unitCount',
     maxRank,
     unitType,
-    describe() {
-      return `Recruit 1 ${UNIT_CLASSES[unitType].label} into the squad.`;
+    describe(rarity) {
+      const amount = rarityValue(rarity, REINFORCEMENT_COUNT_BY_RARITY);
+      return `Recruit ${amount} ${UNIT_CLASSES[unitType].label} unit${amount === 1 ? '' : 's'} into the squad.`;
     },
-    apply(game) {
-      game.addSquadUnits(unitType, 1);
+    apply(game, rarity) {
+      game.addSquadUnits(unitType, rarityValue(rarity, REINFORCEMENT_COUNT_BY_RARITY));
     },
   };
 }

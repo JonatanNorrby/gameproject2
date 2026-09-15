@@ -1,7 +1,7 @@
 import { GAME_BALANCE, RARITIES, UPGRADES } from '../data/content.js';
 import { createUnitModifierState } from '../data/unitModifiers.js';
 
-const REINFORCEMENT_CHOICE_WEIGHT = 0.5;
+const REINFORCEMENT_CHOICE_WEIGHT = 0.35;
 const STAT_CHOICE_WEIGHT = 1;
 
 export class ProgressionSystem {
