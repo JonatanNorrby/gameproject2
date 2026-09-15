@@ -2,7 +2,7 @@ import { Game, UI } from './features/performanceAndVisualFixes.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 44;
+const GAME_VERSION = 45;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
@@ -15,7 +15,9 @@ game.debug = {
 };
 
 function configureCaptain(captainId) {
-  const captain = CAPTAINS[captainId] ?? Object.values(CAPTAINS)[0];
+  const captain = CAPTAINS[captainId];
+  if (!captain) return null;
+
   game.selectedCaptainId = captain.id;
   GAME_BALANCE.player.startingSquad = [captain.unitType];
   return captain;
@@ -23,7 +25,7 @@ function configureCaptain(captainId) {
 
 function markStartingCaptain(captain) {
   const startingUnit = game.player.squad[0];
-  if (!startingUnit) return;
+  if (!startingUnit || !captain) return;
 
   startingUnit.captainId = captain.id;
   startingUnit.maxHp = captain.maxHp ?? startingUnit.maxHp;
@@ -34,11 +36,21 @@ function markStartingCaptain(captain) {
 
 function startRun(captainId) {
   const captain = configureCaptain(captainId);
+  if (!captain) return false;
+
   game.start();
   markStartingCaptain(captain);
+  return true;
 }
 
-ui.bindStart(() => startRun(ui.getSelectedCaptainId()));
+ui.bindStart(() => {
+  const captainId = ui.getSelectedCaptainId();
+  if (!captainId || !CAPTAINS[captainId]) {
+    ui.requireCaptainSelection?.();
+    return;
+  }
+  startRun(captainId);
+});
 ui.bindRestart(() => window.location.reload());
 ui.bindDebug({
   setInfiniteHp(enabled) {
