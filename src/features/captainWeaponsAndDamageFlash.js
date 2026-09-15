@@ -12,20 +12,11 @@ const SHOOT_ANIMATION_DURATION = 0.36;
 UNIT_CLASSES.rifleman.weapon.cooldown = CAPTAIN_WEAPON_TUNING.riflemanBaseCooldown;
 
 Object.assign(CAPTAINS[VALE_ID], {
-  passiveText: 'Vale and adjacent Riflemen build Focus while sustaining fire on one target. Max Focus grants +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires a 3-round burst on every attack.',
+  passiveText: 'Vale and adjacent Riflemen build Focus while sustaining fire on one target. Max Focus grants +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target on every attack.',
 });
 Object.assign(CAPTAINS[MERCER_ID], {
   passiveText: 'Mercer and adjacent Rocketeers mark enemies with explosions. Every third rocket is a Heavy Warhead that detonates marks into chain reactions. Mercer rockets also scatter light burst rounds after exploding.',
 });
-
-function rotateVelocity(projectile, angle) {
-  if (!projectile || !angle) return;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  const { vx, vy } = projectile;
-  projectile.vx = vx * cos - vy * sin;
-  projectile.vy = vx * sin + vy * cos;
-}
 
 function createCaptainWeaponCombatSystem(ParentCombatSystem) {
   return class CaptainWeaponCombatSystem extends ParentCombatSystem {
@@ -33,12 +24,14 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
       super(game);
       this.mercerCaptainShotCount = 0;
       this.valeCaptainFocusState = null;
+      this.valeBurstQueue = [];
     }
 
     reset() {
       super.reset();
       this.mercerCaptainShotCount = 0;
       this.valeCaptainFocusState = null;
+      this.valeBurstQueue = [];
     }
 
     isAdjacentCaptainUnit(soldier, captainId, expectedType) {
@@ -68,21 +61,73 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
       return state;
     }
 
-    fireValeBurst(soldier, unitClass, target, shotEffect) {
-      const state = this.updateValeFocusFromShot(soldier, target);
-      const offsets = CAPTAIN_WEAPON_TUNING.valeBurstAngles;
+    getCurrentSoldierPosition(unitId) {
+      return this.game.getWeaponPositions().find((soldier) => (
+        soldier.unit.id === unitId && !soldier.unit.dead
+      )) ?? null;
+    }
 
-      for (let i = 0; i < offsets.length; i += 1) {
-        const before = this.game.entities.projectiles.length;
-        super.fireWeapon(soldier, unitClass, target, shotEffect);
-        if (this.game.entities.projectiles.length <= before) continue;
-        const projectile = this.game.entities.projectiles[this.game.entities.projectiles.length - 1];
-        rotateVelocity(projectile, offsets[i]);
-        projectile.valeCaptainBurst = true;
-        this.maybeApplyValePierce(projectile, state);
+    fireValeBurstRound(burst, animate = false) {
+      const soldier = this.getCurrentSoldierPosition(burst.unitId);
+      if (!soldier || !burst.target) return false;
+
+      const before = this.game.entities.projectiles.length;
+      super.fireWeapon(soldier, UNIT_CLASSES.rifleman, burst.target, burst.shotEffect);
+      if (this.game.entities.projectiles.length <= before) return false;
+
+      const projectile = this.game.entities.projectiles[this.game.entities.projectiles.length - 1];
+      projectile.valeCaptainBurst = true;
+      this.maybeApplyValePierce(projectile, burst.focusState);
+
+      if (animate) {
+        this.game.playUnitAnimation(
+          soldier.unit,
+          this.game.player.moving ? 'shooting' : 'idle_shooting',
+          SHOOT_ANIMATION_DURATION,
+        );
+      }
+      return true;
+    }
+
+    fireValeBurst(soldier, unitClass, target, shotEffect) {
+      const focusState = this.updateValeFocusFromShot(soldier, target);
+      const burst = {
+        unitId: soldier.unit.id,
+        target,
+        shotEffect,
+        focusState,
+        shotsRemaining: Math.max(1, CAPTAIN_WEAPON_TUNING.valeBurstCount),
+        nextShotAt: this.game.elapsed,
+      };
+
+      if (this.fireValeBurstRound(burst, false)) burst.shotsRemaining -= 1;
+      else burst.shotsRemaining = 0;
+
+      if (burst.shotsRemaining > 0) {
+        burst.nextShotAt = this.game.elapsed + CAPTAIN_WEAPON_TUNING.valeBurstShotInterval;
+        this.valeBurstQueue.push(burst);
       }
 
-      if (state) this.valeFiredThisUpdate.add(soldier.unit.id);
+      if (focusState) this.valeFiredThisUpdate.add(soldier.unit.id);
+    }
+
+    updateValeBurstRounds() {
+      if (this.valeBurstQueue.length === 0) return;
+
+      const now = this.game.elapsed;
+      const active = [];
+      for (const burst of this.valeBurstQueue) {
+        while (burst.shotsRemaining > 0 && now >= burst.nextShotAt) {
+          if (!this.fireValeBurstRound(burst, true)) {
+            burst.shotsRemaining = 0;
+            break;
+          }
+          burst.shotsRemaining -= 1;
+          burst.nextShotAt += CAPTAIN_WEAPON_TUNING.valeBurstShotInterval;
+        }
+        if (burst.shotsRemaining > 0) active.push(burst);
+      }
+      this.valeBurstQueue = active;
     }
 
     fireWeapon(soldier, unitClass, target, shotEffect = null) {
@@ -148,6 +193,7 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
 
     updateSquadWeapons(dt) {
       super.updateSquadWeapons(dt);
+      this.updateValeBurstRounds();
 
       const vale = this.game.player.squad.find((unit) => (
         !unit.dead && unit.captainId === VALE_ID && unit.type === RIFLEMAN_TYPE
@@ -156,6 +202,7 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
         this.valeFocus.set(vale.id, this.valeCaptainFocusState);
       } else if (!vale) {
         this.valeCaptainFocusState = null;
+        this.valeBurstQueue = [];
       }
     }
 
