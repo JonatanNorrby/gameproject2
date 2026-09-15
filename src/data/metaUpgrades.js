@@ -143,6 +143,12 @@ function persistState() {
   }
 }
 
+export function resetMetaUpgradeProgress() {
+  metaUpgradeState = createDefaultState();
+  persistState();
+  return getMetaUpgradeState();
+}
+
 export function getMetaUpgradeState() {
   const activeIds = [...metaUpgradeState.activeIds];
   const spentPoints = getSpentPoints(activeIds);
