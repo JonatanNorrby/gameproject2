@@ -3,33 +3,96 @@ import { WARDEN_BOSS } from '../data/bosses.js';
 import { grantMetaUpgradePoints } from '../data/metaUpgrades.js';
 
 const WARDEN_EXTRA_COOLDOWN_RATE = 0.75;
-const WARDEN_BARRAGE_INTERVAL = 6;
-const FRONT_ARMOR_COLOR = '#ff334f';
+const WARDEN_BARRAGE_COOLDOWN = 3;
+const ARMOR_RING_COLOR = '#ff334f';
+const ARMOR_RING_INNER_COLOR = '#ff91a0';
 
 export class Game extends PreviousGame {
+  spawnWarden() {
+    super.spawnWarden();
+    const boss = this.getActiveWarden?.();
+    if (!boss) return;
+
+    boss.maxArmorHp = Math.max(0, Number(WARDEN_BOSS.armor.shellHp) || 0);
+    boss.armorHp = boss.maxArmorHp;
+  }
+
   updateWarden(dt) {
     super.updateWarden(dt);
 
     const boss = this.getActiveWarden?.();
-    if (!boss || boss.state !== 'approach' || boss.attackCooldown <= 0) return;
+    if (
+      !boss
+      || boss.enraged
+      || boss.state !== 'approach'
+      || boss.attackCooldown <= 0
+    ) return;
 
-    // Increase attack pressure without shortening the actual Charge telegraph.
+    // Phase one is barrage-heavy. Speed up the downtime between Barrages while
+    // preserving the full telegraph duration so the attack remains readable.
     boss.attackCooldown = Math.max(
       0,
       boss.attackCooldown - dt * WARDEN_EXTRA_COOLDOWN_RATE,
     );
   }
 
-  beginWardenBarrage(boss) {
-    // The base fight asks for a barrage every third attack. Convert every other
-    // barrage slot into another Charge, resulting in roughly five Charges per
-    // six ranged attack-cycle selections while preserving Spine Barrage.
-    if ((boss?.attackCycle ?? 0) % WARDEN_BARRAGE_INTERVAL !== 0) {
-      super.beginWardenCharge(boss);
+  beginWardenCharge(boss) {
+    // Charge is an enrage-only attack. Any pre-enrage Charge selection is
+    // converted into Spine Barrage instead.
+    if (!boss?.enraged) {
+      this.beginWardenBarrage(boss);
       return;
     }
 
+    super.beginWardenCharge(boss);
+  }
+
+  beginWardenBarrage(boss) {
     super.beginWardenBarrage(boss);
+    if (!boss?.enraged) boss.attackCooldown = WARDEN_BARRAGE_COOLDOWN;
+  }
+
+  applyWardenDamage(amount, hitX, hitY, options = {}) {
+    const boss = this.getActiveWarden?.();
+    if (!boss || !Number.isFinite(amount) || amount <= 0) return null;
+
+    const coreExposed = boss.coreExposedUntil > this.elapsed;
+    let armorDamage = 0;
+    let bodyDamage = 0;
+    let bodyMultiplier = 1;
+
+    if (coreExposed) {
+      // A missed enrage Charge still creates a short punish window, but there
+      // is no directional bonus: the exposed core is a timed state only.
+      bodyMultiplier = WARDEN_BOSS.armor.exposedCoreDamageMultiplier;
+      bodyDamage = amount * bodyMultiplier;
+    } else if ((boss.armorHp ?? 0) > 0) {
+      // The shared 360-degree armor shell absorbs damage uniformly from every
+      // direction. There are no individual plates or break locations.
+      armorDamage = Math.min(boss.armorHp, amount);
+      boss.armorHp = Math.max(0, boss.armorHp - armorDamage);
+
+      const overflow = Math.max(0, amount - armorDamage);
+      if (overflow > 0) bodyDamage = overflow;
+    } else {
+      bodyDamage = amount;
+    }
+
+    if (bodyDamage > 0) {
+      boss.hp = Math.max(0, boss.hp - bodyDamage);
+    }
+
+    boss.hitFlash = 0.11;
+    this.spawnHitParticles(hitX, hitY);
+
+    if (boss.hp <= 0) this.defeatWarden(boss);
+    return {
+      bodyDamage,
+      armorDamage,
+      bodyMultiplier,
+      coreExposed,
+      plate: null,
+    };
   }
 
   defeatWarden(boss) {
@@ -60,61 +123,44 @@ export class Game extends PreviousGame {
   drawWarden(ctx, boss) {
     super.drawWarden(ctx, boss);
 
-    const frontLeft = boss.plates?.find((plate) => plate.id === 'front_left');
-    const frontRight = boss.plates?.find((plate) => plate.id === 'front_right');
-    if ((!frontLeft || frontLeft.broken) && (!frontRight || frontRight.broken)) return;
+    const armorHp = Math.max(0, boss.armorHp ?? 0);
+    const maxArmorHp = Math.max(1, boss.maxArmorHp ?? WARDEN_BOSS.armor.shellHp ?? 1);
+    if (armorHp <= 0) return;
 
-    const pulse = 0.72 + (Math.sin(this.animationClock * 7.5) + 1) * 0.14;
-    const frontX = boss.radius + 34;
-
-    const drawArmorLine = (plate, points) => {
-      if (!plate || plate.broken) return;
-      const healthRatio = Math.max(0, Math.min(1, plate.hp / Math.max(1, plate.maxHp)));
-
-      ctx.save();
-      ctx.globalAlpha = Math.max(0.38, pulse * (0.55 + healthRatio * 0.45));
-      ctx.strokeStyle = FRONT_ARMOR_COLOR;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.shadowColor = FRONT_ARMOR_COLOR;
-      ctx.shadowBlur = 24;
-      ctx.lineWidth = 9;
-      ctx.beginPath();
-      ctx.moveTo(points[0][0], points[0][1]);
-      for (let index = 1; index < points.length; index += 1) {
-        ctx.lineTo(points[index][0], points[index][1]);
-      }
-      ctx.stroke();
-
-      ctx.globalAlpha = 0.95;
-      ctx.shadowBlur = 10;
-      ctx.strokeStyle = '#ff8292';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(points[0][0], points[0][1]);
-      for (let index = 1; index < points.length; index += 1) {
-        ctx.lineTo(points[index][0], points[index][1]);
-      }
-      ctx.stroke();
-      ctx.restore();
-    };
+    const healthRatio = Math.max(0, Math.min(1, armorHp / maxArmorHp));
+    const pulse = 0.74 + (Math.sin(this.animationClock * 7.5) + 1) * 0.12;
+    const ringRadius = boss.radius + 30;
+    const segmentCount = 10;
+    const gap = 0.11;
 
     ctx.save();
     ctx.translate(boss.x, boss.y);
-    ctx.rotate(boss.facingAngle);
+    ctx.rotate(this.animationClock * 0.08);
+    ctx.lineCap = 'round';
 
-    // Detached front-armor brackets. These are deliberately independent of the
-    // creature artwork so future Warden sprites do not need the armor baked in.
-    drawArmorLine(frontLeft, [
-      [frontX - 4, -52],
-      [frontX + 8, -34],
-      [frontX + 8, -10],
-    ]);
-    drawArmorLine(frontRight, [
-      [frontX + 8, 10],
-      [frontX + 8, 34],
-      [frontX - 4, 52],
-    ]);
+    // Detached 360-degree armored shell. It is intentionally rendered outside
+    // the creature artwork so future Warden sprites need no armor graphics.
+    for (let index = 0; index < segmentCount; index += 1) {
+      const start = (Math.PI * 2 * index) / segmentCount + gap;
+      const end = (Math.PI * 2 * (index + 1)) / segmentCount - gap;
+
+      ctx.globalAlpha = Math.max(0.42, pulse * (0.58 + healthRatio * 0.42));
+      ctx.strokeStyle = ARMOR_RING_COLOR;
+      ctx.shadowColor = ARMOR_RING_COLOR;
+      ctx.shadowBlur = 24;
+      ctx.lineWidth = 9;
+      ctx.beginPath();
+      ctx.arc(0, 0, ringRadius, start, end);
+      ctx.stroke();
+
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = ARMOR_RING_INNER_COLOR;
+      ctx.shadowBlur = 10;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, ringRadius, start, end);
+      ctx.stroke();
+    }
 
     ctx.restore();
   }
@@ -148,6 +194,16 @@ export class UI extends PreviousUI {
     });
     document.body.append(this.bossRewardToast);
     this.bossRewardTimer = null;
+  }
+
+  update(game) {
+    super.update(game);
+    const boss = game.getActiveWarden?.();
+    if (!boss || !this.wardenArmor) return;
+
+    const armorHp = Math.max(0, boss.armorHp ?? 0);
+    const maxArmorHp = Math.max(0, boss.maxArmorHp ?? WARDEN_BOSS.armor.shellHp ?? 0);
+    this.wardenArmor.textContent = `ARMOR ${Math.ceil(armorHp)} / ${maxArmorHp}`;
   }
 
   showPermanentUpgradePointReward(amount, totalPoints) {
