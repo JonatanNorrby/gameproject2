@@ -1,8 +1,8 @@
-import { Game, UI } from './features/thorneEveryFifth.js';
+import { Game, UI } from './features/captainReworks.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 38;
+const GAME_VERSION = 39;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
