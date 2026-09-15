@@ -4,10 +4,9 @@ export const THORNE_CAPTAIN = Object.freeze({
   role: 'Melee Juggernaut',
   unitType: 'shockblade',
   maxHp: 300,
-  armor: 0.55,
   shortLabel: 'THR',
   color: '#ff9adf',
-  description: 'A heavily armored melee Captain wielding a massive two-handed power sword.',
+  description: 'A high-health melee Captain wielding a massive two-handed power sword.',
   passiveText: '5% lifesteal. Every 5th attack from each Shockblade becomes a full 360° sweep anywhere in the squad; no adjacency required.',
   weapon: Object.freeze({
     kind: 'melee',
