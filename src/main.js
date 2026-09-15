@@ -4,7 +4,7 @@ import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { resetUnlockProgress } from './data/unlocks.js';
 import { resetMetaUpgradeProgress } from './data/metaUpgrades.js';
 
-const GAME_VERSION = 59;
+const GAME_VERSION = 60;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
