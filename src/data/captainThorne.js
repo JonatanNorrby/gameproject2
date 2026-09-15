@@ -8,7 +8,7 @@ export const THORNE_CAPTAIN = Object.freeze({
   shortLabel: 'THR',
   color: '#ff9adf',
   description: 'A heavily armored melee Captain wielding a massive two-handed power sword.',
-  passiveText: '30% lifesteal. Every 5th attack from each Shockblade becomes a full 360° sweep anywhere in the squad; no adjacency required.',
+  passiveText: '5% lifesteal. Every 5th attack from each Shockblade becomes a full 360° sweep anywhere in the squad; no adjacency required.',
   weapon: Object.freeze({
     kind: 'melee',
     damage: 120,
@@ -23,7 +23,7 @@ export const THORNE_CAPTAIN = Object.freeze({
     attackDuration: 0.8,
     hitTime: 0.45,
     arcRadians: Math.PI * 2,
-    lifesteal: 0.3,
+    lifesteal: 0.05,
     color: '#ff9adf',
   }),
   effect: Object.freeze({
