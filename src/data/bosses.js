@@ -1,7 +1,10 @@
+export const BOSS_MILESTONE_LEVELS = Object.freeze([10, 20, 30, 40, 50]);
+export const FINAL_BOSS_LEVEL = 50;
+
 export const WARDEN_BOSS = Object.freeze({
   id: 'warden',
   name: 'The Warden',
-  spawnLevel: 15,
+  spawnLevel: BOSS_MILESTONE_LEVELS[0],
   radius: 64,
   maxHp: 6600,
   xpReward: 0,
@@ -72,7 +75,7 @@ export const WARDEN_BOSS = Object.freeze({
 export const BROODMOTHER_BOSS = Object.freeze({
   id: 'broodmother',
   name: 'The Broodmother',
-  spawnLevel: 30,
+  spawnLevel: BOSS_MILESTONE_LEVELS[1],
   radius: 72,
   maxHp: 8400,
   permanentUpgradePoints: 1,
