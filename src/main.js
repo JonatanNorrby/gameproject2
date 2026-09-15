@@ -1,10 +1,10 @@
-import { Game, UI } from './features/wardenPlates.js';
+import { Game, UI } from './features/wardenChargeAndAntiAirFixes.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { resetUnlockProgress } from './data/unlocks.js';
 import { resetMetaUpgradeProgress } from './data/metaUpgrades.js';
 
-const GAME_VERSION = 61;
+const GAME_VERSION = 62;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
