@@ -161,3 +161,63 @@
     padding: 8px 16px;
   }
 }
+
+/* Unit identity colors and Captain emphasis in the Squad Builder. */
+.squad-unit-card--captain {
+  --unit-color: #f7c94b;
+}
+.squad-unit-card--captain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 2px;
+  clip-path: inherit;
+  background: linear-gradient(135deg, #fff0a8, #f7c94b 46%, #d79a21 72%, #fff0a8);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: squad-captain-border-pulse 1.9s ease-in-out infinite;
+}
+@keyframes squad-captain-border-pulse {
+  0%, 100% {
+    opacity: .55;
+    filter: drop-shadow(0 0 2px rgba(247,201,75,.35));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 7px rgba(247,201,75,.85));
+  }
+}
+
+/* Anti Air uses its real two-slot footprint visually: two normal hexagons touching at the center. */
+.squad-unit-card--anti-air {
+  background: transparent;
+  clip-path: none;
+  isolation: isolate;
+}
+.squad-unit-card--anti-air::before { display: none; }
+.squad-unit-card--anti-air > .squad-unit-card__anti-air-hex {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+  background: color-mix(in srgb, var(--unit-color) 48%, rgba(255,255,255,.16));
+  clip-path: polygon(50% 0%, 96% 25%, 96% 75%, 50% 100%, 4% 75%, 4% 25%);
+  pointer-events: none;
+}
+.squad-unit-card--anti-air > .squad-unit-card__anti-air-hex::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--unit-color) 13%, #101722), #0a0f18 72%);
+  clip-path: inherit;
+}
+.squad-unit-card__anti-air-hex--left { left: 0; }
+.squad-unit-card__anti-air-hex--right { right: 0; }
+.squad-unit-card--captain.squad-unit-card--anti-air::after { display: none; }
