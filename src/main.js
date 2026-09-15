@@ -1,9 +1,9 @@
-import { Game, UI } from './features/performanceAndVisualFixes.js';
+import { Game, UI } from './features/metaUpgradeTree.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { resetUnlockProgress } from './data/unlocks.js';
 
-const GAME_VERSION = 53;
+const GAME_VERSION = 54;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
