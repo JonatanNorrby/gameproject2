@@ -18,19 +18,18 @@ export const WARDEN_BOSS = Object.freeze({
     summon: '#c47dff',
   }),
   armor: Object.freeze({
-    plateHp: 260,
-    frontDamageMultiplier: 0.18,
-    sideDamageMultiplier: 0.55,
-    rearDamageMultiplier: 1.2,
-    brokenPlateDamageMultiplier: 1.15,
+    shellHp: 2000,
     exposedCoreDamageMultiplier: 1.65,
+    // Compatibility only; individual breakable plates are no longer used.
+    plateHp: 0,
+    frontDamageMultiplier: 1,
+    sideDamageMultiplier: 1,
+    rearDamageMultiplier: 1,
+    brokenPlateDamageMultiplier: 1,
   }),
-  plates: Object.freeze([
-    Object.freeze({ id: 'front_left', label: 'Front Left', angle: -0.5, distance: 39, front: true }),
-    Object.freeze({ id: 'front_right', label: 'Front Right', angle: 0.5, distance: 39, front: true }),
-    Object.freeze({ id: 'side_left', label: 'Left Flank', angle: -1.5, distance: 34, front: false }),
-    Object.freeze({ id: 'side_right', label: 'Right Flank', angle: 1.5, distance: 34, front: false }),
-  ]),
+  // Individual plate targeting/breaking has been removed. The Warden now uses
+  // one shared 360-degree armor shell rendered independently from its artwork.
+  plates: Object.freeze([]),
   charge: Object.freeze({
     telegraphDuration: 1.2,
     enragedTelegraphDuration: 0.78,
@@ -43,9 +42,9 @@ export const WARDEN_BOSS = Object.freeze({
     hitRecovery: 1.05,
   }),
   slam: Object.freeze({
-    triggerRange: 155,
+    triggerRange: 200,
     telegraphDuration: 0.86,
-    radius: 190,
+    radius: 200,
     damage: 24,
   }),
   barrage: Object.freeze({
@@ -54,13 +53,15 @@ export const WARDEN_BOSS = Object.freeze({
     markerCount: 6,
     damage: 21,
   }),
+  // Kept as inert compatibility data for the existing boss state machine.
+  // Call the Swarm is disabled.
   swarm: Object.freeze({
-    firstThreshold: 0.7,
-    secondThreshold: 0.35,
-    duration: 3.15,
-    firstCount: 8,
-    secondCount: 10,
-    spawnInterval: 0.28,
+    firstThreshold: -1,
+    secondThreshold: -1,
+    duration: 0,
+    firstCount: 0,
+    secondCount: 0,
+    spawnInterval: 1,
   }),
-  enrageThreshold: 0.25,
+  enrageThreshold: 0.4,
 });
