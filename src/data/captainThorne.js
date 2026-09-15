@@ -8,7 +8,7 @@ export const THORNE_CAPTAIN = Object.freeze({
   shortLabel: 'THR',
   color: '#ff9adf',
   description: 'A heavily armored melee Captain wielding a massive two-handed power sword.',
-  passiveText: '30% lifesteal. All Shockblades attack in a full 360° arc anywhere in the squad; no adjacency required.',
+  passiveText: '30% lifesteal. Every 5th attack from each Shockblade becomes a full 360° sweep anywhere in the squad; no adjacency required.',
   weapon: Object.freeze({
     kind: 'melee',
     damage: 120,
@@ -29,5 +29,6 @@ export const THORNE_CAPTAIN = Object.freeze({
   effect: Object.freeze({
     type: 'shockblade-360-global',
     arcRadians: Math.PI * 2,
+    everyAttacks: 5,
   }),
 });

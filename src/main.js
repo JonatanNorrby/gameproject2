@@ -1,8 +1,8 @@
-import { Game, UI } from './features/projectileBehavior.js';
+import { Game, UI } from './features/thorneEveryFifth.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 37;
+const GAME_VERSION = 38;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
