@@ -89,6 +89,12 @@ function persistState() {
   }
 }
 
+export function resetUnlockProgress() {
+  unlockState = createDefaultState();
+  persistState();
+  return getUnlockState();
+}
+
 export function isUnlocked(unlockId) {
   const definition = UNLOCK_DEFINITIONS[unlockId];
   if (!definition) return false;
