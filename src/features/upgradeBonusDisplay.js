@@ -47,14 +47,28 @@ function getUpgradeProgressText(game, upgrade) {
   return `${upgrade.tag} ${getStatLabel(upgrade)} bonus: +${formatPercent(totalBonus)}% total`;
 }
 
+function getUpgradeEffectTitle(upgrade, rarity) {
+  const effectText = upgrade?.describe?.(rarity) ?? upgrade?.name ?? 'Upgrade';
+  return String(effectText).replace(/\.$/, '');
+}
+
 export class UI extends PreviousUI {
   showLevelUp(choices, onChoose, ranks, onSkip) {
     super.showLevelUp(choices, onChoose, ranks, onSkip);
 
     const cards = [...this.upgradeOptions.children];
     cards.forEach((card, index) => {
-      const upgrade = choices[index]?.upgrade;
+      const choice = choices[index];
+      const upgrade = choice?.upgrade;
       if (!upgrade) return;
+
+      const title = card.querySelector('strong');
+      if (title) title.textContent = getUpgradeEffectTitle(upgrade, choice.rarity);
+
+      // The effect itself is now the title, so the old duplicate description
+      // paragraph is intentionally removed. Keep the accumulated total below.
+      card.querySelector('p')?.remove();
+
       const progress = card.querySelector('small');
       if (progress) progress.textContent = getUpgradeProgressText(this.game, upgrade);
     });
