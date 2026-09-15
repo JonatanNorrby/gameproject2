@@ -7,6 +7,17 @@ const ROCKETEER_TYPE = 'rocketeer';
 const FOCUS_EPSILON = 0.999;
 const VALE_FOCUS_BUFF_DURATION = 5;
 const RIFLEMAN_RANGE_MULTIPLIER = 1.5;
+const NORMAL_UNIT_HP_MULTIPLIER = 0.75;
+
+// All normal squad units have 25% less HP. Captains use their separate
+// Captain maxHp values when the run starts, so they are intentionally exempt.
+for (const [unitType, unitClass] of Object.entries(UNIT_CLASSES)) {
+  if (!Number.isFinite(unitClass?.maxHp)) continue;
+  UNIT_CLASSES[unitType] = {
+    ...unitClass,
+    maxHp: unitClass.maxHp * NORMAL_UNIT_HP_MULTIPLIER,
+  };
+}
 
 // Riflemen, including Captain Vale's rifle, now have 50% more base range.
 UNIT_CLASSES.rifleman.weapon.range = 125 * RIFLEMAN_RANGE_MULTIPLIER;
