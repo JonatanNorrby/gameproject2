@@ -1,8 +1,8 @@
-import { Game, UI } from './features/squadBuilderVisuals.js';
+import { Game, UI } from './features/performanceAndVisualFixes.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 
-const GAME_VERSION = 42;
+const GAME_VERSION = 43;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
