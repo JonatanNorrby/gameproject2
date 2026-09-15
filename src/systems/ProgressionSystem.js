@@ -1,8 +1,27 @@
-import { GAME_BALANCE, RARITIES, UPGRADES } from '../data/content.js';
+import { RARITIES, UPGRADES } from '../data/content.js';
 import { createUnitModifierState } from '../data/unitModifiers.js';
 
 const REINFORCEMENT_CHOICE_WEIGHT = 0.3;
 const STAT_CHOICE_WEIGHT = 1;
+
+// Levels 1-50 are paced around ~25 minutes of active combat plus four boss
+// fights at levels 10/20/30/40 before the level-50 final boss appears. A
+// linear requirement also lets endless progression continue indefinitely
+// without the old exponential curve becoming practically unreachable.
+export const PROGRESSION_PACING = Object.freeze({
+  startingXpToNext: 20,
+  xpPerLevel: 36,
+  targetLevel: 50,
+  targetMinutes: 30,
+});
+
+export function getXpToNextForLevel(level) {
+  const normalizedLevel = Math.max(1, Math.floor(Number(level) || 1));
+  return Math.ceil(
+    PROGRESSION_PACING.startingXpToNext
+    + PROGRESSION_PACING.xpPerLevel * (normalizedLevel - 1),
+  );
+}
 
 export class ProgressionSystem {
   constructor(game, ui) {
@@ -16,7 +35,7 @@ export class ProgressionSystem {
     this.game.unitModifiers = createUnitModifierState();
     this.game.player.level = 1;
     this.game.player.xp = 0;
-    this.game.player.xpToNext = GAME_BALANCE.progression.startingXpToNext;
+    this.game.player.xpToNext = getXpToNextForLevel(1);
   }
 
   addXp(amount) {
@@ -39,10 +58,7 @@ export class ProgressionSystem {
 
     player.level = target;
     player.xp = 0;
-    player.xpToNext = Math.ceil(
-      GAME_BALANCE.progression.startingXpToNext
-      * Math.pow(GAME_BALANCE.progression.growth, player.level - 1),
-    );
+    player.xpToNext = getXpToNextForLevel(player.level);
 
     // This debug jump is for reaching test content quickly. It deliberately
     // does not generate one upgrade-choice screen for every skipped level.
@@ -55,7 +71,7 @@ export class ProgressionSystem {
     const player = this.game.player;
     if (consumeXp) player.xp -= player.xpToNext;
     player.level += 1;
-    player.xpToNext = Math.ceil(GAME_BALANCE.progression.startingXpToNext * Math.pow(GAME_BALANCE.progression.growth, player.level - 1));
+    player.xpToNext = getXpToNextForLevel(player.level);
 
     const choices = this.getChoices(3);
     if (choices.length === 0) return;
