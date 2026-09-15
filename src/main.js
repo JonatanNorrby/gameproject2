@@ -2,8 +2,9 @@ import { Game, UI } from './features/metaUpgradeTree.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { resetUnlockProgress } from './data/unlocks.js';
+import { resetMetaUpgradeProgress } from './data/metaUpgrades.js';
 
-const GAME_VERSION = 54;
+const GAME_VERSION = 55;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
@@ -66,15 +67,18 @@ ui.bindDebug({
 const resetProgressButton = document.querySelector('#reset-progress-button');
 resetProgressButton?.addEventListener('click', () => {
   const confirmed = window.confirm(
-    'Reset all unlock progress? Captain Vale will remain available, while all earned unlocks will be locked again.',
+    'Reset all progress? Captain unlocks and permanent Upgrade Tree progress will be erased. Captain Vale will remain available.',
   );
   if (!confirmed) return;
 
   resetUnlockProgress();
+  resetMetaUpgradeProgress();
+
   ui.selectedCaptainId = null;
   ui.captainSelectionRequired = false;
   ui.renderCaptainOptions?.();
   ui.renderSelectedCaptainSummary?.();
+  ui.renderMetaUpgradeTree?.();
 
   resetProgressButton.textContent = 'Progress Reset';
   window.setTimeout(() => {
