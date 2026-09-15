@@ -18,17 +18,20 @@ export const WARDEN_BOSS = Object.freeze({
     summon: '#c47dff',
   }),
   armor: Object.freeze({
-    shellHp: 2000,
+    plateCount: 10,
+    plateHp: 300,
+    ringOffset: 30,
+    gapRadians: 0.11,
     exposedCoreDamageMultiplier: 1.65,
-    // Compatibility only; individual breakable plates are no longer used.
-    plateHp: 0,
+    // Compatibility aggregate used by the boss HUD and older armor hooks.
+    shellHp: 3000,
     frontDamageMultiplier: 1,
     sideDamageMultiplier: 1,
     rearDamageMultiplier: 1,
     brokenPlateDamageMultiplier: 1,
   }),
-  // Individual plate targeting/breaking has been removed. The Warden now uses
-  // one shared 360-degree armor shell rendered independently from its artwork.
+  // Legacy body-plate targeting remains disabled. The visible outer shield is
+  // now handled as independent detached ring plates.
   plates: Object.freeze([]),
   charge: Object.freeze({
     telegraphDuration: 1.2,
