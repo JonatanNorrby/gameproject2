@@ -18,6 +18,15 @@ Object.assign(CAPTAINS[MERCER_ID], {
   passiveText: 'Mercer and adjacent Rocketeers mark enemies with explosions. Every third rocket is a Heavy Warhead that detonates marks into chain reactions. Mercer rockets also scatter light burst rounds after exploding.',
 });
 
+function isPrimaryCaptainUnit(unit, captainId) {
+  return Boolean(
+    unit
+    && !unit.dead
+    && unit.captainId === captainId
+    && !unit.secondaryCaptain
+  );
+}
+
 function createCaptainWeaponCombatSystem(ParentCombatSystem) {
   return class CaptainWeaponCombatSystem extends ParentCombatSystem {
     constructor(game) {
@@ -36,9 +45,8 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
 
     isAdjacentCaptainUnit(soldier, captainId, expectedType) {
       if (
-        soldier?.unit?.captainId === captainId
+        isPrimaryCaptainUnit(soldier?.unit, captainId)
         && soldier.unit.type === expectedType
-        && !soldier.unit.dead
       ) return true;
       return super.isAdjacentCaptainUnit(soldier, captainId, expectedType);
     }
@@ -47,8 +55,7 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
       const eligible = super.getValeEligibleRiflemen();
       const soldiers = this.game.getWeaponPositions();
       const vale = soldiers.find((soldier) => (
-        !soldier.unit.dead
-        && soldier.unit.captainId === VALE_ID
+        isPrimaryCaptainUnit(soldier.unit, VALE_ID)
         && soldier.unit.type === RIFLEMAN_TYPE
       ));
       if (vale && !eligible.some((soldier) => soldier.unit.id === vale.unit.id)) eligible.push(vale);
@@ -57,7 +64,9 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
 
     updateValeFocusFromShot(soldier, target) {
       const state = super.updateValeFocusFromShot(soldier, target);
-      if (soldier?.unit?.captainId === VALE_ID && state) this.valeCaptainFocusState = state;
+      if (isPrimaryCaptainUnit(soldier?.unit, VALE_ID) && state) {
+        this.valeCaptainFocusState = state;
+      }
       return state;
     }
 
@@ -131,12 +140,18 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
     }
 
     fireWeapon(soldier, unitClass, target, shotEffect = null) {
-      if (soldier?.unit?.captainId === VALE_ID && soldier.unit.type === RIFLEMAN_TYPE) {
+      if (
+        isPrimaryCaptainUnit(soldier?.unit, VALE_ID)
+        && soldier.unit.type === RIFLEMAN_TYPE
+      ) {
         this.fireValeBurst(soldier, unitClass, target, shotEffect);
         return;
       }
 
-      if (soldier?.unit?.captainId === MERCER_ID && soldier.unit.type === ROCKETEER_TYPE) {
+      if (
+        isPrimaryCaptainUnit(soldier?.unit, MERCER_ID)
+        && soldier.unit.type === ROCKETEER_TYPE
+      ) {
         this.mercerCaptainShotCount += 1;
         const everyShots = Math.max(1, this.getMercerEffect()?.everyShots ?? 3);
         const heavy = this.mercerCaptainShotCount % everyShots === 0;
@@ -196,7 +211,7 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
       this.updateValeBurstRounds();
 
       const vale = this.game.player.squad.find((unit) => (
-        !unit.dead && unit.captainId === VALE_ID && unit.type === RIFLEMAN_TYPE
+        isPrimaryCaptainUnit(unit, VALE_ID) && unit.type === RIFLEMAN_TYPE
       ));
       if (vale && this.valeCaptainFocusState) {
         this.valeFocus.set(vale.id, this.valeCaptainFocusState);
