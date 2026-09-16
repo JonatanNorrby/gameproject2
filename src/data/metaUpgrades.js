@@ -58,11 +58,12 @@ export const SQUAD_DOCTRINES = Object.freeze({
     color: '#7ef9d4',
     description: 'Class diversity increases squad damage and attack speed. Each additional living class adds +7%, up to +35%.',
   }),
+  // Keep the legacy id so existing saved selections continue to work.
   massed_infantry: Object.freeze({
     id: 'massed_infantry',
-    name: 'Massed Infantry',
+    name: 'Specialization',
     color: '#74c9ff',
-    description: 'Stacking the same class increases that class damage and attack speed by +6% per additional living unit, up to +40%.',
+    description: 'The opposite of Combined Arms: every duplicate of the same living class makes that class stronger, granting +6% damage and attack speed per additional unit, up to +40%.',
   }),
   shock_assault: Object.freeze({
     id: 'shock_assault',
