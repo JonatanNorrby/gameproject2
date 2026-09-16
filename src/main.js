@@ -2,9 +2,9 @@ import { Game, UI } from './features/runtimeSafety.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { resetUnlockProgress } from './data/unlocks.js';
-import { resetMetaUpgradeProgress } from './data/metaUpgrades.js';
+import { resetPermanentProgression } from './data/metaUpgrades.js';
 
-const GAME_VERSION = 71;
+const GAME_VERSION = 72;
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
@@ -30,18 +30,42 @@ function markStartingCaptain(captain) {
   if (!startingUnit || !captain) return;
 
   startingUnit.captainId = captain.id;
+  startingUnit.primaryCaptain = true;
+  startingUnit.secondaryCaptain = false;
   startingUnit.maxHp = captain.maxHp ?? startingUnit.maxHp;
   startingUnit.hp = startingUnit.maxHp;
   startingUnit.armor = captain.armor ?? 0;
   game.syncCaptainHealth();
 }
 
-function startRun(captainId) {
+function addSecondCaptain(captainId, primaryCaptainId) {
+  if (!captainId || captainId === primaryCaptainId) return null;
+  const captain = CAPTAINS[captainId];
+  if (!captain) return null;
+
+  const previousIds = new Set(game.player.squad.map((unit) => unit.id));
+  game.addSquadUnits(captain.unitType, 1);
+  const unit = game.player.squad.find((candidate) => !previousIds.has(candidate.id));
+  if (!unit) return null;
+
+  // The second Captain deliberately keeps the normal unit's health/armor. The
+  // captainId activates their passive, while secondaryCaptain prevents their
+  // death from ending the run.
+  unit.captainId = captain.id;
+  unit.primaryCaptain = false;
+  unit.secondaryCaptain = true;
+  game.refreshDoctrineBonuses?.();
+  return unit;
+}
+
+function startRun(captainId, secondCaptainId = null, doctrineId = null) {
   const captain = configureCaptain(captainId);
   if (!captain) return false;
 
+  game.selectedDoctrineId = doctrineId;
   game.start();
   markStartingCaptain(captain);
+  addSecondCaptain(secondCaptainId, captain.id);
   return true;
 }
 
@@ -51,7 +75,10 @@ ui.bindStart(() => {
     ui.requireCaptainSelection?.();
     return;
   }
-  startRun(captainId);
+
+  const secondCaptainId = ui.getSelectedSecondCaptainId?.() ?? null;
+  const doctrineId = ui.getSelectedDoctrineId?.() ?? null;
+  startRun(captainId, secondCaptainId, doctrineId);
 });
 ui.bindRestart(() => window.location.reload());
 ui.bindDebug({
@@ -104,18 +131,20 @@ installDebugLevelTarget();
 const resetProgressButton = document.querySelector('#reset-progress-button');
 resetProgressButton?.addEventListener('click', () => {
   const confirmed = window.confirm(
-    'Reset all progress? Captain unlocks and permanent Upgrade Tree progress will be erased. Captain Vale will remain available.',
+    'Reset all progress? Captain unlocks, Gold and permanent upgrades will be erased. Captain Vale will remain available.',
   );
   if (!confirmed) return;
 
   resetUnlockProgress();
-  resetMetaUpgradeProgress();
+  resetPermanentProgression();
 
   ui.selectedCaptainId = null;
+  ui.selectedSecondCaptainId = null;
   ui.captainSelectionRequired = false;
   ui.renderCaptainOptions?.();
   ui.renderSelectedCaptainSummary?.();
-  ui.renderMetaUpgradeTree?.();
+  ui.renderPermanentShop?.();
+  ui.renderRunConfiguration?.();
 
   resetProgressButton.textContent = 'Progress Reset';
   window.setTimeout(() => {
