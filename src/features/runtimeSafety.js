@@ -1,4 +1,4 @@
-import { Game as PreviousGame, UI } from './sniperClass.js';
+import { Game as PreviousGame, UI as PreviousUI } from './sniperClass.js';
 
 const MAX_REPORTED_ERRORS = 20;
 const DAMAGE_FEEDBACK_DURATION = 0.18;
@@ -138,4 +138,13 @@ export class Game extends PreviousGame {
   }
 }
 
-export { UI };
+export class UI extends PreviousUI {
+  renderPermanentShop(...args) {
+    super.renderPermanentShop(...args);
+    const button = this.metaUpgradeOpen ?? document.querySelector('#meta-upgrade-open');
+    if (!button) return;
+
+    const suffix = button.textContent.match(/•\s*(.+)$/)?.[1];
+    button.textContent = suffix ? `Upgrades • ${suffix}` : 'Upgrades';
+  }
+}
