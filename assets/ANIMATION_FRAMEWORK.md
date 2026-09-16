@@ -10,7 +10,6 @@ assets/
   rocketeer/
   shockblade/
   drone_pilot/
-  anti_air/
   captain_vale/
   captain_mercer/
   captain_thorne/
@@ -54,7 +53,6 @@ dead_1.png
 - `rocketeer`
 - `shockblade`
 - `drone_pilot`
-- `anti_air`
 
 ## Current Captain folders
 
@@ -80,13 +78,13 @@ All current enemies and playable units are registered in `src/data/sprites.js`. 
 - Moving and attacking: `shooting_1.png` / `shooting_2.png`
 - Dead: `dead_1.png`
 
-Rifleman / Captain Vale can loop firing frames during their firing window. Rocketeer / Captain Mercer use one non-looping firing cycle per shot. Shockblade and Captain Thorne use non-looping melee attack cycles. Drone Pilot uses shooting frames when issuing a drone attack command. Anti Air uses shooting frames when firing.
+Rifleman / Captain Vale can loop firing frames during their firing window. Rocketeer / Captain Mercer use one non-looping firing cycle per shot. Shockblade and Captain Thorne use non-looping melee attack cycles. Drone Pilot uses shooting frames when issuing a drone attack command.
 
 The Drone Pilot's separate support drone uses `assets/drone_pilot/drone.png` and is drawn independently from the formation.
 
 ## Projectile visuals
 
-Projectile asset support has been removed. Bullets, rockets, enemy shots, interceptors, and other projectiles are rendered procedurally by the game. Do not create an `assets/projectiles/` folder.
+Projectile asset support has been removed. Bullets, rockets, enemy shots, and other projectiles are rendered procedurally by the game. Do not create an `assets/projectiles/` folder.
 
 ## UI portraits
 
