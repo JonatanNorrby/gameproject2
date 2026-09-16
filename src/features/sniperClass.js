@@ -6,9 +6,9 @@ import { distanceSq } from '../utils/math.js';
 
 export const SNIPER_TYPE = 'sniper';
 
-// Sniper is registered here so it participates in the existing recruitment,
-// formation, doctrine and modifier systems without introducing a parallel unit
-// implementation. 75 HP matches the current normal-unit health baseline.
+// Sniper remains a distinct battlefield unit, but belongs to the Rifleman class
+// for upgrades/Captain effects. Keeping its unit type preserves targeting, art,
+// recruitment, health and weapon behavior.
 if (!UNIT_CLASSES[SNIPER_TYPE]) {
   UNIT_CLASSES[SNIPER_TYPE] = {
     id: SNIPER_TYPE,
@@ -45,16 +45,12 @@ function addUpgrade(upgrade) {
   UPGRADES.push(upgrade);
 }
 
-function rarityPercent(rarity) {
-  if (rarity?.id === 'epic') return 20;
-  if (rarity?.id === 'rare') return 15;
-  return 10;
-}
-
+// Recruitment stays unit-specific. Stat upgrades are provided by the shared
+// Rifleman-class cards in content.js and apply to both Riflemen and Snipers.
 addUpgrade({
   id: 'sniper-reinforcements',
   name: 'Sniper Reinforcement',
-  tag: 'Sniper',
+  tag: 'Rifleman Class',
   kind: 'reinforcement',
   stat: 'unitCount',
   maxRank: 5,
@@ -68,33 +64,6 @@ addUpgrade({
     game.addSquadUnits(SNIPER_TYPE, rarity.id === 'epic' ? 2 : 1);
   },
 });
-
-const STAT_UPGRADES = [
-  { id: 'damage', name: 'Anti-Materiel Rounds', stat: 'damage', label: 'damage' },
-  { id: 'fire-rate', name: 'Precision Cycling', stat: 'fireRate', label: 'fire rate' },
-  { id: 'range', name: 'Long-Range Optics', stat: 'range', label: 'weapon range' },
-  { id: 'projectile-speed', name: 'Hypervelocity Ammunition', stat: 'projectileSpeed', label: 'projectile speed' },
-];
-
-for (const definition of STAT_UPGRADES) {
-  addUpgrade({
-    id: `sniper-${definition.id}`,
-    name: definition.name,
-    tag: 'Sniper',
-    kind: 'stat',
-    stat: definition.stat,
-    maxRank: '∞',
-    unitType: SNIPER_TYPE,
-    describe(rarity) {
-      return `+${rarityPercent(rarity)}% Sniper ${definition.label}.`;
-    },
-    apply(game, rarity) {
-      const modifiers = game.unitModifiers?.[SNIPER_TYPE];
-      if (!modifiers || !(definition.stat in modifiers)) return;
-      modifiers[definition.stat] *= 1 + rarityPercent(rarity) / 100;
-    },
-  });
-}
 
 function isLivingTarget(target) {
   return Boolean(
@@ -169,7 +138,7 @@ function createSniperCombatSystem(ParentCombatSystem) {
 
         // Every Sniper shot re-evaluates the battlefield at fire time. If the
         // original nearest target is still valid but a tougher target is now in
-        // range, the Sniper immediately switches to the tougher target.
+        // range, the Sniper immediately switches to it.
         if (highestHealthTarget) target = highestHealthTarget;
       }
 
