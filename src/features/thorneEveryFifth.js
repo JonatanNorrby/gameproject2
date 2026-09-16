@@ -29,11 +29,11 @@ function createThorneEveryFifthCombatSystem(ParentCombatSystem) {
 
     performShockbladeSlash(unit, attack) {
       const thorneActive = super.isThorneActive();
-      const buffedShockblade = Boolean(
-        thorneActive
-        && unit?.type === SHOCKBLADE_TYPE
-        && unit.captainId !== THORNE_ID
+      const normalShockbladeForPassive = Boolean(
+        unit?.type === SHOCKBLADE_TYPE
+        && (unit.captainId !== THORNE_ID || unit.secondaryCaptain)
       );
+      const buffedShockblade = Boolean(thorneActive && normalShockbladeForPassive);
 
       if (!buffedShockblade) {
         super.performShockbladeSlash(unit, attack);
@@ -63,7 +63,11 @@ function createThorneEveryFifthCombatSystem(ParentCombatSystem) {
 
       const livingShockblades = new Set(
         this.game.player.squad
-          .filter((unit) => !unit.dead && unit.type === SHOCKBLADE_TYPE && unit.captainId !== THORNE_ID)
+          .filter((unit) => (
+            !unit.dead
+            && unit.type === SHOCKBLADE_TYPE
+            && (unit.captainId !== THORNE_ID || unit.secondaryCaptain)
+          ))
           .map((unit) => unit.id),
       );
       for (const unitId of this.thorneShockbladeAttackCounts.keys()) {
