@@ -1,20 +1,5 @@
 import { Game as PreviousGame, UI as PreviousUI } from './wardenPlates.js';
 
-const HALF_PI = Math.PI / 2;
-const TWO_PI = Math.PI * 2;
-
-function normalizeAngle(angle) {
-  let value = Number(angle) || 0;
-  while (value > Math.PI) value -= TWO_PI;
-  while (value < -Math.PI) value += TWO_PI;
-  return value;
-}
-
-function getWestSourceCardinalRotation(facingAngle) {
-  const cardinalFacing = Math.round((Number(facingAngle) || 0) / HALF_PI) * HALF_PI;
-  return normalizeAngle(cardinalFacing - Math.PI);
-}
-
 export class Game extends PreviousGame {
   updateWarden(dt) {
     const bossBeforeUpdate = this.getActiveWarden?.();
@@ -34,17 +19,6 @@ export class Game extends PreviousGame {
       boss.stateTime = 0;
       boss.coreExposedUntil = 0;
     }
-  }
-
-  getUnitSpriteRotation(sprite, animationName) {
-    if (sprite?.directionMode === 'west-cardinal') {
-      // Anti-Air artwork is authored facing west. Quantize the squad's facing to
-      // the four cardinals: west is unchanged, east becomes a horizontal mirror
-      // in FrameAnimationRenderer, and north/south rotate ±90°.
-      return getWestSourceCardinalRotation(this.player?.facingAngle ?? Math.PI);
-    }
-
-    return super.getUnitSpriteRotation(sprite, animationName);
   }
 }
 
