@@ -1,8 +1,14 @@
 import { Game as PreviousGame, UI as PreviousUI } from './chargerEnemy.js';
-import { CAPTAINS } from '../data/content.js';
+import { CAPTAINS, UNIT_CLASSES } from '../data/content.js';
 import { FRAME_SPRITES } from '../data/sprites.js';
+import { getUnitClassFamily } from '../data/unitFamilies.js';
 import { resetUnlockProgress } from '../data/unlocks.js';
-import { resetPermanentProgression } from '../data/metaUpgrades.js';
+import {
+  SQUAD_DOCTRINES,
+  getSelectedDoctrine,
+  isPermanentUpgradeOwned,
+  resetPermanentProgression,
+} from '../data/metaUpgrades.js';
 import {
   applyPrestige,
   getPrestigeAttackRateMultiplier,
@@ -29,6 +35,27 @@ function createDebugButton(title, detail = '') {
   return button;
 }
 
+function getLivingFamilyGroups(game) {
+  const groups = new Map();
+  for (const unit of game.player?.squad ?? []) {
+    if (unit.dead) continue;
+    const familyId = getUnitClassFamily(unit.type);
+    if (!groups.has(familyId)) {
+      groups.set(familyId, { count: 0, unitTypes: new Set() });
+    }
+    const group = groups.get(familyId);
+    group.count += 1;
+    group.unitTypes.add(unit.type);
+  }
+  return groups;
+}
+
+function isShockAssaultUnitType(unitType) {
+  const weapon = UNIT_CLASSES[unitType]?.weapon;
+  if (!weapon || weapon.kind === 'support') return false;
+  return weapon.kind === 'melee' || (Number(weapon.range) || Infinity) <= 120;
+}
+
 export class Game extends PreviousGame {
   start() {
     super.start();
@@ -42,6 +69,65 @@ export class Game extends PreviousGame {
 
   getAttackSpeedMultiplier() {
     return super.getAttackSpeedMultiplier() * getPrestigeAttackRateMultiplier();
+  }
+
+  // #41: doctrines operate on the same class families as upgrades/Captains,
+  // while modifiers remain attached to each real unit type.
+  refreshDoctrineBonuses() {
+    if (!this.unitModifiers || !this.player) return;
+    this.clearDoctrineFactors?.();
+    if (!isPermanentUpgradeOwned('squad_doctrine')) return;
+
+    const doctrineId = this.activeDoctrineId ?? this.selectedDoctrineId ?? getSelectedDoctrine();
+    if (!SQUAD_DOCTRINES[doctrineId]) return;
+    this.activeDoctrineId = doctrineId;
+
+    const groups = getLivingFamilyGroups(this);
+    if (groups.size === 0) return;
+
+    if (doctrineId === 'combined_arms') {
+      const bonus = Math.min(0.35, Math.max(0, groups.size - 1) * 0.07);
+      const factor = 1 + bonus;
+      for (const group of groups.values()) {
+        for (const unitType of group.unitTypes) {
+          this.applyDoctrineFactors?.(unitType, {
+            damage: factor,
+            fireRate: factor,
+            range: 1,
+          });
+        }
+      }
+      return;
+    }
+
+    if (doctrineId === 'massed_infantry') {
+      for (const group of groups.values()) {
+        const bonus = Math.min(0.40, Math.max(0, group.count - 1) * 0.06);
+        const factor = 1 + bonus;
+        for (const unitType of group.unitTypes) {
+          this.applyDoctrineFactors?.(unitType, {
+            damage: factor,
+            fireRate: factor,
+            range: 1,
+          });
+        }
+      }
+      return;
+    }
+
+    if (doctrineId === 'shock_assault') {
+      for (const group of groups.values()) {
+        for (const unitType of group.unitTypes) {
+          const eligible = isShockAssaultUnitType(unitType);
+          this.applyDoctrineFactors?.(
+            unitType,
+            eligible
+              ? { damage: 1.20, fireRate: 1.35, range: 1.30 }
+              : { damage: 1, fireRate: 1, range: 1 },
+          );
+        }
+      }
+    }
   }
 
   // #37: Supreme Commander artwork is authored facing south. Never rotate the
