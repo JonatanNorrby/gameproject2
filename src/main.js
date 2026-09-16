@@ -5,7 +5,7 @@ import { getSpritePortraitSources } from './data/sprites.js';
 import { resetUnlockProgress } from './data/unlocks.js';
 import { resetPermanentProgression } from './data/metaUpgrades.js';
 
-const GAME_VERSION = 79;
+const GAME_VERSION = 80;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
@@ -18,6 +18,7 @@ const game = new Game(canvas, input, ui);
 
 game.debug = {
   infiniteHp: false,
+  opMode: false,
 };
 
 function configureCaptain(captainId) {
@@ -86,6 +87,7 @@ ui.bindStart(() => {
 });
 ui.bindRestart(() => window.location.reload());
 ui.bindDebug({
+  game,
   setInfiniteHp(enabled) {
     game.debug.infiniteHp = enabled;
     if (enabled) game.healAllUnits();
@@ -94,43 +96,6 @@ ui.bindDebug({
     game.progression.debugLevelUp();
   },
 });
-
-function installDebugLevelTarget() {
-  const debugPanel = document.querySelector('#debug-panel');
-  const groundDropHeading = debugPanel?.querySelector('.debug-drop-heading');
-  if (!debugPanel || !groundDropHeading || document.querySelector('#debug-level-target')) return;
-
-  const control = document.createElement('div');
-  control.className = 'debug-control';
-  control.style.display = 'grid';
-  control.style.gridTemplateColumns = '1fr auto';
-  control.style.alignItems = 'center';
-  control.innerHTML = `
-    <span>
-      <strong>Level Up to X</strong>
-      <small>Jump directly to a target level without upgrade screens</small>
-    </span>
-    <span style="display:flex;flex-direction:row;align-items:center;gap:6px;">
-      <input id="debug-level-target" type="number" min="1" step="1" value="15" aria-label="Target level" style="width:64px;border:1px solid rgba(126,249,212,.25);border-radius:7px;padding:7px;background:rgba(255,255,255,.05);color:#f4f7fb;font-weight:900;" />
-      <button id="debug-level-target-apply" type="button" style="border:1px solid rgba(126,249,212,.35);border-radius:7px;padding:7px 9px;background:rgba(126,249,212,.08);color:#7ef9d4;font-weight:950;cursor:pointer;">GO</button>
-    </span>
-  `;
-  groundDropHeading.before(control);
-
-  const targetInput = control.querySelector('#debug-level-target');
-  const applyButton = control.querySelector('#debug-level-target-apply');
-  const applyTargetLevel = () => {
-    const level = game.progression.debugSetLevel(targetInput.value);
-    targetInput.value = String(level);
-  };
-
-  applyButton.addEventListener('click', applyTargetLevel);
-  targetInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') applyTargetLevel();
-  });
-}
-
-installDebugLevelTarget();
 
 const resetProgressButton = document.querySelector('#reset-progress-button');
 resetProgressButton?.addEventListener('click', () => {
