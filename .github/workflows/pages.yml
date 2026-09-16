@@ -79,6 +79,7 @@ jobs:
             appendChild() {},
             prepend() {},
             after() {},
+            before() {},
             remove() {},
             replaceChildren() {},
             setAttribute() {},
@@ -94,6 +95,7 @@ jobs:
             querySelector() { return null; },
             querySelectorAll() { return []; },
             createElement() { return elementStub(); },
+            createDocumentFragment() { return elementStub(); },
           };
           globalThis.window = {
             localStorage: null,
@@ -105,9 +107,9 @@ jobs:
           };
 
           // main.js imports this final layer. Validate the complete active chain.
-          const runtime = await import('./src/features/treasureChests.js');
+          const runtime = await import('./src/features/debugMobSpawner.js');
           if (typeof runtime.Game !== 'function' || typeof runtime.UI !== 'function') {
-            throw new Error('Final Treasure Chests runtime layer did not export Game/UI');
+            throw new Error('Final Debug Mob Spawner runtime layer did not export Game/UI');
           }
           console.log('Complete active runtime module graph imports successfully.');
           NODE
@@ -123,6 +125,7 @@ jobs:
             appendChild() {},
             prepend() {},
             after() {},
+            before() {},
             remove() {},
             replaceChildren() {},
             setAttribute() {},
@@ -137,6 +140,7 @@ jobs:
             querySelector() { return null; },
             querySelectorAll() { return []; },
             createElement() { return elementStub(); },
+            createDocumentFragment() { return elementStub(); },
           };
           globalThis.window = {
             localStorage: null,
@@ -147,8 +151,9 @@ jobs:
             innerHeight: 720,
           };
 
-          const finalRuntime = await import('./src/features/treasureChests.js');
-          const { CAPTAINS, UNIT_CLASSES, UPGRADES } = await import('./src/data/content.js');
+          const finalRuntime = await import('./src/features/debugMobSpawner.js');
+          const treasureRuntime = await import('./src/features/treasureChests.js');
+          const { CAPTAINS, ENEMY_TYPES, UNIT_CLASSES, UPGRADES } = await import('./src/data/content.js');
           const { createUnitModifierState } = await import('./src/data/unitModifiers.js');
           const { getUnitClassFamily } = await import('./src/data/unitFamilies.js');
           const { getUpgradeIconSpec } = await import('./src/data/upgradeIcons.js');
@@ -255,18 +260,43 @@ jobs:
           const treasure = PERMANENT_UPGRADES.treasure_chests;
           assert(treasure, 'Missing Treasure Chests permanent upgrade');
           assert(treasure.cost === 50, 'Treasure Chests should cost 50 Gold');
-          assert(finalRuntime.TREASURE_CHEST_DROP_CHANCE === 0.025, 'Treasure Chest drop chance must be 2.5%');
-          assert(finalRuntime.TREASURE_CHEST_GOLD_REWARD === 5, 'Treasure Chest Gold reward must be 5');
-          assert(finalRuntime.TREASURE_CHEST_XP_FRACTION === 0.25, 'Treasure Chest XP fraction must be 25%');
-          assert(finalRuntime.getTreasureChestXpReward({ xpToNext: 100 }) === 25, 'Treasure Chest XP scaling is incorrect');
+          assert(treasureRuntime.TREASURE_CHEST_DROP_CHANCE === 0.025, 'Treasure Chest drop chance must be 2.5%');
+          assert(treasureRuntime.TREASURE_CHEST_GOLD_REWARD === 5, 'Treasure Chest Gold reward must be 5');
+          assert(treasureRuntime.TREASURE_CHEST_XP_FRACTION === 0.25, 'Treasure Chest XP fraction must be 25%');
+          assert(treasureRuntime.getTreasureChestXpReward({ xpToNext: 100 }) === 25, 'Treasure Chest XP scaling is incorrect');
           resetPermanentProgression();
           grantGold(50);
           assert(canPurchasePermanentUpgrade('treasure_chests'), 'Treasure Chests was not purchasable with 50 Gold');
           assert(purchasePermanentUpgrade('treasure_chests'), 'Could not purchase Treasure Chests');
-          assert(typeof finalRuntime.Game.prototype.spawnTreasureChest === 'function', 'Treasure Chest spawn API missing');
-          assert(typeof finalRuntime.Game.prototype.collectTreasureChest === 'function', 'Treasure Chest collection API missing');
+          assert(typeof treasureRuntime.Game.prototype.spawnTreasureChest === 'function', 'Treasure Chest spawn API missing');
+          assert(typeof treasureRuntime.Game.prototype.collectTreasureChest === 'function', 'Treasure Chest collection API missing');
 
-          console.log('Unit class and permanent-upgrade contracts validated.');
+          const debugMobEntries = finalRuntime.getDebugMobEntries();
+          const debugMobIds = new Set(debugMobEntries.map(([id]) => id));
+          const registeredMobIds = Object.keys(ENEMY_TYPES);
+          assert(registeredMobIds.length > 0, 'No normal enemy types are registered');
+          for (const mobId of registeredMobIds) {
+            assert(debugMobIds.has(mobId), `Debug mob roster is missing ${mobId}`);
+          }
+          for (const expectedMob of ['crawler', 'runner', 'brute', 'spitter', 'burst_spitter', 'charger']) {
+            assert(ENEMY_TYPES[expectedMob], `Expected mob ${expectedMob} is not registered`);
+            assert(debugMobIds.has(expectedMob), `Expected mob ${expectedMob} is missing from debug controls`);
+          }
+          assert(typeof finalRuntime.Game.prototype.debugSpawnMob === 'function', 'Debug single-mob spawn API missing');
+          assert(typeof finalRuntime.Game.prototype.debugSpawnAllMobs === 'function', 'Debug all-mobs spawn API missing');
+          assert(typeof finalRuntime.UI.prototype.installMobDebugControls === 'function', 'Debug mob controls UI installer missing');
+
+          const mockSpawnGame = {
+            elapsed: 120,
+            player: { x: 100, y: 200 },
+            entities: { createId: () => 987 },
+          };
+          const crawler = finalRuntime.createDebugMobState(mockSpawnGame, 'crawler', 0);
+          assert(crawler?.id === 987 && crawler.type === 'crawler', 'Debug mob state creation failed');
+          assert(crawler.hp > ENEMY_TYPES.crawler.hp, 'Debug mob did not inherit current-time HP scaling');
+          assert(crawler.x > mockSpawnGame.player.x, 'Debug mob did not spawn around the player');
+
+          console.log('Unit class, permanent-upgrade and debug-mob contracts validated.');
           NODE
 
       - name: Configure Pages
