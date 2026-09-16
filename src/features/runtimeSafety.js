@@ -69,6 +69,15 @@ export class Game extends PreviousGame {
     )) ?? null;
   }
 
+  getCipherHazardTargets(soloOnly) {
+    const soldiers = this.getSoldierPositions().filter((soldier) => !soldier.unit.dead);
+    return soloOnly
+      ? soldiers.filter((soldier) => (
+        Boolean(soldier.unit.captainId) && !soldier.unit.secondaryCaptain
+      ))
+      : soldiers;
+  }
+
   activateCaptainCall(slot = 'primary') {
     if (this.getActiveCipher?.()?.puzzleActive) return false;
     return super.activateCaptainCall(slot);
