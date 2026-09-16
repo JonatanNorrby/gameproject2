@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Validate final runtime import and Captain slots
+      - name: Validate final runtime import, Captain slots and boss rendering
         shell: bash
         run: |
           set -euo pipefail
@@ -63,7 +63,7 @@ jobs:
             innerHeight: 720,
           };
 
-          const runtime = await import('./src/features/captainSlotCompatibility.js');
+          const runtime = await import('./src/features/bossVisibilityFix.js');
           const slots = await import('./src/data/captainSlots.js');
           const assert = (condition, message) => {
             if (!condition) throw new Error(message);
@@ -74,6 +74,7 @@ jobs:
           assert(typeof runtime.Game.prototype.getCaptainSoldierBySlot === 'function', 'Captain slot lookup missing');
           assert(typeof runtime.Game.prototype.beginCipherSquadRetreat === 'function', 'Cipher retreat compatibility missing');
           assert(typeof runtime.Game.prototype.getCipherHazardTargets === 'function', 'Cipher hazard compatibility missing');
+          assert(typeof runtime.Game.prototype.drawBossEncounterEntities === 'function', 'Boss visibility compatibility renderer missing');
 
           const primary = { captainId: 'vale', primaryCaptain: true, secondaryCaptain: false, tertiaryCaptain: false, dead: false };
           const secondary = { captainId: 'mercer', secondaryCaptain: true, tertiaryCaptain: false, dead: false };
@@ -87,7 +88,35 @@ jobs:
           assert(slots.getCaptainSlot(secondary) === 'secondary', 'Secondary slot resolution failed');
           assert(slots.getCaptainSlot(tertiary) === 'tertiary', 'Tertiary slot resolution failed');
 
-          console.log('Final runtime and Captain-slot compatibility validated.');
+          const renderCalls = [];
+          const warden = { id: 'warden' };
+          const broodmother = { id: 'broodmother' };
+          const cipher = { id: 'cipher' };
+          const renderMock = {
+            drawBroodEggs() { renderCalls.push('eggs'); },
+            getActiveWarden() { return warden; },
+            drawWarden(_ctx, boss) {
+              assert(boss === warden, 'Wrong Warden instance passed to renderer');
+              renderCalls.push('warden');
+            },
+            getActiveBroodmother() { return broodmother; },
+            drawBroodmother(_ctx, boss) {
+              assert(boss === broodmother, 'Wrong Broodmother instance passed to renderer');
+              renderCalls.push('broodmother');
+            },
+            getActiveCipher() { return cipher; },
+            drawCipher(_ctx, boss) {
+              assert(boss === cipher, 'Wrong Cipher instance passed to renderer');
+              renderCalls.push('cipher');
+            },
+          };
+          runtime.Game.prototype.drawBossEncounterEntities.call(renderMock, {});
+          assert(
+            renderCalls.join(',') === 'eggs,warden,broodmother,cipher',
+            `Boss render chain is incomplete or out of order: ${renderCalls.join(',')}`,
+          );
+
+          console.log('Final runtime, Captain-slot compatibility and boss rendering validated.');
           NODE
 
       - name: Validate HUD Gold layout and version sync
