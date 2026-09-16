@@ -411,23 +411,10 @@
   content: 'UNLOCK REQUIREMENT';
 }
 
+/* Selection is already explicit through the ACTIVE chip and bright outline.
+   Hide the legacy injected banner so it never competes for space or overlaps it. */
 #captain-select-screen .captain-select-card__selected {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 4;
-  width: auto;
-  margin: 0;
-  border: 1px solid color-mix(in srgb, var(--rarity-color) 62%, white 10%);
-  border-radius: 999px;
-  padding: 5px 8px;
-  background: color-mix(in srgb, var(--rarity-color) 82%, #081016 18%);
-  color: #07110f;
-  font-size: 9px;
-  line-height: 1;
-  letter-spacing: .11em;
-  box-shadow: 0 0 20px color-mix(in srgb, var(--rarity-color) 28%, transparent);
-  pointer-events: none;
+  display: none;
 }
 
 #captain-select-screen .captain-select-card--active,
