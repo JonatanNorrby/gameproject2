@@ -1,4 +1,4 @@
-export const BOSS_MILESTONE_LEVELS = Object.freeze([10, 20, 30, 40, 50]);
+export const BOSS_MILESTONE_LEVELS = Object.freeze([15, 30, 50]);
 export const FINAL_BOSS_LEVEL = 50;
 
 export const WARDEN_BOSS = Object.freeze({
@@ -26,15 +26,12 @@ export const WARDEN_BOSS = Object.freeze({
     ringOffset: 30,
     gapRadians: 0.11,
     exposedCoreDamageMultiplier: 1.65,
-    // Compatibility aggregate used by the boss HUD and older armor hooks.
     shellHp: 3000,
     frontDamageMultiplier: 1,
     sideDamageMultiplier: 1,
     rearDamageMultiplier: 1,
     brokenPlateDamageMultiplier: 1,
   }),
-  // Legacy body-plate targeting remains disabled. The visible outer shield is
-  // now handled as independent detached ring plates.
   plates: Object.freeze([]),
   charge: Object.freeze({
     telegraphDuration: 1.2,
@@ -59,8 +56,6 @@ export const WARDEN_BOSS = Object.freeze({
     markerCount: 6,
     damage: 21,
   }),
-  // Kept as inert compatibility data for the existing boss state machine.
-  // Call the Swarm is disabled.
   swarm: Object.freeze({
     firstThreshold: -1,
     secondThreshold: -1,
@@ -242,107 +237,5 @@ export const CIPHER_BOSS = Object.freeze({
       maxRadius: 720,
       damage: 18,
     }),
-  }),
-});
-
-export const REACTOR_BOSS = Object.freeze({
-  id: 'reactor',
-  name: 'The Reactor',
-  spawnLevel: BOSS_MILESTONE_LEVELS[3],
-  radius: 78,
-  maxHp: 14500,
-  permanentUpgradePoints: 1,
-  coreOrbitRadius: 315,
-  colors: Object.freeze({
-    shell: '#33404b',
-    shellEdge: '#c9d8e5',
-    core: '#f1fbff',
-    warning: '#ff6b7d',
-    critical: '#ff355d',
-    projectile: '#f2d66b',
-    pulse: '#83d8ff',
-  }),
-  cores: Object.freeze({
-    red: Object.freeze({
-      id: 'red', label: 'RED — DAMAGE', color: '#ff4d5f', hp: 2200, radius: 34,
-      damageMultiplier: 1.35,
-      explosionRadiusMultiplier: 1.35,
-    }),
-    blue: Object.freeze({
-      id: 'blue', label: 'BLUE — DEFENSE', color: '#4aa3ff', hp: 2200, radius: 34,
-      bossDamageTakenMultiplier: 0.52,
-    }),
-    green: Object.freeze({
-      id: 'green', label: 'GREEN — REGEN', color: '#65e58a', hp: 2200, radius: 34,
-      regenPerSecond: 42,
-    }),
-    yellow: Object.freeze({
-      id: 'yellow', label: 'YELLOW — SPEED', color: '#ffd95e', hp: 2200, radius: 34,
-      attackIntervalMultiplier: 0.78,
-      projectileSpeedMultiplier: 1.35,
-      beamRotationMultiplier: 1.28,
-    }),
-  }),
-  instability: Object.freeze({
-    baseAttackInterval: 3.15,
-    perCoreDestroyedReduction: 0.28,
-    criticalAttackInterval: 1.45,
-    baseEnvironmentInterval: 7.5,
-    perCoreDestroyedReduction: 1,
-    criticalEnvironmentInterval: 2.8,
-  }),
-  attacks: Object.freeze({
-    pulse: Object.freeze({
-      warningDuration: 0.82,
-      startRadius: 92,
-      speed: 350,
-      width: 24,
-      maxRadius: 760,
-      damage: 20,
-    }),
-    barrage: Object.freeze({
-      count: 5,
-      criticalCount: 8,
-      projectileSpeed: 215,
-      projectileRadius: 10,
-      projectileLife: 5.2,
-      damage: 14,
-      spreadRadians: 0.42,
-    }),
-    overload: Object.freeze({
-      warningDuration: 0.95,
-      radius: 56,
-      count: 4,
-      unstableCount: 6,
-      criticalCount: 8,
-      damage: 22,
-    }),
-    beam: Object.freeze({
-      warningDuration: 0.92,
-      duration: 3,
-      angularSpeed: 0.76,
-      halfWidth: 0.1,
-      damage: 18,
-      damageInterval: 0.58,
-    }),
-    vent: Object.freeze({
-      warningDuration: 0.72,
-      projectileSpeed: 190,
-      projectileRadius: 11,
-      projectileLife: 4.9,
-      rayCount: 14,
-      gapCount: 4,
-      damage: 16,
-    }),
-    leak: Object.freeze({
-      warningDuration: 0.85,
-      radius: 48,
-      damage: 17,
-    }),
-  }),
-  death: Object.freeze({
-    duration: 3.5,
-    sparkInterval: 0.42,
-    finalExplosionAt: 2.85,
   }),
 });
