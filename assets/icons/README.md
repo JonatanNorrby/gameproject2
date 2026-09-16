@@ -26,8 +26,7 @@ Expected class badge files:
 - `unit_class/rocketeer.png`
 - `unit_class/shockblade.png`
 - `unit_class/drone_pilot.png`
-- `unit_class/anti_air.png`
 
-Drone Pilot currently uses fire-rate, range, and blast-radius icons for stun-grenade cadence, drone operating range, and stun radius. Anti Air uses fire-rate, range, and projectile-speed icons for interceptor cadence, radar/intercept range, and interceptor acceleration/speed.
+Drone Pilot currently uses fire-rate, range, and blast-radius icons for stun-grenade cadence, drone operating range, and stun radius.
 
 When adding a new upgrade or class, register its icon key/path in `src/data/upgradeIcons.js`.
