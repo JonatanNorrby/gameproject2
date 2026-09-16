@@ -1,5 +1,6 @@
 import { Game as PreviousGame, UI as PreviousUI } from './chargerEnemy.js';
 import { CAPTAINS } from '../data/content.js';
+import { FRAME_SPRITES } from '../data/sprites.js';
 import { resetUnlockProgress } from '../data/unlocks.js';
 import { resetPermanentProgression } from '../data/metaUpgrades.js';
 import {
@@ -41,6 +42,60 @@ export class Game extends PreviousGame {
 
   getAttackSpeedMultiplier() {
     return super.getAttackSpeedMultiplier() * getPrestigeAttackRateMultiplier();
+  }
+
+  // #37: Supreme Commander artwork is authored facing south. Never rotate the
+  // sprite with movement direction; movement/firing logic still behaves normally.
+  getUnitSpriteRotation(sprite, animationName) {
+    if (sprite === FRAME_SPRITES.captains[SECRET_CAPTAIN_ID]) return 0;
+    return super.getUnitSpriteRotation(sprite, animationName);
+  }
+
+  drawPlayer(ctx) {
+    if (
+      this.isSupremeCommanderRun?.()
+      && this.getSupremeCommanderUnit?.()
+      && !this.isDropEffectActive('mothership')
+      && !this.isDropEffectActive('transformer')
+    ) {
+      this.drawSupremeCommanderGlow(ctx);
+    }
+    super.drawPlayer(ctx);
+  }
+
+  drawSupremeCommanderGlow(ctx) {
+    const commander = this.getSupremeCommanderUnit?.();
+    if (!commander) return;
+
+    const pulse = 0.5 + 0.5 * Math.sin(this.animationClock * 2.8);
+    const radius = 48 + pulse * 10;
+    const gradient = ctx.createRadialGradient(
+      this.player.x,
+      this.player.y,
+      8,
+      this.player.x,
+      this.player.y,
+      radius,
+    );
+    gradient.addColorStop(0, `rgba(247, 215, 116, ${0.22 + pulse * 0.08})`);
+    gradient.addColorStop(0.45, `rgba(126, 249, 212, ${0.12 + pulse * 0.06})`);
+    gradient.addColorStop(1, 'rgba(126, 249, 212, 0)');
+
+    ctx.save();
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(this.player.x, this.player.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 0.42 + pulse * 0.28;
+    ctx.strokeStyle = '#f7d774';
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 22;
+    ctx.shadowColor = '#f7d774';
+    ctx.beginPath();
+    ctx.arc(this.player.x, this.player.y + 4, 28 + pulse * 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -143,6 +198,16 @@ export class UI extends PreviousUI {
       this.resetEverythingFromDebug();
     });
     panel.append(resetButton);
+  }
+
+  renderSelectedCaptainSummary(...args) {
+    super.renderSelectedCaptainSummary(...args);
+    const summary = this.selectedCaptainSummary ?? document.querySelector('#selected-captain-summary');
+    if (!summary) return;
+    summary.classList.toggle(
+      'selected-captain-summary--supreme',
+      this.getSelectedCaptainId?.() === SECRET_CAPTAIN_ID,
+    );
   }
 
   renderCaptainOptions(...args) {
