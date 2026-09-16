@@ -63,6 +63,16 @@ function createChargerCombatSystem(ParentCombatSystem) {
       return super.isAdjacentCaptainUnit?.(soldier, captainId, expectedType) ?? false;
     }
 
+    // The lower Shockblade wrapper temporarily sets this override to false on
+    // non-third attacks. Respect it before Supreme Commander's inherited-Thorne
+    // shortcut so the passive cannot become an every-attack 360° sweep.
+    isThorneActive() {
+      if (typeof this.thornePassiveOverride === 'boolean') {
+        return this.thornePassiveOverride;
+      }
+      return super.isThorneActive?.() ?? false;
+    }
+
     updateEnemies(dt) {
       const allEnemies = this.game.entities.enemies;
       const chargers = allEnemies.filter((enemy) => (
