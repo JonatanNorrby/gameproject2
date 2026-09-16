@@ -105,9 +105,9 @@ jobs:
           };
 
           // main.js imports this final layer. Validate the complete active chain.
-          const runtime = await import('./src/features/beefedUp.js');
+          const runtime = await import('./src/features/treasureChests.js');
           if (typeof runtime.Game !== 'function' || typeof runtime.UI !== 'function') {
-            throw new Error('Final Beefed Up runtime layer did not export Game/UI');
+            throw new Error('Final Treasure Chests runtime layer did not export Game/UI');
           }
           console.log('Complete active runtime module graph imports successfully.');
           NODE
@@ -147,7 +147,7 @@ jobs:
             innerHeight: 720,
           };
 
-          const finalRuntime = await import('./src/features/beefedUp.js');
+          const finalRuntime = await import('./src/features/treasureChests.js');
           const { CAPTAINS, UNIT_CLASSES, UPGRADES } = await import('./src/data/content.js');
           const { createUnitModifierState } = await import('./src/data/unitModifiers.js');
           const { getUnitClassFamily } = await import('./src/data/unitFamilies.js');
@@ -246,12 +246,27 @@ jobs:
           assert(canPurchasePermanentUpgrade('beefed_up'), 'Beefed Up was not purchasable with 50 Gold');
           assert(purchasePermanentUpgrade('beefed_up'), 'Could not purchase Beefed Up');
           const testUnit = { hp: 100, maxHp: 100 };
-          assert(finalRuntime.applyBeefedUpHealthBonus(testUnit), 'Beefed Up helper did not apply');
+          const { applyBeefedUpHealthBonus } = await import('./src/features/beefedUp.js');
+          assert(applyBeefedUpHealthBonus(testUnit), 'Beefed Up helper did not apply');
           assert(testUnit.maxHp === 150 && testUnit.hp === 150, 'Beefed Up did not add exactly +50 HP');
-          assert(!finalRuntime.applyBeefedUpHealthBonus(testUnit), 'Beefed Up applied twice to the same unit');
+          assert(!applyBeefedUpHealthBonus(testUnit), 'Beefed Up applied twice to the same unit');
           assert(testUnit.maxHp === 150 && testUnit.hp === 150, 'Beefed Up stacked twice on one unit');
 
-          console.log('Unit class, Third Captain and Beefed Up contracts validated.');
+          const treasure = PERMANENT_UPGRADES.treasure_chests;
+          assert(treasure, 'Missing Treasure Chests permanent upgrade');
+          assert(treasure.cost === 50, 'Treasure Chests should cost 50 Gold');
+          assert(finalRuntime.TREASURE_CHEST_DROP_CHANCE === 0.025, 'Treasure Chest drop chance must be 2.5%');
+          assert(finalRuntime.TREASURE_CHEST_GOLD_REWARD === 5, 'Treasure Chest Gold reward must be 5');
+          assert(finalRuntime.TREASURE_CHEST_XP_FRACTION === 0.25, 'Treasure Chest XP fraction must be 25%');
+          assert(finalRuntime.getTreasureChestXpReward({ xpToNext: 100 }) === 25, 'Treasure Chest XP scaling is incorrect');
+          resetPermanentProgression();
+          grantGold(50);
+          assert(canPurchasePermanentUpgrade('treasure_chests'), 'Treasure Chests was not purchasable with 50 Gold');
+          assert(purchasePermanentUpgrade('treasure_chests'), 'Could not purchase Treasure Chests');
+          assert(typeof finalRuntime.Game.prototype.spawnTreasureChest === 'function', 'Treasure Chest spawn API missing');
+          assert(typeof finalRuntime.Game.prototype.collectTreasureChest === 'function', 'Treasure Chest collection API missing');
+
+          console.log('Unit class and permanent-upgrade contracts validated.');
           NODE
 
       - name: Configure Pages
