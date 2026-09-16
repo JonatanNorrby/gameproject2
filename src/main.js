@@ -1,9 +1,9 @@
-import { Game, UI } from './features/prestigeSystem.js';
+import { Game, UI } from './features/thirdCaptain.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 85;
+const GAME_VERSION = 86;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
@@ -37,14 +37,16 @@ function markStartingCaptain(captain) {
   startingUnit.captainId = captain.id;
   startingUnit.primaryCaptain = true;
   startingUnit.secondaryCaptain = false;
+  startingUnit.tertiaryCaptain = false;
+  startingUnit.captainSlot = 'primary';
   startingUnit.maxHp = captain.maxHp ?? startingUnit.maxHp;
   startingUnit.hp = startingUnit.maxHp;
   startingUnit.armor = captain.armor ?? 0;
   game.syncCaptainHealth();
 }
 
-function addSecondCaptain(captainId, primaryCaptainId) {
-  if (!captainId || captainId === primaryCaptainId) return null;
+function addAdditionalCaptain(captainId, excludedCaptainIds, slot) {
+  if (!captainId || excludedCaptainIds.has(captainId)) return null;
   const captain = CAPTAINS[captainId];
   if (!captain) return null;
 
@@ -53,24 +55,29 @@ function addSecondCaptain(captainId, primaryCaptainId) {
   const unit = game.player.squad.find((candidate) => !previousIds.has(candidate.id));
   if (!unit) return null;
 
-  // The second Captain deliberately keeps the normal unit's health/armor. The
-  // captainId activates their passive, while secondaryCaptain prevents their
-  // death from ending the run.
+  // Additional Captains deliberately keep normal unit health/armor. Their
+  // captainId activates passives while slot flags keep their death non-fatal.
   unit.captainId = captain.id;
   unit.primaryCaptain = false;
-  unit.secondaryCaptain = true;
+  unit.secondaryCaptain = slot === 'secondary';
+  unit.tertiaryCaptain = slot === 'tertiary';
+  unit.captainSlot = slot;
   game.refreshDoctrineBonuses?.();
   return unit;
 }
 
-function startRun(captainId, secondCaptainId = null, doctrineId = null) {
+function startRun(captainId, secondCaptainId = null, thirdCaptainId = null, doctrineId = null) {
   const captain = configureCaptain(captainId);
   if (!captain) return false;
 
   game.selectedDoctrineId = doctrineId;
   game.start();
   markStartingCaptain(captain);
-  addSecondCaptain(secondCaptainId, captain.id);
+
+  const usedCaptainIds = new Set([captain.id]);
+  const second = addAdditionalCaptain(secondCaptainId, usedCaptainIds, 'secondary');
+  if (second?.captainId) usedCaptainIds.add(second.captainId);
+  addAdditionalCaptain(thirdCaptainId, usedCaptainIds, 'tertiary');
   return true;
 }
 
@@ -82,8 +89,9 @@ ui.bindStart(() => {
   }
 
   const secondCaptainId = ui.getSelectedSecondCaptainId?.() ?? null;
+  const thirdCaptainId = ui.getSelectedThirdCaptainId?.() ?? null;
   const doctrineId = ui.getSelectedDoctrineId?.() ?? null;
-  startRun(captainId, secondCaptainId, doctrineId);
+  startRun(captainId, secondCaptainId, thirdCaptainId, doctrineId);
 });
 ui.bindRestart(() => window.location.reload());
 ui.bindDebug({
