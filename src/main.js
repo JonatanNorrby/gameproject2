@@ -1,4 +1,4 @@
-import { Game, UI } from './features/treasureChests.js';
+import { Game, UI } from './features/debugMobSpawner.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import {
@@ -7,7 +7,7 @@ import {
 } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 88;
+const GAME_VERSION = 89;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
