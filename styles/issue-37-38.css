@@ -1,4 +1,4 @@
-/* v82 visual polish for issues #37 and #38. */
+/* Supreme Commander visual polish for issues #37, #38 and #50. */
 
 #start-screen .selected-captain-summary--supreme .selected-captain-card__portrait {
   width: clamp(210px, 25vw, 340px);
@@ -24,14 +24,11 @@
   pointer-events: none;
 }
 
+/* #50: suppress the generic portrait platform entirely for Supreme Commander.
+   The ::before pseudo-element above remains as the soft animated glow. */
 #start-screen .selected-captain-summary--supreme .selected-captain-card__portrait::after {
-  z-index: 0;
-  width: 72%;
-  border-color: rgba(247, 215, 116, .72);
-  box-shadow:
-    0 0 34px rgba(247, 215, 116, .36),
-    inset 0 0 26px rgba(126, 249, 212, .13);
-  animation: supreme-platform-glow 2.2s ease-in-out infinite;
+  content: none;
+  display: none;
 }
 
 #start-screen .selected-captain-summary--supreme .selected-captain-card__portrait img {
@@ -55,11 +52,6 @@
     opacity: 1;
     transform: translate(-50%, -50%) scale(1.04);
   }
-}
-
-@keyframes supreme-platform-glow {
-  0%, 100% { opacity: .62; }
-  50% { opacity: 1; }
 }
 
 @media (max-height: 820px) {
