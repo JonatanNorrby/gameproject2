@@ -288,3 +288,230 @@
   .captain-select-card small { font-size: 9px; }
   .captain-secret__question { width: 92px; height: 92px; font-size: 64px; }
 }
+
+/* #55 — Captain selection is a comparison screen, not an upgrade-card grid.
+   Keep every option the same size and make the information hierarchy obvious. */
+#captain-select-screen #captain-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-rows: 390px;
+  align-items: stretch;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+#captain-select-screen .captain-select-card {
+  height: 390px;
+  min-height: 390px;
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-rows: 34px auto minmax(0, 1fr) auto;
+  column-gap: 18px;
+  row-gap: 10px;
+  align-items: start;
+  overflow: hidden;
+  padding: 18px;
+  border-width: 1px !important;
+  border-radius: 16px;
+  transform: none !important;
+}
+
+#captain-select-screen .captain-select-card:hover {
+  transform: none !important;
+}
+
+#captain-select-screen .captain-select-card .upgrade-card__meta {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-height: 34px;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+#captain-select-screen .captain-select-card .upgrade-card__tag,
+#captain-select-screen .captain-select-card .upgrade-card__rarity {
+  border: 1px solid color-mix(in srgb, var(--rarity-color) 24%, rgba(255,255,255,.08));
+  border-radius: 999px;
+  padding: 4px 7px;
+  background: color-mix(in srgb, var(--rarity-color) 8%, rgba(4,8,13,.8));
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: .11em;
+}
+
+#captain-select-screen .captain-select-card .upgrade-card__portrait {
+  grid-column: 1;
+  grid-row: 2 / 5;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 272px;
+  align-self: center;
+  margin: 0 !important;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 14px 18px rgba(0,0,0,.42));
+}
+
+#captain-select-screen .captain-select-card > strong {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
+  margin: 0;
+  color: #f4f8fb;
+  font-size: clamp(22px, 2.2vw, 31px);
+  line-height: 1.02;
+  letter-spacing: -.015em;
+}
+
+#captain-select-screen .captain-select-card > p {
+  grid-column: 2;
+  grid-row: 3;
+  align-self: start;
+  margin: 0;
+  color: #aab7c8;
+  font-size: 13px;
+  line-height: 1.48;
+}
+
+#captain-select-screen .captain-select-card > p::before {
+  content: 'COMMAND PROFILE';
+  display: block;
+  margin-bottom: 7px;
+  color: #607387;
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .14em;
+}
+
+#captain-select-screen .captain-select-card > small {
+  grid-column: 2;
+  grid-row: 4;
+  align-self: end;
+  min-height: 76px;
+  margin: 0;
+  padding: 10px 12px 0;
+  border-top: 1px solid color-mix(in srgb, var(--rarity-color) 22%, rgba(255,255,255,.05));
+  color: #d3dce8;
+  font-size: 11px;
+  line-height: 1.42;
+}
+
+#captain-select-screen .captain-select-card > small::before {
+  content: 'PASSIVE';
+  display: block;
+  margin-bottom: 6px;
+  color: var(--rarity-color);
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .14em;
+}
+
+#captain-select-screen .captain-select-card:disabled > small::before {
+  content: 'UNLOCK REQUIREMENT';
+}
+
+#captain-select-screen .captain-select-card__selected {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 4;
+  width: auto;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--rarity-color) 62%, white 10%);
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: color-mix(in srgb, var(--rarity-color) 82%, #081016 18%);
+  color: #07110f;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: .11em;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--rarity-color) 28%, transparent);
+  pointer-events: none;
+}
+
+#captain-select-screen .captain-select-card--active,
+#captain-select-screen .captain-select-card[aria-pressed="true"] {
+  opacity: 1 !important;
+  filter: none !important;
+  outline: 2px solid var(--rarity-color);
+  outline-offset: -2px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--rarity-color) 32%, transparent),
+    0 0 34px color-mix(in srgb, var(--rarity-color) 22%, transparent),
+    0 18px 42px rgba(0,0,0,.38) !important;
+}
+
+#captain-select-screen .captain-select-card:disabled {
+  opacity: .58 !important;
+  filter: saturate(.42) brightness(.68) !important;
+}
+
+#captain-select-screen .captain-select-card:disabled > p {
+  color: #8995a5;
+}
+
+#captain-select-screen .captain-select-card:disabled > small {
+  color: #b8c1cd;
+}
+
+#captain-select-screen .captain-select-card--secret {
+  height: 390px;
+  min-height: 390px;
+}
+
+@media (max-width: 760px) {
+  #captain-select-screen #captain-options {
+    grid-template-columns: 1fr !important;
+    grid-auto-rows: 350px;
+  }
+
+  #captain-select-screen .captain-select-card,
+  #captain-select-screen .captain-select-card--secret {
+    height: 350px;
+    min-height: 350px;
+    grid-template-columns: 112px minmax(0, 1fr);
+    padding: 15px;
+  }
+
+  #captain-select-screen .captain-select-card .upgrade-card__portrait {
+    max-height: 236px;
+  }
+
+  #captain-select-screen .captain-select-card > strong {
+    font-size: 24px;
+  }
+
+  #captain-select-screen .captain-select-card > p {
+    font-size: 12px;
+  }
+
+  #captain-select-screen .captain-select-card > small {
+    min-height: 68px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 460px) {
+  #captain-select-screen #captain-options {
+    grid-auto-rows: 410px;
+  }
+
+  #captain-select-screen .captain-select-card,
+  #captain-select-screen .captain-select-card--secret {
+    height: 410px;
+    min-height: 410px;
+    grid-template-columns: 88px minmax(0, 1fr);
+    column-gap: 12px;
+    padding: 13px;
+  }
+
+  #captain-select-screen .captain-select-card .upgrade-card__tag,
+  #captain-select-screen .captain-select-card .upgrade-card__rarity {
+    font-size: 8px;
+  }
+
+  #captain-select-screen .captain-select-card .upgrade-card__portrait {
+    max-height: 210px;
+  }
+}
