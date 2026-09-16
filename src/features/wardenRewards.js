@@ -1,4 +1,4 @@
-import { Game as PreviousGame, UI as PreviousUI } from './wardenBoss.js';
+import { Game as PreviousGame, UI as PreviousUI } from './wardenArtwork.js';
 import { WARDEN_BOSS } from '../data/bosses.js';
 import { grantMetaUpgradePoints } from '../data/metaUpgrades.js';
 
