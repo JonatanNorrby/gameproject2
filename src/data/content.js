@@ -1,3 +1,5 @@
+import { getUnitClassMembers } from './unitFamilies.js';
+
 export const GAME_BALANCE = {
   player: {
     radius: 16,
@@ -93,8 +95,8 @@ export const CAPTAINS = {
     maxHp: 100,
     shortLabel: 'MER',
     color: '#ffd36a',
-    description: 'Starts with a rocket launcher and empowers adjacent Rocketeers.',
-    passiveText: 'Every third shot from adjacent Rocketeers becomes a long-range rocket with 3× blast radius.',
+    description: 'Starts with a rocket launcher and empowers nearby Rocketeer-class units.',
+    passiveText: 'Every third Rocketeer-class attack gains 3× area size. Rocketeer rockets also gain greatly increased range on that third attack.',
     effect: {
       type: 'rocketeer-special-rocket',
       everyShots: 3,
@@ -111,8 +113,8 @@ export const CAPTAINS = {
     maxHp: 100,
     shortLabel: 'VAL',
     color: '#7ef9d4',
-    description: 'Starts with an assault rifle and coordinates nearby Riflemen.',
-    passiveText: 'Adjacent Riflemen gain +30% fire rate.',
+    description: 'Starts with an assault rifle and coordinates nearby Rifleman-class units.',
+    passiveText: 'Vale empowers adjacent Riflemen and Snipers with his coordinated-fire bonuses.',
     effect: {
       type: 'rifle-fire-rate',
       fireRateMultiplier: 1.3,
@@ -169,17 +171,19 @@ function rarityValue(rarity, values) {
 }
 
 function applyUnitStat(game, unitType, stat, amount) {
-  const modifiers = game.unitModifiers?.[unitType];
-  if (!modifiers || !(stat in modifiers)) return;
+  for (const memberType of getUnitClassMembers(unitType)) {
+    const modifiers = game.unitModifiers?.[memberType];
+    if (!modifiers || !(stat in modifiers)) continue;
 
-  if (stat === 'pierce') {
-    const basePierce = UNIT_CLASSES[unitType]?.weapon?.pierce ?? 1;
-    const currentPierce = basePierce + modifiers.pierce;
-    modifiers.pierce += currentPierce * (amount / 100);
-    return;
+    if (stat === 'pierce') {
+      const basePierce = UNIT_CLASSES[memberType]?.weapon?.pierce ?? 1;
+      const currentPierce = basePierce + modifiers.pierce;
+      modifiers.pierce += currentPierce * (amount / 100);
+      continue;
+    }
+
+    modifiers[stat] *= 1 + amount / 100;
   }
-
-  modifiers[stat] *= 1 + amount / 100;
 }
 
 function unitStatUpgrade({
@@ -195,14 +199,14 @@ function unitStatUpgrade({
   return {
     id: `${unitType}-${id}`,
     name,
-    tag: UNIT_CLASSES[unitType].label,
+    tag: `${UNIT_CLASSES[unitType].label} Class`,
     kind: 'stat',
     unitType,
     stat,
     maxRank,
     describe(rarity) {
       const amount = rarityValue(rarity, STAT_BUFF_BY_RARITY);
-      return `+${amount}% ${UNIT_CLASSES[unitType].label} ${label}.`;
+      return `+${amount}% ${UNIT_CLASSES[unitType].label}-class ${label}.`;
     },
     apply(game, rarity) {
       applyUnitStat(game, unitType, stat, rarityValue(rarity, STAT_BUFF_BY_RARITY));
@@ -301,7 +305,7 @@ export const UPGRADES = [
   }),
   unitStatUpgrade({
     unitType: 'shockblade', id: 'damage', name: 'Overcharged Blades', stat: 'damage', maxRank: 8,
-    values: { common: 20, uncommon: 28, rare: 40, epic: 60 }, label: 'slash damage',
+    values: { common: 20, uncommon: 28, rare: 40, epic: 60 }, label: 'attack damage',
   }),
   unitStatUpgrade({
     unitType: 'shockblade', id: 'fire-rate', name: 'Jump-Pack Cycling', stat: 'fireRate', maxRank: 8,
@@ -313,6 +317,6 @@ export const UPGRADES = [
   }),
   unitStatUpgrade({
     unitType: 'shockblade', id: 'blast-radius', name: 'Wide Arc Servos', stat: 'blastRadius', maxRank: 5,
-    values: { common: 15, uncommon: 22, rare: 32, epic: 48 }, label: 'slash radius',
+    values: { common: 15, uncommon: 22, rare: 32, epic: 48 }, label: 'attack area',
   }),
 ];
