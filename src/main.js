@@ -5,7 +5,7 @@ import { getSpritePortraitSources } from './data/sprites.js';
 import { resetUnlockProgress } from './data/unlocks.js';
 import { resetPermanentProgression } from './data/metaUpgrades.js';
 
-const GAME_VERSION = 73;
+const GAME_VERSION = 74;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
