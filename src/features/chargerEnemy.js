@@ -1,12 +1,14 @@
 import { Game as PreviousGame, UI } from './runtimeSafety.js';
 import { ENEMY_TYPES, GAME_BALANCE } from '../data/content.js';
 import { getEnemySprite } from '../data/sprites.js';
+import { isUnitInClassFamily } from '../data/unitFamilies.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
 const CHARGER_TYPE = 'charger';
 const CONTACT_INVULNERABILITY = 0.1;
 const DAMAGE_FEEDBACK_INTERVAL = 0.16;
 const ENEMY_DAMAGE_FILTER = 'brightness(.72) saturate(7) sepia(1) hue-rotate(305deg) contrast(1.18)';
+const INHERITED_CAPTAIN_IDS = new Set(['vale', 'mercer', 'thorne']);
 
 // #31: Brutes remain the slow tank enemy, but are now an occasional pressure
 // piece rather than a large fraction of every later spawn burst.
@@ -45,6 +47,22 @@ if (!ENEMY_TYPES[CHARGER_TYPE]) {
 
 function createChargerCombatSystem(ParentCombatSystem) {
   return class ChargerCombatSystem extends ParentCombatSystem {
+    // The Supreme Commander makes absorbed units globally adjacent to inherited
+    // Captain passives. Preserve that rule after #41's class-family expansion:
+    // Sniper=Rifleman, Drone Pilot=Rocketeer, Stormlancer=Shockblade.
+    isAdjacentCaptainUnit(soldier, captainId, expectedType) {
+      if (
+        this.game.isSupremeCommanderRun?.()
+        && INHERITED_CAPTAIN_IDS.has(captainId)
+        && soldier
+        && !soldier.unit?.dead
+        && !this.game.isSupremeCommanderUnit?.(soldier.unit)
+        && isUnitInClassFamily(soldier.unit.type, expectedType)
+      ) return true;
+
+      return super.isAdjacentCaptainUnit?.(soldier, captainId, expectedType) ?? false;
+    }
+
     updateEnemies(dt) {
       const allEnemies = this.game.entities.enemies;
       const chargers = allEnemies.filter((enemy) => (
