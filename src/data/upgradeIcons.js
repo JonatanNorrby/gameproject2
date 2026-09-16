@@ -1,3 +1,5 @@
+import { getUnitClassFamily } from './unitFamilies.js';
+
 const ICON_ROOT = './assets/icons';
 
 export const GENERIC_UPGRADE_ICON_FILES = Object.freeze({
@@ -24,21 +26,20 @@ export const UPGRADE_ICON_METADATA = Object.freeze({
   'rifleman-range': { generic: 'range', class: 'rifleman' },
   'rifleman-projectile-speed': { generic: 'projectileSpeed', class: 'rifleman' },
   'rifleman-pierce': { generic: 'pierce', class: 'rifleman' },
+  'sniper-reinforcements': { generic: 'reinforcement', class: 'rifleman' },
   'rocketeer-reinforcements': { generic: 'reinforcement', class: 'rocketeer' },
   'rocketeer-damage': { generic: 'damage', class: 'rocketeer' },
   'rocketeer-fire-rate': { generic: 'fireRate', class: 'rocketeer' },
   'rocketeer-range': { generic: 'range', class: 'rocketeer' },
   'rocketeer-projectile-speed': { generic: 'projectileSpeed', class: 'rocketeer' },
   'rocketeer-blast-radius': { generic: 'blastRadius', class: 'rocketeer' },
+  'drone_pilot-reinforcements': { generic: 'reinforcement', class: 'rocketeer' },
   'shockblade-reinforcements': { generic: 'reinforcement', class: 'shockblade' },
   'shockblade-damage': { generic: 'damage', class: 'shockblade' },
   'shockblade-fire-rate': { generic: 'fireRate', class: 'shockblade' },
   'shockblade-range': { generic: 'range', class: 'shockblade' },
   'shockblade-blast-radius': { generic: 'blastRadius', class: 'shockblade' },
-  'drone_pilot-reinforcements': { generic: 'reinforcement', class: 'drone_pilot' },
-  'drone_pilot-fire-rate': { generic: 'fireRate', class: 'drone_pilot' },
-  'drone_pilot-range': { generic: 'range', class: 'drone_pilot' },
-  'drone_pilot-blast-radius': { generic: 'blastRadius', class: 'drone_pilot' },
+  'stormlancer-reinforcements': { generic: 'reinforcement', class: 'shockblade' },
 });
 
 const GENERIC_FALLBACKS = Object.freeze({
@@ -66,7 +67,7 @@ function inferredGenericKey(upgrade) {
 export function getUpgradeIconSpec(upgrade) {
   const metadata = UPGRADE_ICON_METADATA[upgrade?.id] ?? {};
   const genericKey = metadata.generic ?? inferredGenericKey(upgrade);
-  const classKey = metadata.class ?? upgrade?.unitType ?? 'rifleman';
+  const classKey = metadata.class ?? getUnitClassFamily(upgrade?.unitType ?? 'rifleman');
   const genericFile = GENERIC_UPGRADE_ICON_FILES[genericKey] ?? `${genericKey}.png`;
   const classFile = CLASS_ICON_FILES[classKey] ?? `${classKey}.png`;
 
