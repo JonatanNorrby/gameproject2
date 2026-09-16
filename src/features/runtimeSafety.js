@@ -26,6 +26,67 @@ export class Game extends PreviousGame {
     this.damageFeedback = DAMAGE_FEEDBACK_DURATION;
   }
 
+  withSecondaryCaptainIdsMasked(callback) {
+    const secondaryCaptains = (this.player?.squad ?? [])
+      .filter((unit) => !unit.dead && unit.secondaryCaptain && unit.captainId)
+      .map((unit) => ({ unit, captainId: unit.captainId }));
+
+    for (const entry of secondaryCaptains) entry.unit.captainId = null;
+    try {
+      return callback();
+    } finally {
+      for (const entry of secondaryCaptains) entry.unit.captainId = entry.captainId;
+    }
+  }
+
+  beginCipherSquadRetreat(boss) {
+    // Cipher's original implementation treats every captainId as the heroic
+    // solo Captain. A purchased second Captain is intentionally a normal squad
+    // member for this encounter, so temporarily mask that id while the retreat
+    // list is created.
+    return this.withSecondaryCaptainIdsMasked(() => super.beginCipherSquadRetreat(boss));
+  }
+
+  beginCipherSquadReturn() {
+    return this.withSecondaryCaptainIdsMasked(() => super.beginCipherSquadReturn());
+  }
+
+  getWeaponPositions() {
+    const soldiers = super.getWeaponPositions();
+    if (!(this.cipherSquadMotion instanceof Map) || this.cipherSquadMotion.size === 0) {
+      return soldiers;
+    }
+
+    return soldiers.filter((soldier) => !(
+      soldier.unit.secondaryCaptain
+      && this.cipherSquadMotion.has(soldier.unit.id)
+    ));
+  }
+
+  getCipherCaptainSoldier() {
+    return this.getSoldierPositions().find((soldier) => (
+      Boolean(soldier.unit.captainId) && !soldier.unit.secondaryCaptain
+    )) ?? null;
+  }
+
+  activateCaptainCall(slot = 'primary') {
+    if (this.getActiveCipher?.()?.puzzleActive) return false;
+    return super.activateCaptainCall(slot);
+  }
+
+  updateCaptainCalls() {
+    if (this.getActiveCipher?.()?.puzzleActive) {
+      // The Cipher puzzle is explicitly Captain-only. Cancel any formation-wide
+      // call that was active when the puzzle began so retreating units cannot
+      // keep contributing damage from off-screen.
+      this.valeCallState = null;
+      this.mercerCallState = null;
+      this.thorneCallState = null;
+      return;
+    }
+    super.updateCaptainCalls();
+  }
+
   loop(timestamp) {
     const rawDt = (timestamp - this.lastTimestamp) / 1000;
     const dt = Math.min(0.033, Math.max(0, rawDt));
