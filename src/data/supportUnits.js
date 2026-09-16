@@ -2,7 +2,6 @@ import { UNIT_CLASSES, UPGRADES } from './content.js';
 
 export const SUPPORT_UNIT_IDS = Object.freeze({
   dronePilot: 'drone_pilot',
-  antiAir: 'anti_air',
 });
 
 export const SUPPORT_UNIT_DEFINITIONS = Object.freeze({
@@ -39,40 +38,6 @@ export const SUPPORT_UNIT_DEFINITIONS = Object.freeze({
       dropDistance: 54,
       respawnDelay: 7.5,
       color: '#79e7ff',
-    }),
-  }),
-  anti_air: Object.freeze({
-    id: 'anti_air',
-    label: 'Anti Air',
-    shortLabel: 'AA',
-    maxHp: 130,
-    fill: '#ffc86a',
-    core: '#463018',
-    outline: '#ffe6ad',
-    weapon: Object.freeze({
-      kind: 'support',
-      damage: 0,
-      cooldown: 3.2,
-      projectileSpeed: 0,
-      projectileRadius: 0,
-      projectileLife: 0,
-      pierce: 0,
-      range: 0,
-      aoeRadius: 0,
-      color: '#ffd775',
-    }),
-    support: Object.freeze({
-      kind: 'anti-air',
-      range: 520,
-      cooldown: 3.2,
-      projectileKind: 'interceptor',
-      projectileSpeed: 85,
-      projectileAcceleration: 720,
-      maxProjectileSpeed: 920,
-      projectileRadius: 5,
-      projectileLife: 4.5,
-      color: '#ffe58a',
-      footprint: Object.freeze([{ q: 0, r: 0 }, { q: 1, r: 0 }]),
     }),
   }),
 });
@@ -143,10 +108,6 @@ const supportUpgrades = [
   statUpgrade('drone_pilot', 'fire-rate', 'Fast Drone Turnaround', 'fireRate', 'stun-grenade rate'),
   statUpgrade('drone_pilot', 'range', 'Long-Link Relay', 'range', 'drone operating range'),
   statUpgrade('drone_pilot', 'blast-radius', 'Wide Stun Payload', 'blastRadius', 'stun radius'),
-  reinforcementUpgrade('anti_air'),
-  statUpgrade('anti_air', 'fire-rate', 'Rapid Intercept Cycle', 'fireRate', 'interceptor rate'),
-  statUpgrade('anti_air', 'range', 'Extended Air-Defense Radar', 'range', 'intercept range'),
-  statUpgrade('anti_air', 'projectile-speed', 'Accelerated Interceptor', 'projectileSpeed', 'interceptor acceleration and speed'),
 ];
 
 for (const upgrade of supportUpgrades) {
