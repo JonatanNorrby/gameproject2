@@ -1,3 +1,4 @@
+import { getKeyBinding, normalizeKeyBinding } from '../data/settings.js';
 import { clamp, normalize } from '../utils/math.js';
 
 export class Input {
@@ -9,8 +10,8 @@ export class Input {
     this.stickElement = stickElement;
     this.stickKnob = stickElement?.querySelector('.touch-stick__knob');
 
-    window.addEventListener('keydown', (event) => this.keys.add(event.key.toLowerCase()));
-    window.addEventListener('keyup', (event) => this.keys.delete(event.key.toLowerCase()));
+    window.addEventListener('keydown', (event) => this.keys.add(normalizeKeyBinding(event.key)));
+    window.addEventListener('keyup', (event) => this.keys.delete(normalizeKeyBinding(event.key)));
     window.addEventListener('blur', () => this.keys.clear());
 
     element.addEventListener('pointerdown', (event) => this.onPointerDown(event));
@@ -22,10 +23,10 @@ export class Input {
   getAxis() {
     let x = 0;
     let y = 0;
-    if (this.keys.has('a') || this.keys.has('arrowleft')) x -= 1;
-    if (this.keys.has('d') || this.keys.has('arrowright')) x += 1;
-    if (this.keys.has('w') || this.keys.has('arrowup')) y -= 1;
-    if (this.keys.has('s') || this.keys.has('arrowdown')) y += 1;
+    if (this.keys.has(getKeyBinding('moveLeft'))) x -= 1;
+    if (this.keys.has(getKeyBinding('moveRight'))) x += 1;
+    if (this.keys.has(getKeyBinding('moveUp'))) y -= 1;
+    if (this.keys.has(getKeyBinding('moveDown'))) y += 1;
 
     if (x || y) return normalize(x, y);
     return { ...this.touchAxis };

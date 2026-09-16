@@ -1,0 +1,171 @@
+/* #53: version labels remain in static markup for build-regression checks but
+   are intentionally hidden from players. The only visible version is in Settings. */
+#boot-version,
+#version-text {
+  display: none !important;
+}
+
+.panel--settings {
+  width: min(760px, calc(100vw - 28px));
+  max-height: min(88dvh, 820px);
+  overflow-y: auto;
+  padding: clamp(20px, 4vw, 34px);
+}
+
+.settings-header,
+.settings-footer,
+.settings-toggle,
+.settings-binding {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-header {
+  margin-bottom: 22px;
+}
+
+.settings-header h2 {
+  margin: 2px 0 0;
+}
+
+.settings-close {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .04);
+  color: #dce8f5;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.settings-section {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.settings-section__heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 4px;
+}
+
+.settings-section__heading h3 {
+  margin: 0;
+  color: #f3f8ff;
+  font-size: 14px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.settings-section__heading p {
+  margin: 0;
+  color: #748399;
+  font-size: 11px;
+}
+
+.settings-toggle,
+.settings-binding {
+  min-height: 58px;
+  padding: 12px 14px;
+  border: 1px solid rgba(126, 249, 212, .13);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .025);
+}
+
+.settings-toggle strong,
+.settings-binding span {
+  color: #eef6ff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.settings-toggle small {
+  display: block;
+  margin-top: 3px;
+  color: #748399;
+  font-size: 10px;
+}
+
+.settings-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: #7ef9d4;
+}
+
+.settings-bindings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.settings-binding {
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+}
+
+.settings-binding strong {
+  min-width: 76px;
+  padding: 7px 10px;
+  border: 1px solid rgba(126, 249, 212, .26);
+  border-radius: 7px;
+  background: rgba(126, 249, 212, .07);
+  color: #7ef9d4;
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .06em;
+  text-align: center;
+}
+
+.settings-binding--listening {
+  border-color: rgba(247, 215, 116, .55);
+  box-shadow: 0 0 22px rgba(247, 215, 116, .08);
+}
+
+.settings-binding--listening strong {
+  border-color: rgba(247, 215, 116, .55);
+  color: #f7d774;
+}
+
+.settings-reset-controls {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+.settings-footer {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.settings-version {
+  color: #65758a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 680px) {
+  .settings-bindings {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-section__heading,
+  .settings-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .settings-footer .primary-button {
+    width: 100%;
+  }
+}
