@@ -1,10 +1,11 @@
 import { Game as PreviousGame, UI as PreviousUI } from './bossRuntime.js';
-import { GAME_BALANCE, UNIT_CLASSES } from '../data/content.js';
+import { CAPTAINS, GAME_BALANCE, UNIT_CLASSES } from '../data/content.js';
 import { STORMLANCER_TYPE } from '../data/stormlancer.js';
 import { getUnitModifiers } from '../data/unitModifiers.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
 const ARC_LIFETIME = 0.18;
+const THORNE_ID = 'thorne';
 
 function isAliveTarget(target) {
   return Boolean(target && !target.dead && (target.hp ?? 1) > 0);
@@ -12,8 +13,14 @@ function isAliveTarget(target) {
 
 function createStormlancerCombatSystem(ParentCombatSystem) {
   return class StormlancerCombatSystem extends ParentCombatSystem {
+    constructor(game) {
+      super(game);
+      this.thorneStormlancerAttackCounts = new Map();
+    }
+
     reset() {
       super.reset();
+      this.thorneStormlancerAttackCounts?.clear();
       if (this.game) this.game.stormlancerArcs = [];
     }
 
@@ -34,6 +41,28 @@ function createStormlancerCombatSystem(ParentCombatSystem) {
       this.performStormlancerStrike(unit, attack);
     }
 
+    getStormlancerChainTargetCount(unit, weapon) {
+      const baseTargets = Math.max(1, Math.floor(weapon.chainTargets ?? 4));
+      if (!this.isThorneActive?.()) {
+        this.thorneStormlancerAttackCounts.delete(unit.id);
+        return baseTargets;
+      }
+
+      const interval = Math.max(
+        1,
+        Number(CAPTAINS[THORNE_ID]?.effect?.everyAttacks) || 3,
+      );
+      const attackCount = (this.thorneStormlancerAttackCounts.get(unit.id) ?? 0) + 1;
+      this.thorneStormlancerAttackCounts.set(unit.id, attackCount);
+      if (attackCount % interval !== 0) return baseTargets;
+
+      const multiplier = Math.max(
+        1,
+        Number(CAPTAINS[THORNE_ID]?.effect?.stormlancerChainMultiplier) || 2,
+      );
+      return Math.max(baseTargets, Math.floor(baseTargets * multiplier));
+    }
+
     performStormlancerStrike(unit, attack) {
       const game = this.game;
       const soldier = game.getSoldierPositions()
@@ -47,7 +76,7 @@ function createStormlancerCombatSystem(ParentCombatSystem) {
       const statMultiplier = game.getTransformerStatMultiplier();
       const strikeRange = weapon.range * modifiers.range * statMultiplier;
       const chainRange = (weapon.aoeRadius ?? 0) * modifiers.blastRadius * statMultiplier;
-      const maxTargets = Math.max(1, Math.floor(weapon.chainTargets ?? 4));
+      const maxTargets = this.getStormlancerChainTargetCount(unit, weapon);
       const falloff = Math.max(0, Math.min(1, weapon.chainDamageMultiplier ?? 0.82));
       const baseDamage = weapon.damage * modifiers.damage * statMultiplier;
 
@@ -208,6 +237,18 @@ function createStormlancerCombatSystem(ParentCombatSystem) {
 
       return null;
     }
+
+    updateSquadWeapons(dt) {
+      super.updateSquadWeapons(dt);
+      const livingStormlancers = new Set(
+        (this.game.player?.squad ?? [])
+          .filter((unit) => !unit.dead && unit.type === STORMLANCER_TYPE)
+          .map((unit) => unit.id),
+      );
+      for (const unitId of this.thorneStormlancerAttackCounts.keys()) {
+        if (!livingStormlancers.has(unitId)) this.thorneStormlancerAttackCounts.delete(unitId);
+      }
+    }
   };
 }
 
@@ -280,7 +321,7 @@ export class UI extends PreviousUI {
     const weapon = UNIT_CLASSES[STORMLANCER_TYPE]?.weapon;
     const modifiers = getUnitModifiers(this.game?.unitModifiers, STORMLANCER_TYPE);
     const note = document.createElement('div');
-    note.textContent = `Stormlancer: ${weapon.chainTargets} targets max • ${Math.round(weapon.aoeRadius * modifiers.blastRadius)} chain range • ${Math.round(weapon.chainDamageMultiplier * 100)}% damage retained per bounce.`;
+    note.textContent = `Stormlancer: ${weapon.chainTargets} base targets • ${Math.round(weapon.aoeRadius * modifiers.blastRadius)} chain range • ${Math.round(weapon.chainDamageMultiplier * 100)}% damage retained per bounce.`;
     Object.assign(note.style, {
       marginTop: '8px',
       color: '#8fa5bb',
