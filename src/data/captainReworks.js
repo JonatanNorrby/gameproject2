@@ -20,7 +20,9 @@ export const MERCER_CHAIN_REACTION = Object.freeze({
   description: 'Starts with an upgraded fragmentation rocket launcher and empowers nearby Rocketeer-class units.',
   passiveText: 'Every third attack from an adjacent Rocketeer-class unit gains 3× area size. On Rocketeers, that third rocket also gains 75% more range. Drone Pilots gain the larger third stun field but no range bonus.',
   effect: Object.freeze({
-    type: 'rocketeer-special-rocket',
+    // Deliberately not the legacy rocketeer-special-rocket id: #41 is handled
+    // by the family-aware Captain layer so secondary/Supreme Mercer work too.
+    type: 'rocketeer-class-third-area',
     mechanic: 'third-attack-area-surge',
     everyShots: 3,
     rangeMultiplier: 1.75,
