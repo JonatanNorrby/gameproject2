@@ -195,12 +195,14 @@
 
 /* Issue 59: simplify the Squad Builder around the formation itself. */
 .panel--squad-builder {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
-/* Remove the FORMATION eyebrow and all squad/unit stat summaries. */
+/* Remove the FORMATION eyebrow, explanatory copy and all squad/unit stat summaries. */
 .squad-builder__header .eyebrow,
+.squad-builder__help,
 .squad-builder__summary,
+.squad-formation-toolbar__status,
 .squad-unit-card__health,
 .squad-unit-card small {
   display: none !important;
@@ -220,6 +222,7 @@
 
 /* Keep contextual controls light so the hex layout stays visually dominant. */
 .squad-formation-toolbar {
+  justify-content: flex-end;
   border: 0;
   background: transparent;
   backdrop-filter: none;
@@ -250,6 +253,7 @@
   .squad-formation-toolbar {
     flex-direction: row;
     align-items: center;
+    justify-content: flex-end;
   }
   .squad-formation-remove {
     width: auto;
