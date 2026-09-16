@@ -139,12 +139,60 @@ export class Game extends PreviousGame {
 }
 
 export class UI extends PreviousUI {
+  bindSquadBuilder(config) {
+    super.bindSquadBuilder(config);
+
+    // Native dragend is not guaranteed after a drop handler rerenders and
+    // destroys the dragged card. If that happens the builder used to remain in
+    // a permanent "dragging" state, causing every subsequent card click to be
+    // ignored. Clear the transient state from window-level end conditions too.
+    if (this.squadBuilderSafetyBound) return;
+    this.squadBuilderSafetyBound = true;
+    const clearDragState = () => this.clearSquadBuilderInteractionState();
+    window.addEventListener('dragend', clearDragState, true);
+    window.addEventListener('drop', clearDragState, true);
+    window.addEventListener('blur', clearDragState);
+  }
+
+  clearSquadBuilderInteractionState() {
+    this.squadBuilderDragging = false;
+    this.squadBuilderGrid?.querySelectorAll('.squad-unit-card--dragging')
+      .forEach((element) => element.classList.remove('squad-unit-card--dragging'));
+    this.squadBuilderGrid?.querySelectorAll('.squad-formation-target--dragover')
+      .forEach((element) => element.classList.remove('squad-formation-target--dragover'));
+  }
+
+  showSquadBuilder(...args) {
+    this.clearSquadBuilderInteractionState();
+    return super.showSquadBuilder(...args);
+  }
+
+  hideSquadBuilder(...args) {
+    this.clearSquadBuilderInteractionState();
+    return super.hideSquadBuilder(...args);
+  }
+
+  applyFormationAction(result, options = {}) {
+    // Clear before rerendering so replacing the dragged element cannot leave
+    // stale interaction state behind. This also makes Captain-to-Captain swaps
+    // behave the same as every other formation move.
+    this.clearSquadBuilderInteractionState();
+    return super.applyFormationAction(result, options);
+  }
+
   renderPermanentShop(...args) {
     super.renderPermanentShop(...args);
     const button = this.metaUpgradeOpen ?? document.querySelector('#meta-upgrade-open');
     if (!button) return;
 
-    const suffix = button.textContent.match(/•\s*(.+)$/)?.[1];
-    button.textContent = suffix ? `Upgrades • ${suffix}` : 'Upgrades';
+    const goldText = button.textContent.match(/(\d+)\s*Gold/i)?.[1];
+    button.replaceChildren(document.createTextNode('Upgrades'));
+    if (goldText) {
+      button.append(document.createTextNode(' • '));
+      const balance = document.createElement('span');
+      balance.className = 'main-menu__gold-balance';
+      balance.textContent = `${goldText} Gold`;
+      button.append(balance);
+    }
   }
 }
