@@ -46,27 +46,15 @@ for (const [id, definition] of Object.entries(SUPPORT_UNIT_DEFINITIONS)) {
   if (!UNIT_CLASSES[id]) UNIT_CLASSES[id] = definition;
 }
 
-const STAT_BUFF_BY_RARITY = Object.freeze({
-  common: 5,
-  uncommon: 10,
-  rare: 15,
-  epic: 20,
-});
 const REINFORCEMENT_BY_RARITY = Object.freeze({ rare: 1, epic: 2 });
 const REINFORCEMENT_RARITIES = Object.freeze(Object.keys(REINFORCEMENT_BY_RARITY));
-
-function applyPercent(game, unitType, stat, amount) {
-  const modifiers = game.unitModifiers?.[unitType];
-  if (!modifiers || !(stat in modifiers)) return;
-  modifiers[stat] *= 1 + amount / 100;
-}
 
 function reinforcementUpgrade(unitType) {
   const unitClass = UNIT_CLASSES[unitType];
   return {
     id: `${unitType}-reinforcements`,
     name: `${unitClass.label} Reinforcement`,
-    tag: unitClass.label,
+    tag: 'Rocketeer Class',
     kind: 'reinforcement',
     stat: 'unitCount',
     maxRank: 5,
@@ -83,31 +71,10 @@ function reinforcementUpgrade(unitType) {
   };
 }
 
-function statUpgrade(unitType, id, name, stat, label) {
-  const unitClass = UNIT_CLASSES[unitType];
-  return {
-    id: `${unitType}-${id}`,
-    name,
-    tag: unitClass.label,
-    kind: 'stat',
-    unitType,
-    stat,
-    maxRank: 8,
-    describe(rarity) {
-      const amount = STAT_BUFF_BY_RARITY[rarity.id] ?? 5;
-      return `+${amount}% ${unitClass.label} ${label}.`;
-    },
-    apply(game, rarity) {
-      applyPercent(game, unitType, stat, STAT_BUFF_BY_RARITY[rarity.id] ?? 5);
-    },
-  };
-}
-
+// Drone Pilots keep their own recruitment card and battlefield behavior, but
+// all stat progression now comes from the shared Rocketeer-class upgrades.
 const supportUpgrades = [
   reinforcementUpgrade('drone_pilot'),
-  statUpgrade('drone_pilot', 'fire-rate', 'Fast Drone Turnaround', 'fireRate', 'stun-grenade rate'),
-  statUpgrade('drone_pilot', 'range', 'Long-Link Relay', 'range', 'drone operating range'),
-  statUpgrade('drone_pilot', 'blast-radius', 'Wide Stun Payload', 'blastRadius', 'stun radius'),
 ];
 
 for (const upgrade of supportUpgrades) {
