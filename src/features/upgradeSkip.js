@@ -2,12 +2,25 @@ import { Game, UI as CaptainMenuUI } from './captainMenu.js';
 
 export { Game };
 
+const BUILD_VERSION = 78;
+
 export class UI extends CaptainMenuUI {
   constructor() {
     super();
     this.skipUpgradeButton = document.querySelector('#skip-upgrade-button');
     this.rerollUpgradeButton = document.querySelector('#reroll-upgrade-button');
     this.ensureUpgradeChoiceControls();
+
+    // Keep the visible build label in sync without coupling the reroll feature
+    // to the application's boot logic. main.js may set its legacy value during
+    // the same module turn, so apply this after initialization finishes.
+    window.queueMicrotask(() => {
+      if (this.versionText) this.versionText.textContent = `v${BUILD_VERSION}`;
+      const bootVersion = document.querySelector('#boot-version');
+      const mainMenuBuild = document.querySelector('.main-menu__build');
+      if (bootVersion) bootVersion.textContent = `BUILD v${BUILD_VERSION}`;
+      if (mainMenuBuild) mainMenuBuild.textContent = `SYSTEM ONLINE • v${BUILD_VERSION}`;
+    });
   }
 
   ensureUpgradeChoiceControls() {
