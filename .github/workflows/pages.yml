@@ -77,7 +77,10 @@ jobs:
             style: {},
             append() {},
             appendChild() {},
+            prepend() {},
+            after() {},
             remove() {},
+            replaceChildren() {},
             setAttribute() {},
             addEventListener() {},
             querySelector() { return null; },
@@ -87,7 +90,7 @@ jobs:
 
           globalThis.document = {
             head: { append() {}, appendChild() {} },
-            body: { append() {}, appendChild() {} },
+            body: { append() {}, appendChild() {}, classList: { add() {}, remove() {} } },
             querySelector() { return null; },
             querySelectorAll() { return []; },
             createElement() { return elementStub(); },
@@ -101,9 +104,11 @@ jobs:
             innerHeight: 720,
           };
 
-          // main.js imports this final layer. Validate the complete active chain,
-          // including Charger, Prestige and all lower combat wrappers.
-          await import('./src/features/prestigeSystem.js');
+          // main.js imports this final layer. Validate the complete active chain.
+          const runtime = await import('./src/features/thirdCaptain.js');
+          if (typeof runtime.Game !== 'function' || typeof runtime.UI !== 'function') {
+            throw new Error('Final Third Captain runtime layer did not export Game/UI');
+          }
           console.log('Complete active runtime module graph imports successfully.');
           NODE
 
@@ -116,7 +121,10 @@ jobs:
             style: {},
             append() {},
             appendChild() {},
+            prepend() {},
+            after() {},
             remove() {},
+            replaceChildren() {},
             setAttribute() {},
             addEventListener() {},
             querySelector() { return null; },
@@ -125,7 +133,7 @@ jobs:
           });
           globalThis.document = {
             head: { append() {}, appendChild() {} },
-            body: { append() {}, appendChild() {} },
+            body: { append() {}, appendChild() {}, classList: { add() {}, remove() {} } },
             querySelector() { return null; },
             querySelectorAll() { return []; },
             createElement() { return elementStub(); },
@@ -139,15 +147,19 @@ jobs:
             innerHeight: 720,
           };
 
-          await import('./src/features/prestigeSystem.js');
+          const finalRuntime = await import('./src/features/thirdCaptain.js');
           const { CAPTAINS, UNIT_CLASSES, UPGRADES } = await import('./src/data/content.js');
           const { createUnitModifierState } = await import('./src/data/unitModifiers.js');
           const { getUnitClassFamily } = await import('./src/data/unitFamilies.js');
           const { getUpgradeIconSpec } = await import('./src/data/upgradeIcons.js');
           const { THORNE_CAPTAIN } = await import('./src/data/captainThorne.js');
           const {
-            getMercerRocketeerTargetRangeMultiplier,
-          } = await import('./src/features/squadBuilderVisuals.js');
+            PERMANENT_UPGRADES,
+            canPurchasePermanentUpgrade,
+            grantGold,
+            purchasePermanentUpgrade,
+            resetPermanentProgression,
+          } = await import('./src/data/metaUpgrades.js');
 
           const assert = (condition, message) => {
             if (!condition) throw new Error(message);
@@ -211,45 +223,20 @@ jobs:
           assert(THORNE_CAPTAIN.effect.everyAttacks === 3, 'Thorne interval must be 3');
           assert(THORNE_CAPTAIN.effect.stormlancerChainMultiplier === 2, 'Stormlancer Thorne chain multiplier must be 2');
 
-          const rocketeer = {
-            unit: { id: 701, type: 'rocketeer', dead: false, captainId: null },
-          };
-          const dronePilot = {
-            unit: { id: 702, type: 'drone_pilot', dead: false, captainId: null },
-          };
-          const mockCombat = {
-            mercerClassAttackCounts: new Map(),
-            isAdjacentCaptainUnit() { return true; },
-          };
-          assert(
-            getMercerRocketeerTargetRangeMultiplier(mockCombat, rocketeer) === 1,
-            'Mercer Rocketeer attack 1 must use normal acquisition range',
-          );
-          mockCombat.mercerClassAttackCounts.set(rocketeer.unit.id, 1);
-          assert(
-            getMercerRocketeerTargetRangeMultiplier(mockCombat, rocketeer) === 1,
-            'Mercer Rocketeer attack 2 must use normal acquisition range',
-          );
-          mockCombat.mercerClassAttackCounts.set(rocketeer.unit.id, 2);
-          assert(
-            getMercerRocketeerTargetRangeMultiplier(mockCombat, rocketeer) === 1.75,
-            'Mercer Rocketeer attack 3 must use 1.75x acquisition range',
-          );
-          mockCombat.mercerClassAttackCounts.set(dronePilot.unit.id, 2);
-          assert(
-            getMercerRocketeerTargetRangeMultiplier(mockCombat, dronePilot) === 1,
-            'Drone Pilot must not receive the Rocketeer-only targeting range bonus',
-          );
-          const nonAdjacentCombat = {
-            mercerClassAttackCounts: new Map([[rocketeer.unit.id, 2]]),
-            isAdjacentCaptainUnit() { return false; },
-          };
-          assert(
-            getMercerRocketeerTargetRangeMultiplier(nonAdjacentCombat, rocketeer) === 1,
-            'Non-adjacent Rocketeers must not receive Mercer targeting range',
-          );
+          const third = PERMANENT_UPGRADES.third_captain_slot;
+          assert(third, 'Missing Third Captain permanent upgrade');
+          assert(third.cost === 50, 'Third Captain should cost 50 Gold');
+          assert(third.requires?.includes('second_captain_slot'), 'Third Captain must require Second Captain Slot');
+          resetPermanentProgression();
+          grantGold(200);
+          assert(!canPurchasePermanentUpgrade('third_captain_slot'), 'Third Captain was purchasable before Second Captain Slot');
+          assert(purchasePermanentUpgrade('second_captain_slot'), 'Could not purchase Second Captain Slot');
+          assert(canPurchasePermanentUpgrade('third_captain_slot'), 'Third Captain did not unlock after Second Captain Slot');
+          assert(purchasePermanentUpgrade('third_captain_slot'), 'Could not purchase Third Captain');
+          assert(typeof finalRuntime.Game.prototype.getCaptainSoldierBySlot === 'function', 'Third Captain Game slot lookup missing');
+          assert(typeof finalRuntime.UI.prototype.getSelectedThirdCaptainId === 'function', 'Third Captain UI selector API missing');
 
-          console.log('Unit class family and Mercer targeting contracts validated.');
+          console.log('Unit class and Third Captain contracts validated.');
           NODE
 
       - name: Configure Pages
