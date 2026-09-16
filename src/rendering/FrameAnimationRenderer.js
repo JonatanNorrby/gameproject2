@@ -12,13 +12,6 @@ function resolveFramePath(definition, frame) {
   return basePath ? `${basePath}/${frame}` : frame;
 }
 
-function normalizeAngle(angle) {
-  let value = Number(angle) || 0;
-  while (value > Math.PI) value -= Math.PI * 2;
-  while (value < -Math.PI) value += Math.PI * 2;
-  return value;
-}
-
 export class FrameAnimationRenderer {
   constructor() {
     this.images = new Map();
@@ -117,20 +110,8 @@ export class FrameAnimationRenderer {
     const anchorY = Number.isFinite(definition.anchorY) ? definition.anchorY : 0.5;
     const offsetX = Number(definition.offsetX) || 0;
     const offsetY = Number(definition.offsetY) || 0;
-
-    let rotation = Number(options.rotation) || 0;
-    let flipX = Boolean(options.flipX);
-
-    if (definition.directionMode === 'west-cardinal') {
-      const normalizedRotation = normalizeAngle(rotation);
-      if (Math.abs(Math.abs(normalizedRotation) - Math.PI) < 0.001) {
-        // West-facing source art should mirror for east rather than rotate 180°.
-        flipX = !flipX;
-        rotation = 0;
-      } else {
-        rotation = normalizedRotation;
-      }
-    }
+    const rotation = Number(options.rotation) || 0;
+    const flipX = Boolean(options.flipX);
 
     ctx.save();
     ctx.globalAlpha *= Number.isFinite(options.alpha) ? options.alpha : 1;
