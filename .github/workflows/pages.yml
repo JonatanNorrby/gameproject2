@@ -81,6 +81,8 @@ jobs:
             setAttribute() {},
             addEventListener() {},
             querySelector() { return null; },
+            querySelectorAll() { return []; },
+            closest() { return null; },
           });
 
           globalThis.document = {
@@ -95,10 +97,118 @@ jobs:
             addEventListener() {},
             removeEventListener() {},
             devicePixelRatio: 1,
+            innerWidth: 1280,
+            innerHeight: 720,
           };
 
-          await import('./src/features/runtimeSafety.js');
-          console.log('Active runtime module graph imports successfully.');
+          // main.js imports this final layer. Validate the complete active chain,
+          // including Charger, Prestige and all lower combat wrappers.
+          await import('./src/features/prestigeSystem.js');
+          console.log('Complete active runtime module graph imports successfully.');
+          NODE
+
+      - name: Validate unit class families
+        shell: bash
+        run: |
+          node --experimental-default-type=module --input-type=module <<'NODE'
+          const elementStub = () => ({
+            dataset: {},
+            style: {},
+            append() {},
+            appendChild() {},
+            remove() {},
+            setAttribute() {},
+            addEventListener() {},
+            querySelector() { return null; },
+            querySelectorAll() { return []; },
+            closest() { return null; },
+          });
+          globalThis.document = {
+            head: { append() {}, appendChild() {} },
+            body: { append() {}, appendChild() {} },
+            querySelector() { return null; },
+            querySelectorAll() { return []; },
+            createElement() { return elementStub(); },
+          };
+          globalThis.window = {
+            localStorage: null,
+            addEventListener() {},
+            removeEventListener() {},
+            devicePixelRatio: 1,
+            innerWidth: 1280,
+            innerHeight: 720,
+          };
+
+          await import('./src/features/prestigeSystem.js');
+          const { CAPTAINS, UNIT_CLASSES, UPGRADES } = await import('./src/data/content.js');
+          const { createUnitModifierState } = await import('./src/data/unitModifiers.js');
+          const { getUnitClassFamily } = await import('./src/data/unitFamilies.js');
+          const { getUpgradeIconSpec } = await import('./src/data/upgradeIcons.js');
+          const { THORNE_CAPTAIN } = await import('./src/data/captainThorne.js');
+
+          const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+          };
+
+          const expectedFamilies = {
+            rifleman: 'rifleman',
+            sniper: 'rifleman',
+            rocketeer: 'rocketeer',
+            drone_pilot: 'rocketeer',
+            shockblade: 'shockblade',
+            stormlancer: 'shockblade',
+          };
+          for (const [unitType, family] of Object.entries(expectedFamilies)) {
+            assert(UNIT_CLASSES[unitType], `Missing unit type ${unitType}`);
+            assert(getUnitClassFamily(unitType) === family, `${unitType} is not in ${family} class`);
+          }
+
+          for (const alternateType of ['sniper', 'drone_pilot', 'stormlancer']) {
+            assert(
+              !UPGRADES.some((upgrade) => upgrade.kind === 'stat' && upgrade.unitType === alternateType),
+              `${alternateType} still has separate stat upgrade cards`,
+            );
+          }
+
+          const iconExpectations = {
+            'sniper-reinforcements': 'rifleman',
+            'drone_pilot-reinforcements': 'rocketeer',
+            'stormlancer-reinforcements': 'shockblade',
+          };
+          for (const [upgradeId, classKey] of Object.entries(iconExpectations)) {
+            const upgrade = UPGRADES.find((candidate) => candidate.id === upgradeId);
+            assert(upgrade, `Missing ${upgradeId}`);
+            assert(getUpgradeIconSpec(upgrade).classKey === classKey, `${upgradeId} has wrong class icon`);
+          }
+
+          const modifierState = createUnitModifierState();
+          const mockGame = { unitModifiers: modifierState, addSquadUnits() {} };
+          const uncommon = { id: 'uncommon' };
+          const sharedUpgradeChecks = [
+            ['rifleman-damage', 'rifleman', 'sniper', 'damage'],
+            ['rifleman-pierce', 'rifleman', 'sniper', 'pierce'],
+            ['rocketeer-fire-rate', 'rocketeer', 'drone_pilot', 'fireRate'],
+            ['rocketeer-blast-radius', 'rocketeer', 'drone_pilot', 'blastRadius'],
+            ['shockblade-range', 'shockblade', 'stormlancer', 'range'],
+            ['shockblade-damage', 'shockblade', 'stormlancer', 'damage'],
+          ];
+          for (const [upgradeId, first, second, stat] of sharedUpgradeChecks) {
+            const upgrade = UPGRADES.find((candidate) => candidate.id === upgradeId);
+            assert(upgrade, `Missing shared upgrade ${upgradeId}`);
+            const beforeA = modifierState[first][stat];
+            const beforeB = modifierState[second][stat];
+            upgrade.apply(mockGame, uncommon);
+            assert(modifierState[first][stat] !== beforeA, `${upgradeId} did not modify ${first}`);
+            assert(modifierState[second][stat] !== beforeB, `${upgradeId} did not modify ${second}`);
+          }
+
+          assert(CAPTAINS.mercer?.effect?.everyShots === 3, 'Mercer interval must be 3');
+          assert(CAPTAINS.mercer?.effect?.aoeMultiplier === 3, 'Mercer third attack must use 3x area');
+          assert(CAPTAINS.mercer?.effect?.rangeMultiplier === 1.75, 'Mercer Rocketeer range multiplier must be 1.75');
+          assert(THORNE_CAPTAIN.effect.everyAttacks === 3, 'Thorne interval must be 3');
+          assert(THORNE_CAPTAIN.effect.stormlancerChainMultiplier === 2, 'Stormlancer Thorne chain multiplier must be 2');
+
+          console.log('Unit class family contract validated.');
           NODE
 
       - name: Configure Pages
