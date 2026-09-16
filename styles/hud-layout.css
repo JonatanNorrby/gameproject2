@@ -1,3 +1,5 @@
+@import url('./issue-54.css');
+
 /* Shared gameplay HUD layout refinements. */
 .hud__top {
   width: max-content;
