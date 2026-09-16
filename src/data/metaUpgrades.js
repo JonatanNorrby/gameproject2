@@ -35,6 +35,13 @@ export const PERMANENT_UPGRADES = Object.freeze({
     color: '#ff8f70',
     description: `All player squad units gain +${BEEFED_UP_HP_BONUS} maximum HP.`,
   }),
+  treasure_chests: Object.freeze({
+    id: 'treasure_chests',
+    name: 'Treasure Chests',
+    cost: 50,
+    color: '#f7c94b',
+    description: 'Defeated enemies gain a small chance to drop a treasure chest containing Gold and XP.',
+  }),
   captains_call: Object.freeze({
     id: 'captains_call',
     name: "Captains Call",
