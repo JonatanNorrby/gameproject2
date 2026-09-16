@@ -22,7 +22,7 @@
       <h1>Nightfall Protocol</h1>
       <span id="boot-status" class="boot-screen__status">Initializing combat systems</span>
       <div class="boot-screen__track" aria-hidden="true"><div class="boot-screen__bar"></div></div>
-      <span id="boot-version" class="boot-screen__version">BUILD v73</span>
+      <span id="boot-version" class="boot-screen__version">BUILD v75</span>
     </div>
   </div>
 
@@ -51,7 +51,7 @@
 
       <div class="hud__bottom">
         <div class="hud-card hud-card--wide">
-          <div class="hud-label-row"><span id="level-text">Level 1</span><span id="version-text">v73</span><span id="xp-text">0 / 20 XP</span></div>
+          <div class="hud-label-row"><span id="level-text">Level 1</span><span id="version-text">v75</span><span id="xp-text">0 / 20 XP</span></div>
           <div class="bar"><div id="xp-bar" class="bar__fill bar__fill--xp"></div></div>
         </div>
       </div>
@@ -102,21 +102,23 @@
             <p class="eyebrow">ROGUELITE SQUAD SURVIVAL</p>
             <h1>Nightfall Protocol</h1>
           </div>
-          <div class="main-menu__build">SYSTEM ONLINE • v73</div>
+          <div class="main-menu__build">SYSTEM ONLINE • v75</div>
         </header>
 
         <div class="main-menu__body">
           <nav class="main-menu__nav" aria-label="Main menu">
             <span class="main-menu__section-label">Command</span>
-            <button id="start-button" class="primary-button main-menu__action">Begin Run</button>
             <button id="captain-menu-open" class="captain-menu-button main-menu__action" type="button">Select Captain</button>
-            <button id="meta-upgrade-open" class="captain-menu-button main-menu__action" type="button">Gold Upgrades</button>
+            <button id="meta-upgrade-open" class="captain-menu-button main-menu__action" type="button">Upgrades</button>
             <button id="reset-progress-button" class="captain-menu-button main-menu__action" type="button">Reset Progress</button>
           </nav>
 
           <section class="main-menu__captain-stage" aria-label="Selected Captain">
             <span class="main-menu__captain-kicker">Selected Captain</span>
             <div id="selected-captain-summary" class="selected-captain-summary" aria-live="polite"></div>
+            <div class="main-menu__captain-controls">
+              <button id="start-button" class="primary-button main-menu__action">Begin Run</button>
+            </div>
           </section>
 
           <aside class="main-menu__brief" aria-label="Mission briefing">
