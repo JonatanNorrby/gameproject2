@@ -1,9 +1,13 @@
-import { Game, UI } from './features/thirdCaptain.js';
+import { Game, UI } from './features/beefedUp.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
+import {
+  BEEFED_UP_HP_BONUS,
+  isPermanentUpgradeOwned,
+} from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 86;
+const GAME_VERSION = 87;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
@@ -39,7 +43,17 @@ function markStartingCaptain(captain) {
   startingUnit.secondaryCaptain = false;
   startingUnit.tertiaryCaptain = false;
   startingUnit.captainSlot = 'primary';
-  startingUnit.maxHp = captain.maxHp ?? startingUnit.maxHp;
+
+  const beefedUpBonus = isPermanentUpgradeOwned('beefed_up')
+    ? BEEFED_UP_HP_BONUS
+    : 0;
+  const configuredCaptainHp = Number(captain.maxHp);
+  if (Number.isFinite(configuredCaptainHp) && configuredCaptainHp > 0) {
+    startingUnit.maxHp = configuredCaptainHp + beefedUpBonus;
+  } else if (beefedUpBonus > 0 && !startingUnit.beefedUpApplied) {
+    startingUnit.maxHp += beefedUpBonus;
+    startingUnit.beefedUpApplied = true;
+  }
   startingUnit.hp = startingUnit.maxHp;
   startingUnit.armor = captain.armor ?? 0;
   game.syncCaptainHealth();
