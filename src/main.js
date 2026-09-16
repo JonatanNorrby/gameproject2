@@ -1,4 +1,5 @@
 import { Game, UI } from './features/bossVisibilityFix.js';
+import { installEnemyStatusVisuals } from './features/enemyStatusVisuals.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import {
@@ -10,6 +11,8 @@ import { getSpritePortraitSources } from './data/sprites.js';
 const GAME_VERSION = 95;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
+
+installEnemyStatusVisuals(Game);
 
 const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
