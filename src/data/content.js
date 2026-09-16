@@ -124,7 +124,7 @@ export const CAPTAINS = {
 
 export const ENEMY_TYPES = {
   crawler: {
-    label: 'Crawler', radius: 13, speed: 78, hp: 30, damage: 8, xp: 1,
+    label: 'Crawler', radius: 19.5, speed: 78, hp: 30, damage: 8, xp: 1,
     fill: '#db5c83', outline: '#ff9db9', unlockAt: 0, weight: 9,
   },
   runner: {
