@@ -1,14 +1,14 @@
 import { Game as PreviousGame, UI } from './thorneEveryFifth.js';
 import { CAPTAINS, GAME_BALANCE, UNIT_CLASSES } from '../data/content.js';
 import { getUnitModifiers } from '../data/unitModifiers.js';
+import { isUnitInClassFamily } from '../data/unitFamilies.js';
 import { areHexSlotsAdjacent } from '../utils/hexFormation.js';
 import { distanceSq } from '../utils/math.js';
 import { MERCER_CHAIN_REACTION, VALE_COORDINATED_FIRE } from '../data/captainReworks.js';
 
 const VALE_ID = 'vale';
 const MERCER_ID = 'mercer';
-const RIFLEMAN_TYPE = 'rifleman';
-const ROCKETEER_TYPE = 'rocketeer';
+const RIFLEMAN_CLASS = 'rifleman';
 const SHOOT_ANIMATION_DURATION = 0.36;
 const FOCUS_EPSILON = 0.999;
 
@@ -46,12 +46,12 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
       )) ?? null;
     }
 
-    isAdjacentCaptainUnit(soldier, captainId, expectedType) {
+    isAdjacentCaptainUnit(soldier, captainId, expectedClass) {
       if (
         !soldier
         || soldier.unit.dead
         || soldier.unit.captainId
-        || soldier.unit.type !== expectedType
+        || !isUnitInClassFamily(soldier.unit.type, expectedClass)
       ) return false;
 
       const soldiers = this.game.getWeaponPositions();
@@ -83,7 +83,7 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
       return soldiers.filter((soldier) => (
         !soldier.unit.dead
         && !soldier.unit.captainId
-        && soldier.unit.type === RIFLEMAN_TYPE
+        && isUnitInClassFamily(soldier.unit.type, RIFLEMAN_CLASS)
         && (merged || areHexSlotsAdjacent(soldier.hex, captainSoldier.hex))
       ));
     }
@@ -114,7 +114,7 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
     }
 
     updateValeFocusFromShot(soldier, target) {
-      if (!this.isAdjacentCaptainUnit(soldier, VALE_ID, RIFLEMAN_TYPE)) return null;
+      if (!this.isAdjacentCaptainUnit(soldier, VALE_ID, RIFLEMAN_CLASS)) return null;
 
       const effect = this.getValeEffect();
       const previous = this.valeFocus.get(soldier.unit.id);
@@ -159,7 +159,7 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
       const projectiles = this.game.entities.projectiles;
       const beforeCount = projectiles.length;
       const valeState = (
-        soldier.unit.type === RIFLEMAN_TYPE
+        isUnitInClassFamily(soldier.unit.type, RIFLEMAN_CLASS)
         && !soldier.unit.captainId
       ) ? this.updateValeFocusFromShot(soldier, target) : null;
 
@@ -172,15 +172,6 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
       if (valeState) {
         this.valeFiredThisUpdate.add(soldier.unit.id);
         this.maybeApplyValePierce(projectile, valeState);
-      }
-
-      if (
-        projectile
-        && projectile.kind === 'rocket'
-        && this.isAdjacentCaptainUnit(soldier, MERCER_ID, ROCKETEER_TYPE)
-      ) {
-        projectile.mercerChainEligible = true;
-        projectile.mercerHeavyWarhead = shotEffect?.special === 'mercer-rocket';
       }
     }
 
@@ -211,8 +202,11 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
         const target = enemiesById.get(state.targetId);
         if (!target) continue;
 
-        const modifiers = getUnitModifiers(this.game.unitModifiers, RIFLEMAN_TYPE);
-        const range = UNIT_CLASSES.rifleman.weapon.range
+        const unitType = soldier.unit.type;
+        const unitClass = UNIT_CLASSES[unitType];
+        const modifiers = getUnitModifiers(this.game.unitModifiers, unitType);
+        if (!unitClass?.weapon) continue;
+        const range = unitClass.weapon.range
           * modifiers.range
           * this.game.getTransformerStatMultiplier();
         if (distanceSq(soldier.x, soldier.y, target.x, target.y) > range * range) continue;
@@ -236,10 +230,12 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
       for (const soldier of group.soldiers) {
         const projectiles = this.game.entities.projectiles;
         const beforeCount = projectiles.length;
+        const unitClass = UNIT_CLASSES[soldier.unit.type];
+        if (!unitClass) continue;
 
         super.fireWeapon(
           soldier,
-          UNIT_CLASSES.rifleman,
+          unitClass,
           group.target,
           {
             special: 'vale-coordinated-volley',
@@ -278,134 +274,17 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
       this.updateValeFocusedCooldowns();
       this.triggerValeVolley();
 
-      const livingRiflemen = new Set(
+      const livingRifleClass = new Set(
         this.game.player.squad
-          .filter((unit) => !unit.dead && unit.type === RIFLEMAN_TYPE && !unit.captainId)
+          .filter((unit) => (
+            !unit.dead
+            && isUnitInClassFamily(unit.type, RIFLEMAN_CLASS)
+            && !unit.captainId
+          ))
           .map((unit) => unit.id),
       );
       for (const unitId of this.valeFocus.keys()) {
-        if (!livingRiflemen.has(unitId)) this.valeFocus.delete(unitId);
-      }
-    }
-
-    addMercerMark(enemy) {
-      if (!enemy || enemy.dead) return;
-      const effect = this.getMercerEffect();
-      enemy.mercerMarks = Math.min(
-        effect.maxMarks,
-        (enemy.mercerMarks ?? 0) + 1,
-      );
-      enemy.mercerMarksExpireAt = this.game.elapsed + effect.markDuration;
-    }
-
-    getEnemiesInProjectileBlast(projectile) {
-      const blastRadius = projectile.aoeRadius || projectile.radius * 4;
-      return this.game.entities.enemies.filter((enemy) => {
-        if (enemy.dead) return false;
-        const damageRadius = blastRadius + enemy.radius;
-        return distanceSq(
-          projectile.x,
-          projectile.y,
-          enemy.x,
-          enemy.y,
-        ) <= damageRadius * damageRadius;
-      });
-    }
-
-    detonateMercerMarks(initialEnemies, projectile) {
-      const effect = this.getMercerEffect();
-      const queue = [];
-      const queuedIds = new Set();
-
-      for (const enemy of initialEnemies) {
-        if (!enemy || queuedIds.has(enemy.id)) continue;
-        const marks = Math.min(effect.maxMarks, (enemy.mercerMarks ?? 0) + 1);
-        if (marks <= 0) continue;
-        queue.push({
-          id: enemy.id,
-          x: enemy.x,
-          y: enemy.y,
-          marks,
-        });
-        queuedIds.add(enemy.id);
-        enemy.mercerMarks = 0;
-        enemy.mercerMarksExpireAt = 0;
-      }
-
-      const detonated = new Set();
-      while (queue.length > 0) {
-        const origin = queue.shift();
-        if (detonated.has(origin.id)) continue;
-        detonated.add(origin.id);
-
-        const damage = projectile.damage
-          * effect.cascadeDamageMultiplier
-          * origin.marks;
-        this.game.spawnExplosionEffect(
-          origin.x,
-          origin.y,
-          effect.cascadeRadius,
-          effect.color,
-        );
-
-        for (const enemy of this.game.entities.enemies) {
-          if (enemy.dead) continue;
-          const radius = effect.cascadeRadius + enemy.radius;
-          if (distanceSq(origin.x, origin.y, enemy.x, enemy.y) > radius * radius) continue;
-
-          enemy.hp -= damage;
-          enemy.hitFlash = 0.12;
-          this.game.spawnHitParticles(enemy.x, enemy.y);
-
-          if (
-            !detonated.has(enemy.id)
-            && !queuedIds.has(enemy.id)
-            && (enemy.mercerMarks ?? 0) > 0
-          ) {
-            queue.push({
-              id: enemy.id,
-              x: enemy.x,
-              y: enemy.y,
-              marks: Math.min(effect.maxMarks, enemy.mercerMarks),
-            });
-            queuedIds.add(enemy.id);
-            enemy.mercerMarks = 0;
-            enemy.mercerMarksExpireAt = 0;
-          }
-
-          if (enemy.hp <= 0) this.killEnemy(enemy);
-        }
-      }
-    }
-
-    explodeProjectile(projectile) {
-      if (!projectile?.mercerChainEligible) {
-        super.explodeProjectile(projectile);
-        return;
-      }
-
-      const affected = this.getEnemiesInProjectileBlast(projectile);
-      const heavy = Boolean(projectile.mercerHeavyWarhead);
-
-      super.explodeProjectile(projectile);
-
-      if (heavy) {
-        this.detonateMercerMarks(affected, projectile);
-        return;
-      }
-
-      for (const enemy of affected) this.addMercerMark(enemy);
-    }
-
-    updateEnemies(dt) {
-      super.updateEnemies(dt);
-
-      const now = this.game.elapsed;
-      for (const enemy of this.game.entities.enemies) {
-        if ((enemy.mercerMarks ?? 0) <= 0) continue;
-        if ((enemy.mercerMarksExpireAt ?? 0) > now) continue;
-        enemy.mercerMarks = 0;
-        enemy.mercerMarksExpireAt = 0;
+        if (!livingRifleClass.has(unitId)) this.valeFocus.delete(unitId);
       }
     }
   };
@@ -430,7 +309,11 @@ export class Game extends PreviousGame {
     ) return;
 
     for (const soldier of this.getSoldierPositions()) {
-      if (soldier.unit.dead || soldier.unit.type !== RIFLEMAN_TYPE || soldier.unit.captainId) continue;
+      if (
+        soldier.unit.dead
+        || !isUnitInClassFamily(soldier.unit.type, RIFLEMAN_CLASS)
+        || soldier.unit.captainId
+      ) continue;
       const focus = this.combatSystem.getValeFocus?.(soldier.unit.id) ?? 0;
       if (focus <= 0.001) continue;
 
@@ -451,30 +334,6 @@ export class Game extends PreviousGame {
         -Math.PI / 2 + Math.PI * 2 * focus,
       );
       ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  drawEnemies(ctx) {
-    super.drawEnemies(ctx);
-
-    const effect = CAPTAINS[MERCER_ID]?.effect;
-    const color = effect?.markColor ?? MERCER_CHAIN_REACTION.effect.markColor;
-    for (const enemy of this.entities.enemies) {
-      const marks = Math.max(0, Math.floor(enemy.mercerMarks ?? 0));
-      if (enemy.dead || marks <= 0) continue;
-
-      ctx.save();
-      ctx.fillStyle = color;
-      ctx.shadowBlur = 9;
-      ctx.shadowColor = color;
-      for (let index = 0; index < marks; index += 1) {
-        const x = enemy.x + (index - (marks - 1) / 2) * 8;
-        const y = enemy.y - enemy.radius - 10;
-        ctx.beginPath();
-        ctx.arc(x, y, 2.8, 0, Math.PI * 2);
-        ctx.fill();
-      }
       ctx.restore();
     }
   }
