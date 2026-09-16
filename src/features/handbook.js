@@ -20,6 +20,8 @@ import {
   getCaptainUnlockDefinition,
   isCaptainUnlocked,
 } from '../data/unlocks.js';
+import { getUnitClassFamily } from '../data/unitFamilies.js';
+import { CLASS_ICON_FILES, getUpgradeIconSpec } from '../data/upgradeIcons.js';
 
 export const HANDBOOK_BOSS_STORAGE_KEY = 'nightfall-protocol.handbook-bosses.v1';
 
@@ -51,6 +53,28 @@ const HANDBOOK_BOSSES = Object.freeze([
 const ACTIVE_RARITY_IDS = new Set(['uncommon', 'rare', 'epic']);
 const ACTIVE_RARITIES = RARITIES.filter((rarity) => ACTIVE_RARITY_IDS.has(rarity.id));
 const SECRET_CAPTAIN_ID = 'supreme_commander';
+const CLASS_ICON_ROOT = './assets/icons/unit_class';
+
+const HANDBOOK_UNIT_FAMILIES = Object.freeze([
+  Object.freeze({
+    id: 'rifleman',
+    label: 'Rifleman Class',
+    accent: '#69cfff',
+    members: Object.freeze(['rifleman', 'sniper']),
+  }),
+  Object.freeze({
+    id: 'rocketeer',
+    label: 'Rocketeer Class',
+    accent: '#ff9b4a',
+    members: Object.freeze(['rocketeer', 'drone_pilot']),
+  }),
+  Object.freeze({
+    id: 'shockblade',
+    label: 'Shockblade Class',
+    accent: '#b78cff',
+    members: Object.freeze(['shockblade', 'stormlancer']),
+  }),
+]);
 
 function normalizeBossDiscovery(candidate) {
   const knownIds = new Set(HANDBOOK_BOSSES.map(({ config }) => config.id));
@@ -183,29 +207,66 @@ function appendText(parent, tag, text, className = '') {
   return node;
 }
 
-function createMedia(source, alt, fallbackText) {
-  const media = document.createElement('div');
-  media.className = 'handbook-card__media';
-
-  const fallback = document.createElement('div');
-  fallback.className = 'handbook-card__fallback';
+function appendImageWithFallback(container, source, alt, fallbackText, imageClass, fallbackClass = '') {
+  const fallback = document.createElement('span');
+  fallback.className = fallbackClass || 'handbook-image-fallback';
   fallback.textContent = fallbackText;
+  container.append(fallback);
 
-  if (!source) {
-    media.append(fallback);
-    return media;
-  }
+  if (!source) return fallback;
 
   const image = document.createElement('img');
   image.src = source;
   image.alt = alt;
+  if (imageClass) image.className = imageClass;
   image.loading = 'lazy';
-  image.addEventListener('error', () => {
-    image.remove();
-    if (!fallback.isConnected) media.append(fallback);
-  }, { once: true });
-  media.append(image);
+  image.addEventListener('load', () => fallback.remove(), { once: true });
+  image.addEventListener('error', () => image.remove(), { once: true });
+  container.append(image);
+  return image;
+}
+
+function createMedia(source, alt, fallbackText) {
+  const media = document.createElement('div');
+  media.className = 'handbook-card__media';
+  appendImageWithFallback(
+    media,
+    source,
+    alt,
+    fallbackText,
+    'handbook-card__image',
+    'handbook-card__fallback',
+  );
   return media;
+}
+
+function getClassIconInfo(unitTypeOrFamily) {
+  const familyId = getUnitClassFamily(unitTypeOrFamily);
+  const file = CLASS_ICON_FILES[familyId];
+  return {
+    familyId,
+    source: file ? `${CLASS_ICON_ROOT}/${file}` : null,
+    fallback: familyId.slice(0, 3).toUpperCase(),
+  };
+}
+
+function createClassIconTile(unitTypeOrFamily, label = 'Class icon', compact = false) {
+  const icon = getClassIconInfo(unitTypeOrFamily);
+  const tile = document.createElement('div');
+  tile.className = compact
+    ? 'handbook-class-icon handbook-class-icon--compact'
+    : 'handbook-class-icon';
+  tile.dataset.classFamily = icon.familyId;
+  tile.title = label;
+  appendImageWithFallback(
+    tile,
+    icon.source,
+    '',
+    icon.fallback,
+    'handbook-class-icon__image',
+    'handbook-class-icon__fallback',
+  );
+  return tile;
 }
 
 function createStatRow(label, value) {
@@ -216,40 +277,50 @@ function createStatRow(label, value) {
   return row;
 }
 
-function formatWeaponKind(unit) {
-  if (unit.support?.kind === 'drone') return 'Support Drone';
-  const kind = unit.weapon?.kind ?? 'Unknown';
-  if (kind === 'bullet') return 'Ballistic';
-  if (kind === 'rocket') return 'Explosive';
-  if (kind === 'melee') return 'Melee';
-  if (kind === 'support') return 'Support';
-  return kind;
-}
-
 function formatNumber(value, fallback = '—') {
   return Number.isFinite(Number(value)) ? String(Number(value)) : fallback;
 }
 
-function createEntityCard({ title, subtitle, image, fallback, accent, body, stats = [] }) {
+function createEntityCard({
+  title,
+  subtitle,
+  image,
+  fallback,
+  accent,
+  body,
+  stats = [],
+  className = '',
+  hideMedia = false,
+  mediaNode = null,
+  mediaExtras = [],
+}) {
   const card = document.createElement('article');
-  card.className = 'handbook-card';
+  card.className = `handbook-card${className ? ` ${className}` : ''}`;
   if (accent) card.style.setProperty('--handbook-accent', accent);
-  card.append(createMedia(image, title, fallback));
 
-  const copy = document.createElement('div');
-  copy.className = 'handbook-card__copy';
-  appendText(copy, 'h3', title);
-  if (subtitle) appendText(copy, 'span', subtitle, 'handbook-card__subtitle');
-  if (body) appendText(copy, 'p', body);
+  const top = document.createElement('div');
+  top.className = 'handbook-card__top';
+  if (!hideMedia) {
+    top.append(mediaNode ?? createMedia(image, title, fallback));
+    for (const extra of mediaExtras) top.append(extra);
+  }
+
+  const heading = document.createElement('div');
+  heading.className = 'handbook-card__heading';
+  appendText(heading, 'h3', title);
+  if (subtitle) appendText(heading, 'span', subtitle, 'handbook-card__subtitle');
+  top.append(heading);
+  card.append(top);
+
+  if (body) appendText(card, 'p', body, 'handbook-card__body');
 
   if (stats.length > 0) {
     const statGrid = document.createElement('div');
     statGrid.className = 'handbook-stat-grid';
     for (const [label, value] of stats) statGrid.append(createStatRow(label, value));
-    copy.append(statGrid);
+    card.append(statGrid);
   }
 
-  card.append(copy);
   return card;
 }
 
@@ -265,16 +336,60 @@ function createSecretCard(label = 'CLASSIFIED') {
 function createPageHeader(title, description) {
   const header = document.createElement('header');
   header.className = 'handbook-page__header';
-  appendText(header, 'p', 'FIELD MANUAL', 'eyebrow');
-  appendText(header, 'h2', title);
-  appendText(header, 'p', description, 'handbook-page__intro');
+  if (title) appendText(header, 'h2', title);
+  if (description) appendText(header, 'p', description, 'handbook-page__intro');
   return header;
 }
 
-function createCardGrid() {
+function createCardGrid(className = '') {
   const grid = document.createElement('div');
-  grid.className = 'handbook-card-grid';
+  grid.className = `handbook-card-grid${className ? ` ${className}` : ''}`;
   return grid;
+}
+
+function createUpgradeMedia(upgrade) {
+  const icon = getUpgradeIconSpec(upgrade);
+  const stage = document.createElement('div');
+  stage.className = 'handbook-upgrade-icon-stage';
+  stage.dataset.genericIcon = icon.genericKey;
+  stage.dataset.classIcon = icon.classKey;
+
+  const mainIcon = document.createElement('div');
+  mainIcon.className = 'handbook-upgrade-icon-stage__main';
+  if (upgrade.kind === 'reinforcement') {
+    const portraitSource = resolveFrameSource(FRAME_SPRITES.units[upgrade.unitType], 'idle');
+    appendImageWithFallback(
+      mainIcon,
+      portraitSource,
+      '',
+      UNIT_CLASSES[upgrade.unitType]?.shortLabel ?? icon.classFallback,
+      'handbook-upgrade-icon-stage__portrait',
+      'handbook-upgrade-icon-stage__fallback',
+    );
+  } else {
+    appendImageWithFallback(
+      mainIcon,
+      icon.genericSrc,
+      '',
+      icon.genericFallback,
+      'handbook-upgrade-icon-stage__generic',
+      'handbook-upgrade-icon-stage__fallback',
+    );
+  }
+  stage.append(mainIcon);
+
+  const classBadge = document.createElement('div');
+  classBadge.className = 'handbook-upgrade-icon-stage__class';
+  appendImageWithFallback(
+    classBadge,
+    icon.classSrc,
+    '',
+    icon.classFallback,
+    'handbook-upgrade-icon-stage__class-image',
+    'handbook-upgrade-icon-stage__class-fallback',
+  );
+  stage.append(classBadge);
+  return stage;
 }
 
 export class Game extends PreviousGame {
@@ -329,16 +444,12 @@ export class UI extends PreviousUI {
     screen.innerHTML = `
       <div class="panel panel--handbook">
         <header class="handbook-header">
-          <div>
-            <p class="eyebrow">NIGHTFALL COMMAND NETWORK</p>
-            <h1>Game Handbook</h1>
-          </div>
+          <h1>Game Handbook</h1>
           <button id="handbook-close" class="handbook-close" type="button" aria-label="Close Handbook">×</button>
         </header>
         <nav id="handbook-tabs" class="handbook-tabs" role="tablist" aria-label="Handbook sections"></nav>
         <div id="handbook-content" class="handbook-content" tabindex="0"></div>
         <footer class="handbook-footer">
-          <span>Boss intel is revealed permanently after first contact.</span>
           <button id="handbook-back" class="primary-button" type="button">Back to Main Menu</button>
         </footer>
       </div>
@@ -417,7 +528,7 @@ export class UI extends PreviousUI {
   renderHandbookOverview() {
     const content = this.handbookContent;
     content.append(createPageHeader(
-      'Nightfall Protocol',
+      '',
       'A squad-survival roguelite where one Captain leads an expanding formation against escalating alien pressure and three milestone bosses.',
     ));
 
@@ -425,11 +536,11 @@ export class UI extends PreviousUI {
     steps.className = 'handbook-overview-grid';
     const overviewItems = [
       ['1', 'Move the squad', 'Use WASD to move. Units attack automatically with their own weapon systems and targeting rules.'],
-      ['2', 'Collect XP', 'Defeated enemies leave XP. Leveling presents upgrades for unit recruitment and class-specific stats.'],
-      ['3', 'Build the formation', 'Recruit Rifleman-, Rocketeer-, and Shockblade-family units, then shape the squad with Squad Builder when available.'],
-      ['4', 'Use Captains', 'The primary Captain leads the run. Permanent progression can add second and third Captains plus long-cooldown Captain Calls.'],
+      ['2', 'Use squad abilities', 'Once unlocked, use Q for the primary Captain Call, E for the second Captain Call, and R for the third Captain Call.'],
+      ['3', 'Collect XP', 'Defeated enemies leave XP. Leveling presents upgrades for unit recruitment and class-specific stats.'],
+      ['4', 'Build the formation', 'Recruit Rifleman-, Rocketeer-, and Shockblade-family units, then shape the squad with Squad Builder when available.'],
       ['5', 'Break the bosses', 'The Warden appears at level 15, The Broodmother at 30, and The Cipher at 50. Defeating the final boss unlocks the secret Commander.'],
-      ['6', 'Progress permanently', 'Gold persists between runs and buys permanent upgrades. Prestige resets Gold/upgrades/unlocks in exchange for permanent attack-rate growth.'],
+      ['6', 'Progress permanently', 'Gold persists between runs and buys permanent upgrades. Prestige resets Gold, upgrades, and unlocks in exchange for permanent attack-rate growth.'],
     ];
     for (const [number, title, body] of overviewItems) {
       const card = document.createElement('article');
@@ -442,50 +553,64 @@ export class UI extends PreviousUI {
       steps.append(card);
     }
     content.append(steps);
-
-    const controls = document.createElement('section');
-    controls.className = 'handbook-callout';
-    appendText(controls, 'h3', 'Core controls');
-    appendText(controls, 'p', 'WASD: move squad • Q: primary Captain Call • E: second Captain Call • R: third Captain Call. The run ends when the primary Captain dies.');
-    content.append(controls);
   }
 
   renderHandbookUnits() {
     const content = this.handbookContent;
     const entries = getHandbookUnitEntries();
+    const entriesById = new Map(entries.map((entry) => [entry.id, entry]));
     content.append(createPageHeader(
       'Available Units',
-      `${entries.length} registered battlefield unit types. Idle artwork is shown where an asset is available.`,
+      `${entries.length} registered battlefield unit types grouped by their shared upgrade class.`,
     ));
-    const grid = createCardGrid();
 
-    for (const { unit, image } of entries) {
-      const weapon = unit.weapon ?? {};
-      const stats = [
-        ['HP', formatNumber(unit.maxHp)],
-        ['Role', formatWeaponKind(unit)],
-      ];
-      if (unit.support?.kind === 'drone') {
-        stats.push(['Stun', `${formatNumber(unit.support.stunDuration)}s`]);
-        stats.push(['Drone Range', formatNumber(unit.support.range)]);
-      } else {
-        stats.push(['Damage', formatNumber(weapon.damage)]);
-        stats.push(['Range', formatNumber(weapon.range)]);
-        stats.push(['Cooldown', Number.isFinite(Number(weapon.cooldown)) ? `${weapon.cooldown}s` : '—']);
+    const columns = document.createElement('div');
+    columns.className = 'handbook-unit-columns';
+
+    for (const family of HANDBOOK_UNIT_FAMILIES) {
+      const column = document.createElement('section');
+      column.className = `handbook-unit-column handbook-unit-column--${family.id}`;
+      column.style.setProperty('--handbook-family-accent', family.accent);
+
+      const familyHeader = document.createElement('header');
+      familyHeader.className = 'handbook-unit-column__header';
+      familyHeader.append(createClassIconTile(family.id, family.label));
+      appendText(familyHeader, 'h3', family.label);
+      column.append(familyHeader);
+
+      const familyCards = document.createElement('div');
+      familyCards.className = 'handbook-unit-column__cards';
+      for (const unitId of family.members) {
+        const entry = entriesById.get(unitId);
+        if (!entry) continue;
+        const { unit, image } = entry;
+        const weapon = unit.weapon ?? {};
+        const stats = [['HP', formatNumber(unit.maxHp)]];
+        if (unit.support?.kind === 'drone') {
+          stats.push(['Stun', `${formatNumber(unit.support.stunDuration)}s`]);
+          stats.push(['Drone Range', formatNumber(unit.support.range)]);
+        } else {
+          stats.push(['Damage', formatNumber(weapon.damage)]);
+          stats.push(['Range', formatNumber(weapon.range)]);
+          stats.push(['Cooldown', Number.isFinite(Number(weapon.cooldown)) ? `${weapon.cooldown}s` : '—']);
+        }
+        familyCards.append(createEntityCard({
+          title: unit.label,
+          subtitle: unit.shortLabel ?? '',
+          image,
+          fallback: unit.shortLabel ?? unit.label.slice(0, 3).toUpperCase(),
+          accent: family.accent,
+          body: unit.support?.kind === 'drone'
+            ? 'Its drone seeks enemy groups and drops area stun grenades.'
+            : 'Receives upgrades through its shared class family while keeping its own weapon profile.',
+          stats,
+          className: 'handbook-card--unit',
+        }));
       }
-      grid.append(createEntityCard({
-        title: unit.label,
-        subtitle: `${unit.shortLabel ?? unit.id.toUpperCase()} • ${formatWeaponKind(unit)}`,
-        image,
-        fallback: unit.shortLabel ?? unit.label.slice(0, 3).toUpperCase(),
-        accent: unit.outline ?? unit.fill,
-        body: unit.support?.kind === 'drone'
-          ? 'Support specialist whose drone seeks enemy groups and drops area stun grenades.'
-          : `Uses a ${formatWeaponKind(unit).toLowerCase()} weapon and receives upgrades through its shared class family.`,
-        stats,
-      }));
+      column.append(familyCards);
+      columns.append(column);
     }
-    content.append(grid);
+    content.append(columns);
   }
 
   renderHandbookCaptains() {
@@ -505,6 +630,7 @@ export class UI extends PreviousUI {
 
       const bodyParts = [captain.description, captain.passiveText].filter(Boolean);
       if (!unlocked && unlock?.requirementText) bodyParts.push(`Unlock: ${unlock.requirementText}`);
+      const familyId = getUnitClassFamily(captain.unitType);
       const card = createEntityCard({
         title: captain.name,
         subtitle: `${captain.role ?? 'Captain'} • ${unlocked ? 'UNLOCKED' : 'LOCKED'}`,
@@ -516,6 +642,8 @@ export class UI extends PreviousUI {
           ['Base HP', formatNumber(captain.maxHp)],
           ['Unit', UNIT_CLASSES[captain.unitType]?.label ?? captain.unitType],
         ],
+        mediaExtras: [createClassIconTile(familyId, `${UNIT_CLASSES[captain.unitType]?.label ?? captain.unitType} class`, true)],
+        className: 'handbook-card--captain',
       });
       card.classList.toggle('handbook-card--locked', !unlocked);
       grid.append(card);
@@ -530,7 +658,7 @@ export class UI extends PreviousUI {
       'Alien Bestiary',
       `${entries.length} registered normal enemy types. Running artwork is shown where the monster has a dedicated animation asset.`,
     ));
-    const grid = createCardGrid();
+    const grid = createCardGrid('handbook-card-grid--center-last');
 
     for (const { enemy, image } of entries) {
       const role = enemy.ranged
@@ -559,6 +687,7 @@ export class UI extends PreviousUI {
           ['Damage', enemy.ranged ? formatNumber(enemy.ranged.damage) : formatNumber(enemy.damage)],
           ['XP', formatNumber(enemy.xp)],
         ],
+        className: 'handbook-card--monster',
       }));
     }
     content.append(grid);
@@ -590,8 +719,8 @@ export class UI extends PreviousUI {
           ['Level', config.spawnLevel],
           ['Base HP', config.maxHp],
           ['Speed', config.speed],
-          ['Final Boss', config.id === CIPHER_BOSS.id ? 'Yes' : 'No'],
         ],
+        className: 'handbook-card--boss',
       }));
     }
     content.append(grid);
@@ -616,14 +745,14 @@ export class UI extends PreviousUI {
       const card = createEntityCard({
         title: upgrade.name,
         subtitle: `${upgrade.cost} GOLD • ${isOwned ? 'OWNED' : 'AVAILABLE'}`,
-        image: null,
-        fallback: 'G',
         accent: upgrade.color,
         body: description,
         stats: [
           ['Cost', `${upgrade.cost} Gold`],
           ['Persistent', 'Until Prestige'],
         ],
+        hideMedia: true,
+        className: 'handbook-card--gold-upgrade',
       });
       if (isOwned) card.classList.add('handbook-card--owned');
       grid.append(card);
@@ -636,7 +765,7 @@ export class UI extends PreviousUI {
     const upgrades = getHandbookRunUpgradeEntries();
     content.append(createPageHeader(
       'In-Run Unit Upgrades',
-      `${upgrades.length} registered upgrade cards. Stat upgrades apply to entire class families; reinforcement cards add specific battlefield units.`,
+      'Stat upgrades apply to entire class families; reinforcement cards add specific battlefield units.',
     ));
 
     const grid = createCardGrid();
@@ -656,14 +785,12 @@ export class UI extends PreviousUI {
       grid.append(createEntityCard({
         title: upgrade.name,
         subtitle: `${upgrade.tag ?? 'UNIT'} • ${typeLabel}`,
-        image: null,
-        fallback: upgrade.kind === 'reinforcement' ? '+' : '↑',
-        accent: upgrade.kind === 'reinforcement' ? '#74c9ff' : '#7ef9d4',
+        accent: upgrade.kind === 'reinforcement' ? '#69cfff' : '#7ef9d4',
         body: rarityDescriptions.join(' '),
-        stats: [
-          ['Stat', upgrade.stat ?? 'Unit Count'],
-          ['Max Rank', Number.isFinite(Number(upgrade.maxRank)) ? upgrade.maxRank : '∞'],
-        ],
+        mediaNode: createUpgradeMedia(upgrade),
+        className: upgrade.kind === 'reinforcement'
+          ? 'handbook-card--run-upgrade handbook-card--run-reinforcement'
+          : 'handbook-card--run-upgrade handbook-card--run-stat',
       }));
     }
     content.append(grid);
