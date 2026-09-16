@@ -188,6 +188,10 @@ export function resetPermanentProgression() {
   return getPermanentProgressionState();
 }
 
-// Kept as a compatibility alias for the existing Reset Progress button while
-// the rest of the codebase moves away from the old point-tree terminology.
+// Compatibility aliases keep older imports loadable while their old point/tree
+// behavior is disabled. Boss configs now award zero legacy points.
 export const resetMetaUpgradeProgress = resetPermanentProgression;
+export function grantMetaUpgradePoints() {
+  const state = getPermanentProgressionState();
+  return { totalPoints: state.gold };
+}
