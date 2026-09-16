@@ -1,11 +1,55 @@
 /* Shared gameplay HUD layout refinements. */
 .hud__top {
-  grid-template-columns: minmax(220px, 360px) repeat(4, auto);
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  grid-template-columns: minmax(210px, 280px) repeat(4, minmax(58px, 72px));
+  gap: 6px;
+  align-items: start;
+  justify-content: center;
+}
+
+.hud__top .hud-card {
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 9px;
+}
+
+.hud__top .hud-card--wide {
+  width: auto;
+}
+
+.hud__top .hud-label,
+.hud__top .hud-label-row {
+  font-size: 9px;
+  letter-spacing: .04em;
+}
+
+.hud__top .hud-label-row {
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.hud__top .hud-card strong {
+  font-size: 14px;
+}
+
+.hud__top .bar {
+  height: 6px;
+}
+
+#hp-label,
+#hp-text {
+  text-align: center;
 }
 
 #gold-hud-card {
   display: grid;
-  gap: 2px;
+  gap: 1px;
   text-align: center;
 }
 
@@ -15,7 +59,9 @@
 
 @media (max-width: 900px) {
   .hud__top {
-    grid-template-columns: minmax(150px, 1.7fr) repeat(4, minmax(58px, .55fr));
+    width: 100%;
+    grid-template-columns: minmax(170px, 1.6fr) repeat(4, minmax(52px, .5fr));
+    gap: 5px;
   }
 }
 
