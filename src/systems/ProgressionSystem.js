@@ -3,11 +3,12 @@ import { createUnitModifierState } from '../data/unitModifiers.js';
 
 const REINFORCEMENT_CHOICE_WEIGHT = 0.3;
 const STAT_CHOICE_WEIGHT = 1;
+const XP_DROP_VALUE_MULTIPLIER = 1.33;
+const ACTIVE_RARITY_IDS = new Set(['uncommon', 'rare', 'epic']);
 
-// Levels 1-50 are paced around ~25 minutes of active combat plus four boss
-// fights at levels 10/20/30/40 before the level-50 final boss appears. A
-// linear requirement also lets endless progression continue indefinitely
-// without the old exponential curve becoming practically unreachable.
+// Levels 1-50 use a linear requirement so progression remains sustainable into
+// endless mode after the level-50 final boss. Enemy XP drops are globally worth
+// 33% more through addXp(), without changing the underlying enemy definitions.
 export const PROGRESSION_PACING = Object.freeze({
   startingXpToNext: 20,
   xpPerLevel: 36,
@@ -40,7 +41,9 @@ export class ProgressionSystem {
 
   addXp(amount) {
     const player = this.game.player;
-    player.xp += amount;
+    const baseAmount = Math.max(0, Number(amount) || 0);
+    const gainedXp = baseAmount * XP_DROP_VALUE_MULTIPLIER;
+    player.xp = Math.round((player.xp + gainedXp) * 100) / 100;
     if (player.xp >= player.xpToNext) this.levelUp();
   }
 
@@ -69,7 +72,12 @@ export class ProgressionSystem {
 
   levelUp({ consumeXp = true } = {}) {
     const player = this.game.player;
-    if (consumeXp) player.xp -= player.xpToNext;
+    if (consumeXp) {
+      player.xp = Math.max(
+        0,
+        Math.round((player.xp - player.xpToNext) * 100) / 100,
+      );
+    }
     player.level += 1;
     player.xpToNext = getXpToNextForLevel(player.level);
 
@@ -128,13 +136,14 @@ export class ProgressionSystem {
   }
 
   rollRarity(allowedIds = null) {
+    const activeRarities = RARITIES.filter((rarity) => ACTIVE_RARITY_IDS.has(rarity.id));
     const allowed = Array.isArray(allowedIds) && allowedIds.length > 0
       ? new Set(allowedIds)
       : null;
     const pool = allowed
-      ? RARITIES.filter((rarity) => allowed.has(rarity.id))
-      : RARITIES;
-    const candidates = pool.length > 0 ? pool : RARITIES;
+      ? activeRarities.filter((rarity) => allowed.has(rarity.id))
+      : activeRarities;
+    const candidates = pool.length > 0 ? pool : activeRarities;
     const totalWeight = candidates.reduce((sum, rarity) => sum + rarity.weight, 0);
     let roll = Math.random() * totalWeight;
     for (const rarity of candidates) {
