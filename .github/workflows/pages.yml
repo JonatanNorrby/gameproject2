@@ -72,6 +72,31 @@ jobs:
         shell: bash
         run: |
           node --experimental-default-type=module --input-type=module <<'NODE'
+          const elementStub = () => ({
+            dataset: {},
+            style: {},
+            append() {},
+            appendChild() {},
+            remove() {},
+            setAttribute() {},
+            addEventListener() {},
+            querySelector() { return null; },
+          });
+
+          globalThis.document = {
+            head: { append() {}, appendChild() {} },
+            body: { append() {}, appendChild() {} },
+            querySelector() { return null; },
+            querySelectorAll() { return []; },
+            createElement() { return elementStub(); },
+          };
+          globalThis.window = {
+            localStorage: null,
+            addEventListener() {},
+            removeEventListener() {},
+            devicePixelRatio: 1,
+          };
+
           await import('./src/features/runtimeSafety.js');
           console.log('Active runtime module graph imports successfully.');
           NODE
