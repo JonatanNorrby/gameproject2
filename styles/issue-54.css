@@ -1,0 +1,18 @@
+/* Issue #54: enforce the loading-screen presentation before JavaScript runs. */
+.boot-screen::after,
+.boot-screen__track,
+.boot-screen__version {
+  display: none !important;
+}
+
+.boot-screen__eyebrow {
+  font-size: 0;
+  text-transform: none;
+}
+
+.boot-screen__eyebrow::after {
+  content: 'initialazing nightfall protocol command systems';
+  display: inline;
+  font-size: 10px;
+  line-height: 1.4;
+}
