@@ -9,6 +9,7 @@ import { MERCER_CHAIN_REACTION, VALE_COORDINATED_FIRE } from '../data/captainRew
 const VALE_ID = 'vale';
 const MERCER_ID = 'mercer';
 const RIFLEMAN_CLASS = 'rifleman';
+const ROCKETEER_CLASS = 'rocketeer';
 const SHOOT_ANIMATION_DURATION = 0.36;
 const FOCUS_EPSILON = 0.999;
 
@@ -31,6 +32,7 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
       this.valeFocus = new Map();
       this.valeFiredThisUpdate = new Set();
       this.valeNextVolleyAt = 0;
+      this.mercerClassAttackCounts = new Map();
     }
 
     reset() {
@@ -38,6 +40,7 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
       this.valeFocus?.clear();
       this.valeFiredThisUpdate?.clear();
       this.valeNextVolleyAt = 0;
+      this.mercerClassAttackCounts?.clear();
     }
 
     getCaptainSoldier(captainId, soldiers = this.game.getWeaponPositions()) {
@@ -155,6 +158,36 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
       projectile.color = this.getValeEffect().color;
     }
 
+    getMercerShotEffect(soldier, shotEffect) {
+      const unit = soldier?.unit;
+      if (
+        !unit
+        || unit.dead
+        || unit.captainId
+        || unit.type !== ROCKETEER_CLASS
+        || !this.isAdjacentCaptainUnit(soldier, MERCER_ID, ROCKETEER_CLASS)
+      ) {
+        if (unit?.id !== undefined) this.mercerClassAttackCounts.delete(unit.id);
+        return shotEffect;
+      }
+
+      const effect = this.getMercerEffect();
+      const interval = Math.max(1, Number(effect?.everyShots) || 3);
+      const count = (this.mercerClassAttackCounts.get(unit.id) ?? 0) + 1;
+      this.mercerClassAttackCounts.set(unit.id, count);
+      if (count % interval !== 0) return shotEffect;
+
+      return {
+        ...(shotEffect ?? {}),
+        special: 'mercer-class-third',
+        rangeMultiplier: (shotEffect?.rangeMultiplier ?? 1)
+          * (Number(effect?.rangeMultiplier) || 1.75),
+        aoeMultiplier: (shotEffect?.aoeMultiplier ?? 1)
+          * (Number(effect?.aoeMultiplier) || 3),
+        color: effect?.color ?? shotEffect?.color,
+      };
+    }
+
     fireWeapon(soldier, unitClass, target, shotEffect = null) {
       const projectiles = this.game.entities.projectiles;
       const beforeCount = projectiles.length;
@@ -163,7 +196,8 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
         && !soldier.unit.captainId
       ) ? this.updateValeFocusFromShot(soldier, target) : null;
 
-      super.fireWeapon(soldier, unitClass, target, shotEffect);
+      const effectiveShotEffect = this.getMercerShotEffect(soldier, shotEffect);
+      super.fireWeapon(soldier, unitClass, target, effectiveShotEffect);
 
       const projectile = projectiles.length > beforeCount
         ? projectiles[projectiles.length - 1]
@@ -285,6 +319,15 @@ function createCaptainReworksCombatSystem(ParentCombatSystem) {
       );
       for (const unitId of this.valeFocus.keys()) {
         if (!livingRifleClass.has(unitId)) this.valeFocus.delete(unitId);
+      }
+
+      const livingRocketeers = new Set(
+        this.game.player.squad
+          .filter((unit) => !unit.dead && unit.type === ROCKETEER_CLASS && !unit.captainId)
+          .map((unit) => unit.id),
+      );
+      for (const unitId of this.mercerClassAttackCounts.keys()) {
+        if (!livingRocketeers.has(unitId)) this.mercerClassAttackCounts.delete(unitId);
       }
     }
   };
