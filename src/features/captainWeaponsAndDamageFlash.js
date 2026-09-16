@@ -12,10 +12,10 @@ const SHOOT_ANIMATION_DURATION = 0.36;
 UNIT_CLASSES.rifleman.weapon.cooldown = CAPTAIN_WEAPON_TUNING.riflemanBaseCooldown;
 
 Object.assign(CAPTAINS[VALE_ID], {
-  passiveText: 'Vale and adjacent Riflemen build Focus while sustaining fire on one target. Max Focus grants +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target on every attack.',
+  passiveText: 'Vale plus adjacent Riflemen and Snipers build Focus with every shot. Reaching full Focus activates the full bonus for 5 seconds: +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target on every attack.',
 });
 Object.assign(CAPTAINS[MERCER_ID], {
-  passiveText: 'Mercer and adjacent Rocketeers mark enemies with explosions. Every third rocket is a Heavy Warhead that detonates marks into chain reactions. Mercer rockets also scatter light burst rounds after exploding.',
+  passiveText: 'Every third attack from an adjacent Rocketeer-class unit gains 3× area size. Rocketeer rockets also gain +75% range on that third attack; Drone Pilot stun attacks gain area only. Mercer rockets still scatter light burst rounds after exploding.',
 });
 
 function isPrimaryCaptainUnit(unit, captainId) {
@@ -153,15 +153,16 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
         && soldier.unit.type === ROCKETEER_TYPE
       ) {
         this.mercerCaptainShotCount += 1;
-        const everyShots = Math.max(1, this.getMercerEffect()?.everyShots ?? 3);
+        const effect = this.getMercerEffect();
+        const everyShots = Math.max(1, effect?.everyShots ?? 3);
         const heavy = this.mercerCaptainShotCount % everyShots === 0;
         const effectiveEffect = heavy
           ? {
               ...(shotEffect ?? {}),
               special: 'mercer-rocket',
-              rangeMultiplier: 1,
-              aoeMultiplier: 1,
-              color: this.getMercerEffect()?.color,
+              rangeMultiplier: effect?.rangeMultiplier ?? 1,
+              aoeMultiplier: effect?.aoeMultiplier ?? 1,
+              color: effect?.color,
             }
           : shotEffect;
 
@@ -186,7 +187,7 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
       for (const soldier of group.soldiers) {
         this.fireWeapon(
           soldier,
-          UNIT_CLASSES.rifleman,
+          UNIT_CLASSES[soldier.unit.type] ?? UNIT_CLASSES.rifleman,
           group.target,
           {
             special: 'vale-coordinated-volley',
@@ -244,8 +245,6 @@ function createCaptainWeaponCombatSystem(ParentCombatSystem) {
           hitIds: new Set(),
           dead: false,
           mercerBurstRound: true,
-          mercerChainEligible: false,
-          mercerHeavyWarhead: false,
         });
       }
     }
