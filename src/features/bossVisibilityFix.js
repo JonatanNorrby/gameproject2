@@ -1,4 +1,21 @@
-import { Game as PreviousGame, UI } from './captainSlotCompatibility.js';
+import { Game as PreviousGame, UI as PreviousUI } from './captainSlotCompatibility.js';
+
+function syncOpModeButton(button, enabled) {
+  if (!button) return;
+  button.disabled = false;
+  button.setAttribute('aria-pressed', String(enabled));
+  button.dataset.opModeActive = String(enabled);
+
+  const title = button.querySelector('strong');
+  if (title) title.textContent = enabled ? 'Disable OP Mode' : 'Enable OP Mode';
+
+  const detail = button.querySelector('small');
+  if (detail) {
+    detail.textContent = enabled
+      ? '+5000% attack rate active'
+      : '+5000% attack rate';
+  }
+}
 
 // #70: the monster hit-flash layer owns drawEnemies() so it can recolor normal
 // mob sprites. That override intentionally does not call super.drawEnemies(),
@@ -6,6 +23,16 @@ import { Game as PreviousGame, UI } from './captainSlotCompatibility.js';
 // Broodmother eggs used to be appended by older drawEnemies() layers, though,
 // so restore only those inherited encounter renderers here at the final layer.
 export class Game extends PreviousGame {
+  // #51: OP mode used to be one-way. Keep the original debug flag as the single
+  // source of truth, but expose an explicit setter so the debug UI can turn the
+  // attack-speed multiplier both on and off during the same session.
+  debugSetOpMode(enabled) {
+    if (!this.debug) this.debug = {};
+    this.debug.opMode = Boolean(enabled);
+    this.combatSystem?.fireCooldowns?.clear?.();
+    return this.debug.opMode;
+  }
+
   drawEnemies(ctx) {
     super.drawEnemies(ctx);
     this.drawBossEncounterEntities(ctx);
@@ -55,4 +82,32 @@ export class Game extends PreviousGame {
   }
 }
 
-export { UI };
+export class UI extends PreviousUI {
+  installInGameDebugControls() {
+    super.installInGameDebugControls();
+
+    const opButton = this.debugPanel?.querySelector('#debug-make-op');
+    if (!opButton || opButton.dataset.opToggleBound === 'true') return;
+    opButton.dataset.opToggleBound = 'true';
+
+    // runtimeSafety installed the original one-way click listener first. A
+    // capture listener runs before it and stops that legacy handler, letting the
+    // same button act as a reversible toggle without duplicating debug controls.
+    opButton.addEventListener('click', (event) => {
+      event.stopImmediatePropagation();
+      if (!this.debugUnlocked) return;
+
+      const nextEnabled = !Boolean(this.game?.debug?.opMode);
+      this.game?.debugSetOpMode?.(nextEnabled);
+      syncOpModeButton(opButton, Boolean(this.game?.debug?.opMode));
+    }, { capture: true });
+
+    syncOpModeButton(opButton, Boolean(this.game?.debug?.opMode));
+  }
+
+  update(game) {
+    super.update(game);
+    const opButton = this.debugPanel?.querySelector('#debug-make-op');
+    syncOpModeButton(opButton, Boolean(game?.debug?.opMode));
+  }
+}
