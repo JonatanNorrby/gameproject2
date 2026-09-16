@@ -145,6 +145,9 @@ jobs:
           const { getUnitClassFamily } = await import('./src/data/unitFamilies.js');
           const { getUpgradeIconSpec } = await import('./src/data/upgradeIcons.js');
           const { THORNE_CAPTAIN } = await import('./src/data/captainThorne.js');
+          const {
+            getMercerRocketeerTargetRangeMultiplier,
+          } = await import('./src/features/squadBuilderVisuals.js');
 
           const assert = (condition, message) => {
             if (!condition) throw new Error(message);
@@ -208,7 +211,45 @@ jobs:
           assert(THORNE_CAPTAIN.effect.everyAttacks === 3, 'Thorne interval must be 3');
           assert(THORNE_CAPTAIN.effect.stormlancerChainMultiplier === 2, 'Stormlancer Thorne chain multiplier must be 2');
 
-          console.log('Unit class family contract validated.');
+          const rocketeer = {
+            unit: { id: 701, type: 'rocketeer', dead: false, captainId: null },
+          };
+          const dronePilot = {
+            unit: { id: 702, type: 'drone_pilot', dead: false, captainId: null },
+          };
+          const mockCombat = {
+            mercerClassAttackCounts: new Map(),
+            isAdjacentCaptainUnit() { return true; },
+          };
+          assert(
+            getMercerRocketeerTargetRangeMultiplier(mockCombat, rocketeer) === 1,
+            'Mercer Rocketeer attack 1 must use normal acquisition range',
+          );
+          mockCombat.mercerClassAttackCounts.set(rocketeer.unit.id, 1);
+          assert(
+            getMercerRocketeerTargetRangeMultiplier(mockCombat, rocketeer) === 1,
+            'Mercer Rocketeer attack 2 must use normal acquisition range',
+          );
+          mockCombat.mercerClassAttackCounts.set(rocketeer.unit.id, 2);
+          assert(
+            getMercerRocketeerTargetRangeMultiplier(mockCombat, rocketeer) === 1.75,
+            'Mercer Rocketeer attack 3 must use 1.75x acquisition range',
+          );
+          mockCombat.mercerClassAttackCounts.set(dronePilot.unit.id, 2);
+          assert(
+            getMercerRocketeerTargetRangeMultiplier(mockCombat, dronePilot) === 1,
+            'Drone Pilot must not receive the Rocketeer-only targeting range bonus',
+          );
+          const nonAdjacentCombat = {
+            mercerClassAttackCounts: new Map([[rocketeer.unit.id, 2]]),
+            isAdjacentCaptainUnit() { return false; },
+          };
+          assert(
+            getMercerRocketeerTargetRangeMultiplier(nonAdjacentCombat, rocketeer) === 1,
+            'Non-adjacent Rocketeers must not receive Mercer targeting range',
+          );
+
+          console.log('Unit class family and Mercer targeting contracts validated.');
           NODE
 
       - name: Configure Pages
