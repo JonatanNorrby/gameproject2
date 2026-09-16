@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="./styles/meta-upgrades.css" />
   <link rel="stylesheet" href="./styles/bosses.css" />
   <link rel="stylesheet" href="./styles/main-menu.css" />
+  <link rel="stylesheet" href="./styles/responsive.css" />
 </head>
 <body class="is-booting">
   <div id="boot-screen" class="boot-screen" role="status" aria-live="polite" aria-label="Loading Nightfall Protocol">
@@ -21,7 +22,7 @@
       <h1>Nightfall Protocol</h1>
       <span id="boot-status" class="boot-screen__status">Initializing combat systems</span>
       <div class="boot-screen__track" aria-hidden="true"><div class="boot-screen__bar"></div></div>
-      <span id="boot-version" class="boot-screen__version">BUILD v76</span>
+      <span id="boot-version" class="boot-screen__version">BUILD v77</span>
     </div>
   </div>
 
@@ -50,7 +51,7 @@
 
       <div class="hud__bottom">
         <div class="hud-card hud-card--wide">
-          <div class="hud-label-row"><span id="level-text">Level 1</span><span id="version-text">v76</span><span id="xp-text">0 / 20 XP</span></div>
+          <div class="hud-label-row"><span id="level-text">Level 1</span><span id="version-text">v77</span><span id="xp-text">0 / 20 XP</span></div>
           <div class="bar"><div id="xp-bar" class="bar__fill bar__fill--xp"></div></div>
         </div>
       </div>
@@ -101,22 +102,21 @@
             <p class="eyebrow">ROGUELITE SQUAD SURVIVAL</p>
             <h1>Nightfall Protocol</h1>
           </div>
-          <div class="main-menu__build">SYSTEM ONLINE • v76</div>
+          <div class="main-menu__build">SYSTEM ONLINE • v77</div>
         </header>
 
         <div class="main-menu__body">
           <nav class="main-menu__nav" aria-label="Main menu">
             <span class="main-menu__section-label">Command</span>
-            <button id="captain-menu-open" class="captain-menu-button main-menu__action" type="button">Select Captain</button>
             <button id="meta-upgrade-open" class="captain-menu-button main-menu__action" type="button">Upgrades</button>
             <button id="reset-progress-button" class="captain-menu-button main-menu__action" type="button">Reset Progress</button>
           </nav>
 
-          <section class="main-menu__captain-stage" aria-label="Selected Captain">
+          <section class="main-menu__captain-stage" aria-label="Selected Captain. Click the Captain to change selection.">
             <span class="main-menu__captain-kicker">Selected Captain</span>
             <div id="selected-captain-summary" class="selected-captain-summary" aria-live="polite"></div>
-            <div class="main-menu__captain-controls" style="position:relative;z-index:3;width:min(420px,88%);display:grid;gap:8px;justify-self:center;align-self:end;margin-top:-12px;padding-bottom:10px;">
-              <button id="start-button" class="primary-button main-menu__action" style="width:100%;justify-content:center;text-align:center;">Begin Run</button>
+            <div class="main-menu__captain-controls">
+              <button id="start-button" class="primary-button main-menu__action">Begin Run</button>
             </div>
           </section>
 
