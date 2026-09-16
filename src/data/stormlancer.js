@@ -44,14 +44,12 @@ function addUpgrade(upgrade) {
   UPGRADES.push(upgrade);
 }
 
-function getModifier(game) {
-  return game.unitModifiers?.[STORMLANCER_TYPE] ?? null;
-}
-
+// Recruitment stays Stormlancer-specific. Damage/rate/range/area progression is
+// provided by the shared Shockblade-class stat upgrades in content.js.
 addUpgrade({
   id: 'stormlancer-reinforcements',
   name: 'Stormlancer Reinforcement',
-  tag: 'Stormlancer',
+  tag: 'Shockblade Class',
   kind: 'reinforcement',
   stat: 'unitCount',
   maxRank: 5,
@@ -65,65 +63,3 @@ addUpgrade({
     game.addSquadUnits(STORMLANCER_TYPE, rarity.id === 'epic' ? 2 : 1);
   },
 });
-
-const STAT_UPGRADES = [
-  {
-    id: 'stormlancer-damage',
-    name: 'Charged Spearhead',
-    stat: 'damage',
-    label: 'lightning damage',
-    maxRank: 8,
-  },
-  {
-    id: 'stormlancer-fire-rate',
-    name: 'Arc Capacitors',
-    stat: 'fireRate',
-    label: 'attack rate',
-    maxRank: 8,
-  },
-  {
-    id: 'stormlancer-range',
-    name: 'Spear Guidance',
-    stat: 'range',
-    label: 'trigger and lunge range',
-    maxRank: 5,
-  },
-  {
-    id: 'stormlancer-chain-range',
-    name: 'Conductive Arc',
-    stat: 'blastRadius',
-    label: 'chain-lightning bounce range',
-    maxRank: 5,
-  },
-];
-
-for (const definition of STAT_UPGRADES) {
-  addUpgrade({
-    ...definition,
-    tag: 'Stormlancer',
-    kind: 'stat',
-    unitType: STORMLANCER_TYPE,
-    describe(rarity) {
-      const amount = rarity.id === 'epic'
-        ? 20
-        : rarity.id === 'rare'
-          ? 15
-          : rarity.id === 'uncommon'
-            ? 10
-            : 5;
-      return `+${amount}% Stormlancer ${definition.label}.`;
-    },
-    apply(game, rarity) {
-      const modifier = getModifier(game);
-      if (!modifier || !(definition.stat in modifier)) return;
-      const amount = rarity.id === 'epic'
-        ? 20
-        : rarity.id === 'rare'
-          ? 15
-          : rarity.id === 'uncommon'
-            ? 10
-            : 5;
-      modifier[definition.stat] *= 1 + amount / 100;
-    },
-  });
-}
