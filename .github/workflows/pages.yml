@@ -105,14 +105,14 @@ jobs:
           };
 
           // main.js imports this final layer. Validate the complete active chain.
-          const runtime = await import('./src/features/thirdCaptain.js');
+          const runtime = await import('./src/features/beefedUp.js');
           if (typeof runtime.Game !== 'function' || typeof runtime.UI !== 'function') {
-            throw new Error('Final Third Captain runtime layer did not export Game/UI');
+            throw new Error('Final Beefed Up runtime layer did not export Game/UI');
           }
           console.log('Complete active runtime module graph imports successfully.');
           NODE
 
-      - name: Validate unit class families
+      - name: Validate unit class families and permanent upgrades
         shell: bash
         run: |
           node --experimental-default-type=module --input-type=module <<'NODE'
@@ -147,13 +147,14 @@ jobs:
             innerHeight: 720,
           };
 
-          const finalRuntime = await import('./src/features/thirdCaptain.js');
+          const finalRuntime = await import('./src/features/beefedUp.js');
           const { CAPTAINS, UNIT_CLASSES, UPGRADES } = await import('./src/data/content.js');
           const { createUnitModifierState } = await import('./src/data/unitModifiers.js');
           const { getUnitClassFamily } = await import('./src/data/unitFamilies.js');
           const { getUpgradeIconSpec } = await import('./src/data/upgradeIcons.js');
           const { THORNE_CAPTAIN } = await import('./src/data/captainThorne.js');
           const {
+            BEEFED_UP_HP_BONUS,
             PERMANENT_UPGRADES,
             canPurchasePermanentUpgrade,
             grantGold,
@@ -236,7 +237,21 @@ jobs:
           assert(typeof finalRuntime.Game.prototype.getCaptainSoldierBySlot === 'function', 'Third Captain Game slot lookup missing');
           assert(typeof finalRuntime.UI.prototype.getSelectedThirdCaptainId === 'function', 'Third Captain UI selector API missing');
 
-          console.log('Unit class and Third Captain contracts validated.');
+          const beefedUp = PERMANENT_UPGRADES.beefed_up;
+          assert(beefedUp, 'Missing Beefed Up permanent upgrade');
+          assert(beefedUp.cost === 50, 'Beefed Up should cost 50 Gold');
+          assert(BEEFED_UP_HP_BONUS === 50, 'Beefed Up HP bonus must be +50');
+          resetPermanentProgression();
+          grantGold(50);
+          assert(canPurchasePermanentUpgrade('beefed_up'), 'Beefed Up was not purchasable with 50 Gold');
+          assert(purchasePermanentUpgrade('beefed_up'), 'Could not purchase Beefed Up');
+          const testUnit = { hp: 100, maxHp: 100 };
+          assert(finalRuntime.applyBeefedUpHealthBonus(testUnit), 'Beefed Up helper did not apply');
+          assert(testUnit.maxHp === 150 && testUnit.hp === 150, 'Beefed Up did not add exactly +50 HP');
+          assert(!finalRuntime.applyBeefedUpHealthBonus(testUnit), 'Beefed Up applied twice to the same unit');
+          assert(testUnit.maxHp === 150 && testUnit.hp === 150, 'Beefed Up stacked twice on one unit');
+
+          console.log('Unit class, Third Captain and Beefed Up contracts validated.');
           NODE
 
       - name: Configure Pages
