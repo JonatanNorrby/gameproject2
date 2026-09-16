@@ -15,7 +15,6 @@ export const CLASS_ICON_FILES = Object.freeze({
   rocketeer: 'rocketeer.png',
   shockblade: 'shockblade.png',
   drone_pilot: 'drone_pilot.png',
-  anti_air: 'anti_air.png',
 });
 
 export const UPGRADE_ICON_METADATA = Object.freeze({
@@ -40,10 +39,6 @@ export const UPGRADE_ICON_METADATA = Object.freeze({
   'drone_pilot-fire-rate': { generic: 'fireRate', class: 'drone_pilot' },
   'drone_pilot-range': { generic: 'range', class: 'drone_pilot' },
   'drone_pilot-blast-radius': { generic: 'blastRadius', class: 'drone_pilot' },
-  'anti_air-reinforcements': { generic: 'reinforcement', class: 'anti_air' },
-  'anti_air-fire-rate': { generic: 'fireRate', class: 'anti_air' },
-  'anti_air-range': { generic: 'range', class: 'anti_air' },
-  'anti_air-projectile-speed': { generic: 'projectileSpeed', class: 'anti_air' },
 });
 
 const GENERIC_FALLBACKS = Object.freeze({
@@ -61,7 +56,6 @@ const CLASS_FALLBACKS = Object.freeze({
   rocketeer: 'RKT',
   shockblade: 'SHK',
   drone_pilot: 'DRN',
-  anti_air: 'AA',
 });
 
 function inferredGenericKey(upgrade) {
