@@ -1,5 +1,6 @@
 import { Game as PreviousGame, UI as PreviousUI } from './squadBuilderVisuals.js';
 import { CAPTAINS, GAME_BALANCE, UNIT_CLASSES } from '../data/content.js';
+import { isUnitInClassFamily } from '../data/unitFamilies.js';
 
 const VALE_ID = 'vale';
 const RIFLEMAN_TYPE = 'rifleman';
@@ -31,7 +32,7 @@ if (CAPTAINS[VALE_ID]?.effect) {
 }
 
 if (CAPTAINS[VALE_ID]) {
-  CAPTAINS[VALE_ID].passiveText = 'Vale and adjacent Riflemen build Focus with every shot, even while moving or changing targets. Reaching full Focus activates the full bonus for 5 seconds: +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target on every attack.';
+  CAPTAINS[VALE_ID].passiveText = 'Vale plus adjacent Riflemen and Snipers build Focus with every shot, even while moving or changing targets. Reaching full Focus activates the full bonus for 5 seconds: +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target on every attack.';
 }
 
 function loadSquadBuilderVisualFixes() {
@@ -293,7 +294,10 @@ export class Game extends PreviousGame {
     const clock = this.animationClock ?? this.elapsed;
 
     for (const soldier of this.getSoldierPositions()) {
-      if (soldier.unit.dead || soldier.unit.type !== RIFLEMAN_TYPE) continue;
+      if (
+        soldier.unit.dead
+        || !isUnitInClassFamily(soldier.unit.type, RIFLEMAN_TYPE)
+      ) continue;
       if (!this.combatSystem.isValeFocusBuffActive?.(soldier.unit.id)) continue;
 
       const pulse = (Math.sin(clock * 11 + soldier.unit.id * 0.73) + 1) * 0.5;
