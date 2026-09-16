@@ -5,6 +5,8 @@ const REINFORCEMENT_CHOICE_WEIGHT = 0.3;
 const STAT_CHOICE_WEIGHT = 1;
 const XP_DROP_VALUE_MULTIPLIER = 1.33;
 const ACTIVE_RARITY_IDS = new Set(['uncommon', 'rare', 'epic']);
+export const STARTING_REROLLS = 3;
+export const REROLL_LEVEL_INTERVAL = 10;
 
 // Levels 1-50 use a linear requirement so progression remains sustainable into
 // endless mode after the level-50 final boss. Enemy XP drops are globally worth
@@ -29,10 +31,14 @@ export class ProgressionSystem {
     this.game = game;
     this.ui = ui;
     this.ranks = new Map();
+    this.rerolls = STARTING_REROLLS;
+    this.activeLevelUp = null;
   }
 
   reset() {
     this.ranks.clear();
+    this.rerolls = STARTING_REROLLS;
+    this.activeLevelUp = null;
     this.game.unitModifiers = createUnitModifierState();
     this.game.player.level = 1;
     this.game.player.xp = 0;
@@ -51,6 +57,14 @@ export class ProgressionSystem {
     this.levelUp({ consumeXp: false });
   }
 
+  grantRerollsForLevels(previousLevel, newLevel) {
+    const previousMilestones = Math.floor(Math.max(0, previousLevel) / REROLL_LEVEL_INTERVAL);
+    const newMilestones = Math.floor(Math.max(0, newLevel) / REROLL_LEVEL_INTERVAL);
+    const gained = Math.max(0, newMilestones - previousMilestones);
+    this.rerolls += gained;
+    return gained;
+  }
+
   debugSetLevel(targetLevel) {
     const player = this.game.player;
     const parsed = Math.floor(Number(targetLevel));
@@ -59,12 +73,14 @@ export class ProgressionSystem {
     const target = Math.max(player.level, Math.max(1, parsed));
     if (target === player.level) return player.level;
 
+    this.grantRerollsForLevels(player.level, target);
     player.level = target;
     player.xp = 0;
     player.xpToNext = getXpToNextForLevel(player.level);
 
     // This debug jump is for reaching test content quickly. It deliberately
     // does not generate one upgrade-choice screen for every skipped level.
+    this.activeLevelUp = null;
     this.ui.hideLevelUp?.();
     this.game.resume('levelup');
     return player.level;
@@ -78,26 +94,48 @@ export class ProgressionSystem {
         Math.round((player.xp - player.xpToNext) * 100) / 100,
       );
     }
+
+    const previousLevel = player.level;
     player.level += 1;
+    this.grantRerollsForLevels(previousLevel, player.level);
     player.xpToNext = getXpToNextForLevel(player.level);
 
     const choices = this.getChoices(3);
     if (choices.length === 0) return;
 
     const finishLevelUp = () => {
+      this.activeLevelUp = null;
       this.ui.hideLevelUp();
       this.game.resume('levelup');
       if (player.xp >= player.xpToNext) this.levelUp();
     };
 
-    this.game.pause('levelup');
-    this.ui.showLevelUp(choices, (choice) => {
+    const chooseUpgrade = (choice) => {
       const { upgrade, rarity } = choice;
       const rank = (this.ranks.get(upgrade.id) || 0) + 1;
       this.ranks.set(upgrade.id, rank);
       upgrade.apply(this.game, rarity);
       finishLevelUp();
-    }, this.ranks, finishLevelUp);
+    };
+
+    const renderChoices = (nextChoices) => {
+      this.ui.showLevelUp(nextChoices, chooseUpgrade, this.ranks, finishLevelUp);
+    };
+
+    this.activeLevelUp = { renderChoices };
+    this.game.pause('levelup');
+    renderChoices(choices);
+  }
+
+  rerollCurrentChoices() {
+    if (!this.activeLevelUp || this.rerolls <= 0) return false;
+
+    const choices = this.getChoices(3);
+    if (choices.length === 0) return false;
+
+    this.rerolls -= 1;
+    this.activeLevelUp.renderChoices(choices);
+    return true;
   }
 
   getChoiceWeight(upgrade) {
