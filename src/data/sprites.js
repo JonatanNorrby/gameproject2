@@ -72,6 +72,7 @@ export const FRAME_SPRITES = {
     runner: createStandardFrameSet('runner', { drawSize: 30 }),
     // #40: make the slow tank visually imposing without changing its gameplay hitbox.
     brute: createStandardFrameSet('brute', { drawSize: 96, runningFps: 4 }),
+    charger: createStandardFrameSet('charger', { drawSize: 72 }),
     spitter: createStandardFrameSet('spitter', { drawSize: 38, shootingLoop: false }),
     burst_spitter: createStandardFrameSet('burst_spitter', { drawSize: 36, shootingLoop: false }),
   },
