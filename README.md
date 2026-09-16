@@ -11,7 +11,6 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Rocketeer: slower explosive rockets with AoE damage
 - Shockblade: jump-pack melee unit that lunges at nearby enemies and cuts a forward half-moon arc while invulnerable
 - Drone Pilot: low-HP support unit that operates a separate battlefield drone; the drone seeks distant enemy groups and drops stun grenades
-- Anti Air: two-hex support unit that only intercepts incoming enemy projectiles with accelerating homing interceptors
 - Captain Vale: Coordinated Fire commander; Vale and adjacent Riflemen build Focus on sustained same-target fire, and Vale fires three-round bursts
 - Captain Mercer: Chain Reaction commander; Mercer and adjacent Rocketeers mark enemies for heavy-warhead cascades, while Mercer's own rockets scatter light burst rounds
 - Captain Thorne: heavily armored Shockblade-class melee Captain with a slow 360-degree greatsword sweep, lifesteal, and every-fifth-attack 360-degree Shockblade support
@@ -45,15 +44,13 @@ Core unit classes are defined in `src/data/content.js`. Specialized support-clas
 - `src/data/sprites.js` for animation-folder registration.
 - `src/data/upgradeIcons.js` for the class badge and upgrade-card mappings.
 - `src/data/unitModifiers.js` / Squad Builder stat presentation when the class uses non-standard combat stats.
-- `src/data/projectiles.js` when the class creates a projectile entity.
 - `assets/ANIMATION_FRAMEWORK.md`.
 - `assets/icons/README.md` and `assets/icons/unit_class/README.md`.
-- `assets/projectiles/README.md` plus its relevant subfolder README when the class fires a projectile, or document explicitly that it does not.
 - A purposeful README inside the class's own `assets/<class>/` folder so Git tracks the asset contract before PNGs exist.
 
-The current classes are `rifleman`, `rocketeer`, `shockblade`, `drone_pilot`, and `anti_air`.
+The current classes are `rifleman`, `rocketeer`, `shockblade`, `stormlancer`, and `drone_pilot`.
 
-Drone Pilot owns one battlefield drone per living pilot. Drones are not squad units, do not occupy formation hexes, have independent HP, and can be targeted by ranged enemies. Anti Air occupies two horizontal formation hexes but counts as one squad unit; its artwork is centered between those spaces and both spaces count as its damage hitbox.
+Drone Pilot owns one battlefield drone per living pilot. Drones are not squad units, do not occupy formation hexes, have independent HP, and can be targeted by ranged enemies.
 
 Captains normally build on a unit class. Captain-specific combat behavior lives in feature layers while still reusing that class's stat-upgrade modifiers.
 
