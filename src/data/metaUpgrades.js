@@ -3,6 +3,8 @@ const LEGACY_STORAGE_KEY = 'nightfall-protocol.meta-upgrades.v1';
 const STATE_VERSION = 1;
 const LEGACY_POINT_GOLD_VALUE = 10;
 
+export const BEEFED_UP_HP_BONUS = 50;
+
 export const PERMANENT_UPGRADES = Object.freeze({
   squad_doctrine: Object.freeze({
     id: 'squad_doctrine',
@@ -25,6 +27,13 @@ export const PERMANENT_UPGRADES = Object.freeze({
     color: '#c17cff',
     requires: Object.freeze(['second_captain_slot']),
     description: 'Deploy a third Captain so Vale, Mercer and Thorne can fight together. Requires Second Captain Slot.',
+  }),
+  beefed_up: Object.freeze({
+    id: 'beefed_up',
+    name: 'Beefed Up',
+    cost: 50,
+    color: '#ff8f70',
+    description: `All player squad units gain +${BEEFED_UP_HP_BONUS} maximum HP.`,
   }),
   captains_call: Object.freeze({
     id: 'captains_call',
