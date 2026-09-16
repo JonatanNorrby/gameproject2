@@ -23,6 +23,15 @@ function clampArmor(value) {
   return Math.max(0, Math.min(0.9, Number(value) || 0));
 }
 
+function isPrimaryThorne(unit) {
+  return Boolean(
+    unit
+    && !unit.dead
+    && unit.captainId === THORNE_ID
+    && !unit.secondaryCaptain
+  );
+}
+
 function createThorneCombatSystem(ParentCombatSystem) {
   return class ThorneCombatSystem extends ParentCombatSystem {
     constructor(game) {
@@ -36,13 +45,14 @@ function createThorneCombatSystem(ParentCombatSystem) {
     }
 
     isThorneActive() {
+      // Both primary and secondary Thorne provide the squad passive.
       return this.game.player.squad.some((unit) => (
         !unit.dead && unit.captainId === THORNE_ID
       ));
     }
 
     getUnitArmor(unit) {
-      const captainArmor = unit?.captainId
+      const captainArmor = isPrimaryThorne(unit)
         ? CAPTAINS[unit.captainId]?.armor
         : null;
       return clampArmor(unit?.armor ?? captainArmor ?? this.game.player.armor);
@@ -50,13 +60,13 @@ function createThorneCombatSystem(ParentCombatSystem) {
 
     getMeleeWeapon(unit) {
       const baseWeapon = UNIT_CLASSES[unit?.type]?.weapon ?? UNIT_CLASSES.shockblade.weapon;
-      if (unit?.captainId !== THORNE_ID) return baseWeapon;
+      if (!isPrimaryThorne(unit)) return baseWeapon;
       return { ...baseWeapon, ...THORNE_CAPTAIN.weapon };
     }
 
     startShockbladeAttack(soldier, unitClass, target) {
       super.startShockbladeAttack(soldier, unitClass, target);
-      if (soldier.unit.captainId !== THORNE_ID) return;
+      if (!isPrimaryThorne(soldier.unit)) return;
 
       const attack = this.meleeAttacks?.get(soldier.unit.id);
       if (attack) attack.lungeDistance = 0;
@@ -64,7 +74,7 @@ function createThorneCombatSystem(ParentCombatSystem) {
 
     performShockbladeSlash(unit, attack) {
       const fullCircle = (
-        unit?.captainId === THORNE_ID
+        isPrimaryThorne(unit)
         || (unit?.type === SHOCKBLADE_TYPE && this.isThorneActive())
       );
       if (!fullCircle) {
@@ -100,7 +110,7 @@ function createThorneCombatSystem(ParentCombatSystem) {
         if (enemy.hp <= 0) this.killEnemy(enemy);
       }
 
-      if (unit.captainId === THORNE_ID && weapon.lifesteal > 0 && totalDamageDealt > 0) {
+      if (isPrimaryThorne(unit) && weapon.lifesteal > 0 && totalDamageDealt > 0) {
         unit.hp = Math.min(unit.maxHp, unit.hp + totalDamageDealt * weapon.lifesteal);
         this.game.syncCaptainHealth();
       }
@@ -122,9 +132,7 @@ function createThorneCombatSystem(ParentCombatSystem) {
     updateSquadWeapons(dt) {
       const game = this.game;
       const soldiers = game.getWeaponPositions();
-      const thorneSoldier = soldiers.find((soldier) => (
-        !soldier.unit.dead && soldier.unit.captainId === THORNE_ID
-      ));
+      const thorneSoldier = soldiers.find((soldier) => isPrimaryThorne(soldier.unit));
 
       if (thorneSoldier) {
         this.fireCooldowns.set(thorneSoldier.unit.id, Number.POSITIVE_INFINITY);
