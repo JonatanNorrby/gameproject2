@@ -75,6 +75,7 @@ jobs:
           assert(typeof runtime.Game.prototype.beginCipherSquadRetreat === 'function', 'Cipher retreat compatibility missing');
           assert(typeof runtime.Game.prototype.getCipherHazardTargets === 'function', 'Cipher hazard compatibility missing');
           assert(typeof runtime.Game.prototype.drawBossEncounterEntities === 'function', 'Boss visibility compatibility renderer missing');
+          assert(typeof runtime.Game.prototype.drawSupremeCommanderGlow === 'function', 'Supreme Commander glow renderer missing');
 
           const primary = { captainId: 'vale', primaryCaptain: true, secondaryCaptain: false, tertiaryCaptain: false, dead: false };
           const secondary = { captainId: 'mercer', secondaryCaptain: true, tertiaryCaptain: false, dead: false };
@@ -116,10 +117,34 @@ jobs:
             `Boss render chain is incomplete or out of order: ${renderCalls.join(',')}`,
           );
 
-          console.log('Final runtime, Captain-slot compatibility and boss rendering validated.');
+          const glowCalls = { gradients: 0, arcs: 0, fills: 0, strokes: 0 };
+          const glowContext = {
+            createRadialGradient() {
+              glowCalls.gradients += 1;
+              return { addColorStop() {} };
+            },
+            save() {},
+            restore() {},
+            beginPath() {},
+            arc() { glowCalls.arcs += 1; },
+            fill() { glowCalls.fills += 1; },
+            stroke() { glowCalls.strokes += 1; },
+            set fillStyle(_value) {},
+          };
+          const glowMock = {
+            getSupremeCommanderUnit() { return { id: 'supreme-commander' }; },
+            animationClock: 1,
+            player: { x: 100, y: 120 },
+          };
+          runtime.Game.prototype.drawSupremeCommanderGlow.call(glowMock, glowContext);
+          assert(glowCalls.gradients === 1, 'Supreme Commander soft glow gradient is missing');
+          assert(glowCalls.arcs === 1 && glowCalls.fills === 1, 'Supreme Commander glow was not filled exactly once');
+          assert(glowCalls.strokes === 0, 'Supreme Commander gameplay platform ring returned');
+
+          console.log('Final runtime, Captain-slot compatibility, boss rendering and Supreme Commander glow validated.');
           NODE
 
-      - name: Validate HUD Gold layout and version sync
+      - name: Validate HUD Gold layout, Supreme menu glow and version sync
         shell: bash
         run: |
           set -euo pipefail
@@ -131,6 +156,7 @@ jobs:
           index = pathlib.Path('index.html').read_text(encoding='utf-8')
           hud = pathlib.Path('styles/hud-layout.css').read_text(encoding='utf-8')
           progression = pathlib.Path('src/features/metaUpgradeTree.js').read_text(encoding='utf-8')
+          supreme_css = pathlib.Path('styles/issue-37-38.css').read_text(encoding='utf-8')
 
           match = re.search(r'const GAME_VERSION = (\d+);', main)
           assert match, 'GAME_VERSION missing from src/main.js'
@@ -148,5 +174,15 @@ jobs:
           assert 'repeat(4, minmax(0, 1fr))' in hud, 'Mobile HUD does not keep all four compact stats on one row'
           assert 'text-align: center' in hud and 'gap: 2px' in hud, 'Gold label/value spacing is not normalized'
 
-          print(f'HUD Gold layout and v{version} version synchronization validated.')
+          after_match = re.search(
+              r'selected-captain-card__portrait::after\s*\{([^}]*)\}',
+              supreme_css,
+              re.S,
+          )
+          assert after_match, 'Supreme Commander menu platform override missing'
+          after_rules = after_match.group(1)
+          assert 'content: none' in after_rules and 'display: none' in after_rules, 'Supreme Commander menu platform is not disabled'
+          assert 'radial-gradient' in supreme_css and 'supreme-menu-glow' in supreme_css, 'Supreme Commander menu glow was removed with the platform'
+
+          print(f'HUD layout, Supreme Commander glow-only visuals and v{version} synchronization validated.')
           PY
