@@ -1,6 +1,7 @@
 import { Game as PreviousGame, UI } from './cipherBoss.js';
 
 const MAX_REPORTED_ERRORS = 20;
+const DAMAGE_FEEDBACK_DURATION = 0.18;
 
 export class Game extends PreviousGame {
   constructor(...args) {
@@ -17,6 +18,12 @@ export class Game extends PreviousGame {
     this.runtimeErrors.push(entry);
     if (this.runtimeErrors.length > MAX_REPORTED_ERRORS) this.runtimeErrors.shift();
     console.error(`[Nightfall Protocol] ${stage} failed`, error);
+  }
+
+  triggerDamageFeedback() {
+    // Keep the screen flash/shake and per-unit hit flash, but remove the old
+    // red square particle burst. Those particles were cosmetic only.
+    this.damageFeedback = DAMAGE_FEEDBACK_DURATION;
   }
 
   loop(timestamp) {
