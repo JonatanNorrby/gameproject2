@@ -1,121 +1,92 @@
-const STORAGE_KEY = 'nightfall-protocol.meta-upgrades.v1';
+const STORAGE_KEY = 'nightfall-protocol.permanent-gold.v1';
+const LEGACY_STORAGE_KEY = 'nightfall-protocol.meta-upgrades.v1';
 const STATE_VERSION = 1;
+const LEGACY_POINT_GOLD_VALUE = 10;
 
-export const META_UPGRADE_BRANCHES = Object.freeze([
-  Object.freeze({
-    id: 'reserves',
-    label: 'Reserve Doctrine',
-    description: 'Change how new squad members enter a run.',
-    color: '#74c9ff',
-  }),
-  Object.freeze({
-    id: 'survival',
-    label: 'Survival Protocols',
-    description: 'Turn lethal moments into comeback windows.',
+export const PERMANENT_UPGRADES = Object.freeze({
+  squad_doctrine: Object.freeze({
+    id: 'squad_doctrine',
+    name: 'Squad Doctrine',
+    cost: 30,
     color: '#7ef9d4',
+    description: 'Before each run, choose one doctrine that changes how the squad fights.',
   }),
-  Object.freeze({
-    id: 'momentum',
-    label: 'Kill Momentum',
-    description: 'Reward aggressive kill streaks with battlefield swings.',
+  second_captain_slot: Object.freeze({
+    id: 'second_captain_slot',
+    name: 'Second Captain Slot',
+    cost: 50,
+    color: '#74c9ff',
+    description: 'Select a second Captain before the run. They fight as a normal unit but still provide their Captain bonus.',
+  }),
+  captains_call: Object.freeze({
+    id: 'captains_call',
+    name: "Captains Call",
+    cost: 60,
     color: '#ffb35c',
+    description: 'Unlock a powerful long-cooldown active ability for every Captain.',
   }),
-]);
+});
 
-export const META_UPGRADES = Object.freeze({
-  reserve_drop: Object.freeze({
-    id: 'reserve_drop',
-    branch: 'reserves',
-    tier: 1,
-    cost: 1,
-    name: 'Reserve Drop',
-    description: 'The first reinforcement upgrade each run recruits one additional unit.',
-    requirements: Object.freeze([]),
+export const SQUAD_DOCTRINES = Object.freeze({
+  combined_arms: Object.freeze({
+    id: 'combined_arms',
+    name: 'Combined Arms',
+    color: '#7ef9d4',
+    description: 'Class diversity increases squad damage and attack speed. Each additional living class adds +7%, up to +35%.',
   }),
-  deep_reserves: Object.freeze({
-    id: 'deep_reserves',
-    branch: 'reserves',
-    tier: 2,
-    cost: 1,
-    name: 'Deep Reserves',
-    description: 'The first two reinforcement upgrades each run recruit one additional unit instead of only the first.',
-    requirements: Object.freeze(['reserve_drop']),
+  massed_infantry: Object.freeze({
+    id: 'massed_infantry',
+    name: 'Massed Infantry',
+    color: '#74c9ff',
+    description: 'Stacking the same class increases that class damage and attack speed by +6% per additional living unit, up to +40%.',
   }),
-  emergency_barrier: Object.freeze({
-    id: 'emergency_barrier',
-    branch: 'survival',
-    tier: 1,
-    cost: 1,
-    name: 'Emergency Barrier',
-    description: 'Once per run, the first non-Captain squad member that would die survives at 1 HP and gains brief invulnerability.',
-    requirements: Object.freeze([]),
-  }),
-  rally_pulse: Object.freeze({
-    id: 'rally_pulse',
-    branch: 'survival',
-    tier: 2,
-    cost: 1,
-    name: 'Rally Pulse',
-    description: 'When Emergency Barrier triggers, the squad immediately enters Fury for 4 seconds.',
-    requirements: Object.freeze(['emergency_barrier']),
-  }),
-  kill_reactor: Object.freeze({
-    id: 'kill_reactor',
-    branch: 'momentum',
-    tier: 1,
-    cost: 1,
-    name: 'Kill Reactor',
-    description: 'Every 25th kill triggers Fury for 3 seconds.',
-    requirements: Object.freeze([]),
-  }),
-  vacuum_surge: Object.freeze({
-    id: 'vacuum_surge',
-    branch: 'momentum',
-    tier: 2,
-    cost: 1,
-    name: 'Vacuum Surge',
-    description: 'Every Kill Reactor trigger also pulls in all XP currently on the battlefield.',
-    requirements: Object.freeze(['kill_reactor']),
+  shock_assault: Object.freeze({
+    id: 'shock_assault',
+    name: 'Shock Assault',
+    color: '#ff7aa8',
+    description: 'Melee and true close-range units gain +20% damage, +35% attack speed and +30% range.',
   }),
 });
 
 function createDefaultState() {
   return {
     version: STATE_VERSION,
-    totalPoints: 0,
-    activeIds: [],
+    gold: 0,
+    ownedIds: [],
+    selectedDoctrineId: null,
   };
-}
-
-function getSpentPoints(activeIds) {
-  return activeIds.reduce((sum, id) => sum + (META_UPGRADES[id]?.cost ?? 0), 0);
 }
 
 function normalizeState(candidate) {
-  const activeIds = new Set(
-    (candidate?.activeIds ?? []).filter((id) => Boolean(META_UPGRADES[id])),
-  );
-
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const id of [...activeIds]) {
-      const requirements = META_UPGRADES[id]?.requirements ?? [];
-      if (requirements.every((requirementId) => activeIds.has(requirementId))) continue;
-      activeIds.delete(id);
-      changed = true;
-    }
-  }
-
-  const normalizedIds = [...activeIds];
-  const requestedPoints = Math.max(0, Math.floor(Number(candidate?.totalPoints) || 0));
-  const totalPoints = Math.max(requestedPoints, getSpentPoints(normalizedIds));
+  const ownedIds = [...new Set(candidate?.ownedIds ?? [])]
+    .filter((id) => Boolean(PERMANENT_UPGRADES[id]));
+  const doctrineOwned = ownedIds.includes('squad_doctrine');
+  const requestedDoctrine = candidate?.selectedDoctrineId;
+  const selectedDoctrineId = doctrineOwned && SQUAD_DOCTRINES[requestedDoctrine]
+    ? requestedDoctrine
+    : doctrineOwned
+      ? 'combined_arms'
+      : null;
 
   return {
     version: STATE_VERSION,
-    totalPoints,
-    activeIds: normalizedIds,
+    gold: Math.max(0, Math.floor(Number(candidate?.gold) || 0)),
+    ownedIds,
+    selectedDoctrineId,
   };
+}
+
+function loadLegacyGold() {
+  if (typeof window === 'undefined' || !window.localStorage) return 0;
+  try {
+    const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (!raw) return 0;
+    const legacy = JSON.parse(raw);
+    return Math.max(0, Math.floor(Number(legacy?.totalPoints) || 0)) * LEGACY_POINT_GOLD_VALUE;
+  } catch (error) {
+    console.warn('Could not migrate legacy permanent-upgrade progress.', error);
+    return 0;
+  }
 }
 
 function loadState() {
@@ -123,103 +94,100 @@ function loadState() {
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createDefaultState();
-    return normalizeState(JSON.parse(raw));
+    if (raw) return normalizeState(JSON.parse(raw));
+
+    const migrated = createDefaultState();
+    migrated.gold = loadLegacyGold();
+    return normalizeState(migrated);
   } catch (error) {
-    console.warn('Could not load meta-upgrade progress.', error);
+    console.warn('Could not load permanent gold progression.', error);
     return createDefaultState();
   }
 }
 
-let metaUpgradeState = loadState();
+let progressionState = loadState();
 
 function persistState() {
   if (typeof window === 'undefined' || !window.localStorage) return;
-
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(metaUpgradeState));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progressionState));
   } catch (error) {
-    console.warn('Could not save meta-upgrade progress.', error);
+    console.warn('Could not save permanent gold progression.', error);
   }
 }
 
-export function resetMetaUpgradeProgress() {
-  metaUpgradeState = createDefaultState();
-  persistState();
-  return getMetaUpgradeState();
-}
-
-export function getMetaUpgradeState() {
-  const activeIds = [...metaUpgradeState.activeIds];
-  const spentPoints = getSpentPoints(activeIds);
+export function getPermanentProgressionState() {
   return {
-    version: metaUpgradeState.version,
-    totalPoints: metaUpgradeState.totalPoints,
-    spentPoints,
-    availablePoints: Math.max(0, metaUpgradeState.totalPoints - spentPoints),
-    activeIds,
+    version: progressionState.version,
+    gold: progressionState.gold,
+    ownedIds: [...progressionState.ownedIds],
+    selectedDoctrineId: progressionState.selectedDoctrineId,
   };
 }
 
-export function isMetaUpgradeActive(id) {
-  return metaUpgradeState.activeIds.includes(id);
+export function isPermanentUpgradeOwned(id) {
+  return progressionState.ownedIds.includes(id);
 }
 
-export function getMetaUpgradeDefinition(id) {
-  return META_UPGRADES[id] ?? null;
+export function getPermanentUpgradeDefinition(id) {
+  return PERMANENT_UPGRADES[id] ?? null;
 }
 
-export function canActivateMetaUpgrade(id) {
-  const definition = META_UPGRADES[id];
-  if (!definition || isMetaUpgradeActive(id)) return false;
-  if (!definition.requirements.every((requirementId) => isMetaUpgradeActive(requirementId))) return false;
-  return getMetaUpgradeState().availablePoints >= definition.cost;
+export function grantGold(amount = 1) {
+  const gold = Math.max(0, Math.floor(Number(amount) || 0));
+  if (gold <= 0) return getPermanentProgressionState();
+  progressionState = normalizeState({
+    ...progressionState,
+    gold: progressionState.gold + gold,
+  });
+  persistState();
+  return getPermanentProgressionState();
 }
 
-export function activateMetaUpgrade(id) {
-  if (!canActivateMetaUpgrade(id)) return false;
-  metaUpgradeState = normalizeState({
-    ...metaUpgradeState,
-    activeIds: [...metaUpgradeState.activeIds, id],
+export function canPurchasePermanentUpgrade(id) {
+  const definition = PERMANENT_UPGRADES[id];
+  return Boolean(
+    definition
+    && !isPermanentUpgradeOwned(id)
+    && progressionState.gold >= definition.cost
+  );
+}
+
+export function purchasePermanentUpgrade(id) {
+  if (!canPurchasePermanentUpgrade(id)) return false;
+  const definition = PERMANENT_UPGRADES[id];
+  progressionState = normalizeState({
+    ...progressionState,
+    gold: progressionState.gold - definition.cost,
+    ownedIds: [...progressionState.ownedIds, id],
+    selectedDoctrineId: id === 'squad_doctrine'
+      ? (progressionState.selectedDoctrineId ?? 'combined_arms')
+      : progressionState.selectedDoctrineId,
   });
   persistState();
   return true;
 }
 
-function collectDependentIds(rootId) {
-  const removed = new Set([rootId]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const id of metaUpgradeState.activeIds) {
-      if (removed.has(id)) continue;
-      const requirements = META_UPGRADES[id]?.requirements ?? [];
-      if (!requirements.some((requirementId) => removed.has(requirementId))) continue;
-      removed.add(id);
-      changed = true;
-    }
-  }
-  return removed;
-}
-
-export function refundMetaUpgrade(id) {
-  if (!isMetaUpgradeActive(id)) return false;
-  const removedIds = collectDependentIds(id);
-  metaUpgradeState = normalizeState({
-    ...metaUpgradeState,
-    activeIds: metaUpgradeState.activeIds.filter((activeId) => !removedIds.has(activeId)),
+export function setSelectedDoctrine(id) {
+  if (!isPermanentUpgradeOwned('squad_doctrine') || !SQUAD_DOCTRINES[id]) return false;
+  progressionState = normalizeState({
+    ...progressionState,
+    selectedDoctrineId: id,
   });
   persistState();
   return true;
 }
 
-export function grantMetaUpgradePoints(amount = 1) {
-  const points = Math.max(0, Math.floor(Number(amount) || 0));
-  if (points <= 0) return getMetaUpgradeState();
-  metaUpgradeState = normalizeState({
-    ...metaUpgradeState,
-    totalPoints: metaUpgradeState.totalPoints + points,
-  });
-  persistState();
-  return getMetaUpgradeState();
+export function getSelectedDoctrine() {
+  return progressionState.selectedDoctrineId;
 }
+
+export function resetPermanentProgression() {
+  progressionState = createDefaultState();
+  persistState();
+  return getPermanentProgressionState();
+}
+
+// Kept as a compatibility alias for the existing Reset Progress button while
+// the rest of the codebase moves away from the old point-tree terminology.
+export const resetMetaUpgradeProgress = resetPermanentProgression;
