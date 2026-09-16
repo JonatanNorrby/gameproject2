@@ -244,4 +244,24 @@ export class UI extends PreviousUI {
       `;
     });
   }
+
+  update(game) {
+    super.update(game);
+
+    // #39: a Supreme Commander run has only one physical battlefield body, so
+    // there is no formation to arrange. Hide the whole Squad Builder control.
+    const supremeActive = Boolean(game?.isSupremeCommanderRun?.());
+    if (this.squadBuilderToggle) {
+      this.squadBuilderToggle.hidden = supremeActive;
+      this.squadBuilderToggle.setAttribute('aria-hidden', String(supremeActive));
+      this.squadBuilderToggle.tabIndex = supremeActive ? -1 : 0;
+      const squadMenu = this.squadBuilderToggle.closest('.squad-menu');
+      if (squadMenu) squadMenu.hidden = supremeActive;
+    }
+
+    if (supremeActive && this.squadBuilderScreen?.classList.contains('overlay--visible')) {
+      this.hideSquadBuilder?.();
+      game?.resume?.('squad-builder');
+    }
+  }
 }
