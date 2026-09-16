@@ -1,0 +1,126 @@
+name: Validate Handbook runtime
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  handbook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate Handbook contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f styles/handbook.css
+          grep -q './styles/handbook.css' index.html
+          grep -q "./features/handbook.js" src/main.js
+
+          node --experimental-default-type=module --input-type=module <<'NODE'
+          const classList = { add() {}, remove() {}, toggle() {}, contains() { return false; } };
+          const elementStub = () => ({
+            dataset: {},
+            style: { setProperty() {} },
+            classList,
+            append() {},
+            appendChild() {},
+            prepend() {},
+            after() {},
+            before() {},
+            remove() {},
+            replaceChildren() {},
+            setAttribute() {},
+            addEventListener() {},
+            querySelector() { return null; },
+            querySelectorAll() { return []; },
+            closest() { return null; },
+            focus() {},
+          });
+
+          globalThis.document = {
+            head: { append() {}, appendChild() {} },
+            body: { append() {}, appendChild() {}, classList },
+            querySelector() { return null; },
+            querySelectorAll() { return []; },
+            createElement() { return elementStub(); },
+            createDocumentFragment() { return elementStub(); },
+          };
+          globalThis.window = {
+            localStorage: null,
+            addEventListener() {},
+            removeEventListener() {},
+            devicePixelRatio: 1,
+            innerWidth: 1280,
+            innerHeight: 720,
+          };
+
+          const handbook = await import('./src/features/handbook.js');
+          const { CAPTAINS, ENEMY_TYPES, UNIT_CLASSES, UPGRADES } = await import('./src/data/content.js');
+          const { PERMANENT_UPGRADES } = await import('./src/data/metaUpgrades.js');
+
+          const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+          };
+
+          assert(typeof handbook.Game === 'function', 'Handbook final Game export missing');
+          assert(typeof handbook.UI === 'function', 'Handbook final UI export missing');
+          assert(handbook.HANDBOOK_TABS.length === 7, 'Handbook must expose exactly seven tabs');
+          assert(
+            handbook.HANDBOOK_TABS.map((tab) => tab.id).join(',')
+              === 'overview,units,captains,monsters,bosses,gold-upgrades,run-upgrades',
+            'Handbook tabs are missing or out of order',
+          );
+
+          const unitIds = new Set(handbook.getHandbookUnitEntries().map((entry) => entry.id));
+          for (const id of Object.keys(UNIT_CLASSES)) {
+            assert(unitIds.has(id), `Handbook unit tab is missing ${id}`);
+          }
+
+          const captainIds = new Set(handbook.getHandbookCaptainEntries().map((entry) => entry.id));
+          for (const id of Object.keys(CAPTAINS)) {
+            assert(captainIds.has(id), `Handbook Captain tab is missing ${id}`);
+          }
+          assert(captainIds.has('supreme_commander'), 'Handbook is missing Supreme Commander');
+
+          const monsterIds = new Set(handbook.getHandbookMonsterEntries().map((entry) => entry.id));
+          for (const id of Object.keys(ENEMY_TYPES)) {
+            assert(monsterIds.has(id), `Handbook monster tab is missing ${id}`);
+          }
+
+          const bosses = handbook.getHandbookBossEntries();
+          assert(bosses.length === 3, 'Handbook must contain all three bosses');
+          assert(bosses.every((entry) => !entry.discovered), 'Bosses should start undiscovered without saved state');
+          assert(handbook.markBossDiscovered('warden'), 'Could not record first Warden encounter');
+          assert(handbook.isBossDiscovered('warden'), 'Warden discovery did not persist in runtime state');
+          assert(
+            handbook.getHandbookBossEntries().find((entry) => entry.id === 'warden')?.discovered,
+            'Boss tab did not reflect Warden discovery',
+          );
+
+          const permanentIds = new Set(
+            handbook.getHandbookPermanentUpgradeEntries().map((entry) => entry.upgrade.id),
+          );
+          for (const id of Object.keys(PERMANENT_UPGRADES)) {
+            assert(permanentIds.has(id), `Handbook Gold-upgrade tab is missing ${id}`);
+          }
+
+          const runUpgradeIds = new Set(handbook.getHandbookRunUpgradeEntries().map((upgrade) => upgrade.id));
+          for (const upgrade of UPGRADES) {
+            assert(runUpgradeIds.has(upgrade.id), `Handbook run-upgrade tab is missing ${upgrade.id}`);
+          }
+
+          assert(typeof handbook.Game.prototype.spawnWarden === 'function', 'Warden discovery hook missing');
+          assert(typeof handbook.Game.prototype.spawnBroodmother === 'function', 'Broodmother discovery hook missing');
+          assert(typeof handbook.Game.prototype.spawnCipher === 'function', 'Cipher discovery hook missing');
+          assert(typeof handbook.UI.prototype.showHandbook === 'function', 'Handbook open API missing');
+          assert(typeof handbook.UI.prototype.setHandbookTab === 'function', 'Handbook tab API missing');
+
+          console.log('Handbook runtime contract validated.');
+          NODE
