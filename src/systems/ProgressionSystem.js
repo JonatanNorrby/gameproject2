@@ -1,5 +1,6 @@
 import { RARITIES, UPGRADES } from '../data/content.js';
 import { createUnitModifierState } from '../data/unitModifiers.js';
+import { getUnitClassFamily } from '../data/unitFamilies.js';
 
 const REINFORCEMENT_CHOICE_WEIGHT = 0.3;
 const STAT_CHOICE_WEIGHT = 1;
@@ -146,8 +147,10 @@ export class ProgressionSystem {
 
   getChoices(count) {
     const ownedTypes = new Set(this.game.player.squad.map((unit) => unit.type));
+    const ownedFamilies = new Set([...ownedTypes].map((unitType) => getUnitClassFamily(unitType)));
     const candidates = UPGRADES.filter((upgrade) => (
-      upgrade.kind === 'reinforcement' || ownedTypes.has(upgrade.unitType)
+      upgrade.kind === 'reinforcement'
+      || ownedFamilies.has(getUnitClassFamily(upgrade.unitType))
     ));
     const selected = [];
 
