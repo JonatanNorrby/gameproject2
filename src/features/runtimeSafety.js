@@ -32,6 +32,12 @@ export class Game extends PreviousGame {
     )) ?? null;
   }
 
+  removeSquadUnitFromBuilder(unitId) {
+    const result = super.removeSquadUnitFromBuilder(unitId);
+    if (result?.ok) this.refreshDoctrineBonuses?.();
+    return result;
+  }
+
   withSecondaryCaptainIdsMasked(callback) {
     const secondaryCaptains = (this.player?.squad ?? [])
       .filter((unit) => !unit.dead && unit.secondaryCaptain && unit.captainId)
