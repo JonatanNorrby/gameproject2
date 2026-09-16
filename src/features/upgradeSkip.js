@@ -7,14 +7,50 @@ export class UI extends CaptainMenuUI {
     super();
     this.skipUpgradeButton = document.querySelector('#skip-upgrade-button');
     this.rerollUpgradeButton = document.querySelector('#reroll-upgrade-button');
+    this.ensureUpgradeChoiceControls();
+  }
+
+  ensureUpgradeChoiceControls() {
+    const skipButton = this.skipUpgradeButton ?? document.querySelector('#skip-upgrade-button');
+    if (!skipButton) return;
+    this.skipUpgradeButton = skipButton;
+
+    let controls = document.querySelector('#upgrade-choice-controls');
+    if (!controls) {
+      controls = document.createElement('div');
+      controls.id = 'upgrade-choice-controls';
+      Object.assign(controls.style, {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '10px',
+        flexWrap: 'wrap',
+        margin: '18px auto 0',
+      });
+      skipButton.before(controls);
+      controls.append(skipButton);
+      skipButton.style.margin = '0';
+    }
+
+    let rerollButton = this.rerollUpgradeButton ?? document.querySelector('#reroll-upgrade-button');
+    if (!rerollButton) {
+      rerollButton = document.createElement('button');
+      rerollButton.id = 'reroll-upgrade-button';
+      rerollButton.type = 'button';
+      rerollButton.className = 'captain-menu-button';
+      rerollButton.textContent = 'Reroll (3)';
+      rerollButton.style.margin = '0';
+      controls.prepend(rerollButton);
+    }
+    this.rerollUpgradeButton = rerollButton;
   }
 
   showLevelUp(choices, onChoose, ranks, onSkip) {
     super.showLevelUp(choices, onChoose, ranks);
+    this.ensureUpgradeChoiceControls();
 
-    const skipButton = this.skipUpgradeButton ?? document.querySelector('#skip-upgrade-button');
+    const skipButton = this.skipUpgradeButton;
     if (skipButton) {
-      this.skipUpgradeButton = skipButton;
       skipButton.disabled = false;
       skipButton.onclick = () => {
         skipButton.disabled = true;
@@ -22,14 +58,16 @@ export class UI extends CaptainMenuUI {
       };
     }
 
-    const rerollButton = this.rerollUpgradeButton ?? document.querySelector('#reroll-upgrade-button');
+    const rerollButton = this.rerollUpgradeButton;
     if (!rerollButton) return;
 
-    this.rerollUpgradeButton = rerollButton;
     const progression = this.game?.progression;
     const remaining = Math.max(0, Number(progression?.rerolls) || 0);
     rerollButton.textContent = `Reroll (${remaining})`;
     rerollButton.disabled = remaining <= 0 || !progression?.rerollCurrentChoices;
+    rerollButton.title = remaining > 0
+      ? 'Replace all current upgrade choices. Gain +1 reroll every 10 levels.'
+      : 'No rerolls remaining. Gain +1 every 10 levels.';
     rerollButton.onclick = () => {
       if (rerollButton.disabled) return;
       rerollButton.disabled = true;
