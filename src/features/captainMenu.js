@@ -157,6 +157,11 @@ export class UI extends FormationUI {
       const card = document.createElement('div');
       card.className = 'selected-captain-card selected-captain-card--empty';
       card.style.setProperty('--captain-color', this.captainSelectionRequired ? '#ff8f8f' : '#8fa7c5');
+      card.style.cursor = 'pointer';
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', 'Select Captain');
+      card.title = 'Select Captain';
       card.innerHTML = `
         <div class="selected-captain-card__portrait" aria-hidden="true">
           <span style="font-size:44px;font-weight:1000;color:var(--captain-color);opacity:.8;">?</span>
@@ -164,9 +169,18 @@ export class UI extends FormationUI {
         <div class="selected-captain-card__info">
           <span class="selected-captain-card__label">CAPTAIN REQUIRED</span>
           <strong>Please select a Captain</strong>
-          <span class="selected-captain-card__role">Choose who will lead the squad before starting</span>
+          <span class="selected-captain-card__role">Click here to choose who will lead the squad</span>
         </div>
       `;
+
+      const openCaptainSelection = () => this.showCaptainSelection();
+      card.addEventListener('click', openCaptainSelection);
+      card.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        openCaptainSelection();
+      });
+
       summary.append(card);
 
       if (this.captainMenuOpen) this.captainMenuOpen.textContent = 'Select Captain';
