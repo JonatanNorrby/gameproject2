@@ -41,7 +41,6 @@ jobs:
           import re
           import sys
 
-          root = pathlib.Path('.').resolve()
           failures = []
           import_pattern = re.compile(
               r"(?:\bfrom\s*|\bimport\s*)['\"]([^'\"]+)['\"]"
@@ -59,8 +58,7 @@ jobs:
                       continue
                   failures.append(f"{source}: missing import {specifier}")
 
-          entry = pathlib.Path('src/main.js')
-          if not entry.exists():
+          if not pathlib.Path('src/main.js').exists():
               failures.append('Missing src/main.js entry point')
 
           if failures:
@@ -69,6 +67,14 @@ jobs:
 
           print('All relative JavaScript imports resolve.')
           PY
+
+      - name: Validate active runtime module graph
+        shell: bash
+        run: |
+          node --experimental-default-type=module --input-type=module <<'NODE'
+          await import('./src/features/runtimeSafety.js');
+          console.log('Active runtime module graph imports successfully.');
+          NODE
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
