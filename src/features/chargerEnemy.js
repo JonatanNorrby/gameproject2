@@ -1,10 +1,12 @@
 import { Game as PreviousGame, UI } from './runtimeSafety.js';
 import { ENEMY_TYPES, GAME_BALANCE } from '../data/content.js';
+import { getEnemySprite } from '../data/sprites.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
 const CHARGER_TYPE = 'charger';
 const CONTACT_INVULNERABILITY = 0.1;
 const DAMAGE_FEEDBACK_INTERVAL = 0.16;
+const ENEMY_DAMAGE_FILTER = 'brightness(.72) saturate(7) sepia(1) hue-rotate(305deg) contrast(1.18)';
 
 // #31: Brutes remain the slow tank enemy, but are now an occasional pressure
 // piece rather than a large fraction of every later spawn burst.
@@ -190,11 +192,59 @@ export class Game extends PreviousGame {
     super.beginWardenSlam(boss);
   }
 
+  // #38: the existing hitFlash timer now recolors the actual monster artwork
+  // red instead of merely drawing a white ring around sprite-based enemies.
   drawEnemies(ctx) {
-    super.drawEnemies(ctx);
     for (const enemy of this.entities.enemies) {
-      if (enemy.dead || enemy.type !== CHARGER_TYPE) continue;
-      this.drawChargerTelegraph(ctx, enemy);
+      if (enemy.dead) continue;
+      const type = ENEMY_TYPES[enemy.type];
+      if (!type) continue;
+      const takingDamage = (enemy.hitFlash ?? 0) > 0;
+      const sprite = getEnemySprite(enemy.type);
+
+      ctx.save();
+      if (takingDamage) {
+        ctx.filter = ENEMY_DAMAGE_FILTER;
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = '#ff263f';
+      }
+      const spriteDrawn = this.animationRenderer.draw(
+        ctx,
+        sprite,
+        'running',
+        this.animationClock,
+        enemy.x,
+        enemy.y,
+        { phase: enemy.id * 0.071 },
+      );
+      ctx.restore();
+
+      if (!spriteDrawn) {
+        ctx.save();
+        ctx.translate(enemy.x, enemy.y);
+        ctx.fillStyle = takingDamage ? '#ff314b' : type.fill;
+        ctx.strokeStyle = takingDamage ? '#ffc0c8' : type.outline;
+        ctx.shadowBlur = takingDamage ? 18 : 0;
+        ctx.shadowColor = takingDamage ? '#ff263f' : 'transparent';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (enemy.type === 'runner') {
+          ctx.moveTo(0, -enemy.radius);
+          ctx.lineTo(enemy.radius, enemy.radius);
+          ctx.lineTo(-enemy.radius, enemy.radius);
+          ctx.closePath();
+        } else if (enemy.type === 'brute') {
+          const r = enemy.radius;
+          ctx.rect(-r, -r, r * 2, r * 2);
+        } else {
+          ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (enemy.type === CHARGER_TYPE) this.drawChargerTelegraph(ctx, enemy);
     }
   }
 
