@@ -1,10 +1,12 @@
 import { Game as PreviousGame, UI as PreviousUI } from './captainWeaponsAndDamageFlash.js';
 import '../data/supportUnits.js';
-import { UNIT_CLASSES } from '../data/content.js';
+import { CAPTAINS, UNIT_CLASSES } from '../data/content.js';
 import { getEffectiveUnitStats, getUnitModifiers } from '../data/unitModifiers.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
 const DRONE_PILOT_TYPE = 'drone_pilot';
+const ROCKETEER_CLASS = 'rocketeer';
+const MERCER_ID = 'mercer';
 const DAMAGE_FLASH_DURATION = 0.16;
 
 const DRONE_SPRITE = Object.freeze({
@@ -57,6 +59,7 @@ function createSupportCombatSystem(ParentCombatSystem) {
             grenadeCooldown: 0.75,
             targetId: null,
             hitFlash: 0,
+            mercerAttackCount: 0,
           };
           game.supportDrones.push(drone);
         } else if (drone.dead && game.elapsed >= drone.respawnAt) {
@@ -67,6 +70,7 @@ function createSupportCombatSystem(ParentCombatSystem) {
           drone.grenadeCooldown = 0.75;
           drone.targetId = null;
           drone.hitFlash = 0;
+          drone.mercerAttackCount = 0;
         }
       }
     }
@@ -99,10 +103,36 @@ function createSupportCombatSystem(ParentCombatSystem) {
       return best;
     }
 
-    dropStunGrenade(drone, support, modifiers, target) {
+    getMercerDroneAttack(drone, pilot) {
+      const eligible = Boolean(
+        pilot
+        && this.isAdjacentCaptainUnit?.(pilot, MERCER_ID, ROCKETEER_CLASS)
+      );
+      if (!eligible) {
+        drone.mercerAttackCount = 0;
+        return { special: false, aoeMultiplier: 1, color: null };
+      }
+
+      const effect = CAPTAINS[MERCER_ID]?.effect;
+      const interval = Math.max(1, Number(effect?.everyShots) || 3);
+      drone.mercerAttackCount = (drone.mercerAttackCount ?? 0) + 1;
+      const special = drone.mercerAttackCount % interval === 0;
+      return {
+        special,
+        // Issue #41: Drone Pilots get the enlarged third attack, but never the
+        // Rocketeer-only third-attack range increase.
+        aoeMultiplier: special ? (Number(effect?.aoeMultiplier) || 3) : 1,
+        color: special ? effect?.color : null,
+      };
+    }
+
+    dropStunGrenade(drone, pilot, support, modifiers, target) {
       const game = this.game;
       const now = game.elapsed;
-      const radius = support.aoeRadius * modifiers.blastRadius;
+      const mercerAttack = this.getMercerDroneAttack(drone, pilot);
+      const radius = support.aoeRadius
+        * modifiers.blastRadius
+        * mercerAttack.aoeMultiplier;
       let stunnedCount = 0;
       for (const enemy of game.entities.enemies) {
         if (enemy.dead) continue;
@@ -115,7 +145,12 @@ function createSupportCombatSystem(ParentCombatSystem) {
         stunnedCount += 1;
       }
       if (stunnedCount > 0) {
-        game.spawnExplosionEffect(target.x, target.y, radius, support.color);
+        game.spawnExplosionEffect(
+          target.x,
+          target.y,
+          radius,
+          mercerAttack.color ?? support.color,
+        );
       }
       drone.targetId = null;
       drone.grenadeCooldown = support.cooldown / modifiers.fireRate;
@@ -169,7 +204,7 @@ function createSupportCombatSystem(ParentCombatSystem) {
         }
 
         if (target && drone.grenadeCooldown <= 0 && distance <= support.dropDistance) {
-          this.dropStunGrenade(drone, support, modifiers, target);
+          this.dropStunGrenade(drone, pilot, support, modifiers, target);
         }
       }
     }
@@ -230,6 +265,7 @@ function createSupportCombatSystem(ParentCombatSystem) {
             drone.dead = true;
             drone.respawnAt = this.game.elapsed + support.respawnDelay;
             drone.targetId = null;
+            drone.mercerAttackCount = 0;
             this.game.spawnDeathParticles(drone.x, drone.y, drone.radius);
           }
           break;
