@@ -118,7 +118,7 @@ function createStormlancerCombatSystem(ParentCombatSystem) {
       if (warden) candidates.push(warden);
 
       const broodmother = game.getActiveBroodmother?.();
-      if (broodmother?.targetable !== false) candidates.push(broodmother);
+      if (broodmother && broodmother.targetable !== false) candidates.push(broodmother);
 
       for (const egg of game.broodEggs ?? []) {
         if (!egg.dead) candidates.push(egg);
