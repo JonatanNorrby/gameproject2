@@ -1,0 +1,77 @@
+/* v82 visual polish for issues #37 and #38. */
+
+#start-screen .selected-captain-summary--supreme .selected-captain-card__portrait {
+  width: clamp(210px, 25vw, 340px);
+  height: clamp(245px, 36vh, 390px);
+  isolation: isolate;
+}
+
+#start-screen .selected-captain-summary--supreme .selected-captain-card__portrait::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 52%;
+  width: 86%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) scale(.92);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(247, 215, 116, .34) 0%, rgba(126, 249, 212, .17) 32%, rgba(58, 186, 196, .06) 56%, transparent 72%);
+  filter: blur(8px);
+  box-shadow: 0 0 52px rgba(247, 215, 116, .22);
+  animation: supreme-menu-glow 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+#start-screen .selected-captain-summary--supreme .selected-captain-card__portrait::after {
+  z-index: 0;
+  width: 72%;
+  border-color: rgba(247, 215, 116, .72);
+  box-shadow:
+    0 0 34px rgba(247, 215, 116, .36),
+    inset 0 0 26px rgba(126, 249, 212, .13);
+  animation: supreme-platform-glow 2.2s ease-in-out infinite;
+}
+
+#start-screen .selected-captain-summary--supreme .selected-captain-card__portrait img {
+  z-index: 2;
+  transform: scale(.9);
+  filter:
+    drop-shadow(0 24px 24px rgba(0, 0, 0, .58))
+    drop-shadow(0 0 30px rgba(247, 215, 116, .27));
+}
+
+#start-screen .selected-captain-summary--supreme .selected-captain-card__info {
+  margin-top: -18px;
+}
+
+@keyframes supreme-menu-glow {
+  0%, 100% {
+    opacity: .62;
+    transform: translate(-50%, -50%) scale(.88);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
+@keyframes supreme-platform-glow {
+  0%, 100% { opacity: .62; }
+  50% { opacity: 1; }
+}
+
+@media (max-height: 820px) {
+  #start-screen .selected-captain-summary--supreme .selected-captain-card__portrait {
+    width: clamp(180px, 23vw, 285px);
+    height: clamp(205px, 32vh, 315px);
+  }
+}
+
+@media (max-width: 720px) {
+  #start-screen .selected-captain-summary--supreme .selected-captain-card__portrait {
+    width: min(68vw, 290px);
+    height: min(38vh, 330px);
+  }
+}
