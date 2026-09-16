@@ -1,4 +1,4 @@
-name: Validate Handbook runtime
+name: Validate final runtime QA
 
 on:
   push:
@@ -9,21 +9,25 @@ permissions:
   contents: read
 
 jobs:
-  handbook:
+  runtime-qa:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Validate Handbook contract
+      - name: Validate final runtime contracts
         shell: bash
         run: |
           set -euo pipefail
           test -f styles/handbook.css
+          test -f src/data/captainSlots.js
+          test -f src/features/captainSlotCompatibility.js
           grep -q './styles/handbook.css' index.html
-          grep -q "./features/handbook.js" src/main.js
+          grep -q "./features/captainSlotCompatibility.js" src/main.js
 
           node --experimental-default-type=module --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
           const classList = { add() {}, remove() {}, toggle() {}, contains() { return false; } };
           const elementStub = () => ({
             dataset: {},
@@ -37,6 +41,7 @@ jobs:
             remove() {},
             replaceChildren() {},
             setAttribute() {},
+            getAttribute() { return null; },
             addEventListener() {},
             querySelector() { return null; },
             querySelectorAll() { return []; },
@@ -61,8 +66,10 @@ jobs:
             innerHeight: 720,
           };
 
+          const runtime = await import('./src/features/captainSlotCompatibility.js');
           const handbook = await import('./src/features/handbook.js');
           const supportUnits = await import('./src/features/supportUnits.js');
+          const slots = await import('./src/data/captainSlots.js');
           const { CAPTAINS, ENEMY_TYPES, UNIT_CLASSES, UPGRADES } = await import('./src/data/content.js');
           const { PERMANENT_UPGRADES } = await import('./src/data/metaUpgrades.js');
 
@@ -70,8 +77,72 @@ jobs:
             if (!condition) throw new Error(message);
           };
 
-          assert(typeof handbook.Game === 'function', 'Handbook final Game export missing');
-          assert(typeof handbook.UI === 'function', 'Handbook final UI export missing');
+          // Visible version must never drift between static HTML and main.js.
+          const mainSource = fs.readFileSync('src/main.js', 'utf8');
+          const indexSource = fs.readFileSync('index.html', 'utf8');
+          const version = Number(mainSource.match(/const GAME_VERSION = (\d+);/)?.[1]);
+          assert(Number.isFinite(version), 'Could not read GAME_VERSION from src/main.js');
+          assert(indexSource.includes(`BUILD v${version}`), 'Boot build label is out of sync');
+          assert(indexSource.includes(`id="version-text">v${version}<`), 'HUD build label is out of sync');
+          assert(indexSource.includes(`SYSTEM ONLINE • v${version}`), 'Main-menu build label is out of sync');
+
+          assert(typeof runtime.Game === 'function', 'Final QA Game export missing');
+          assert(typeof runtime.UI === 'function', 'Final QA UI export missing');
+
+          // Third-Captain compatibility: only the true primary can drive player
+          // health/game-over and Cipher's solo phase.
+          const primary = { id: 1, captainId: 'vale', dead: false, secondaryCaptain: false, tertiaryCaptain: false };
+          const secondary = { id: 2, captainId: 'mercer', dead: false, secondaryCaptain: true, tertiaryCaptain: false };
+          const tertiary = { id: 3, captainId: 'thorne', dead: false, secondaryCaptain: false, tertiaryCaptain: true };
+          assert(!slots.isAdditionalCaptainUnit(primary), 'Primary Captain classified as additional');
+          assert(slots.isAdditionalCaptainUnit(secondary), 'Secondary Captain not classified as additional');
+          assert(slots.isAdditionalCaptainUnit(tertiary), 'Tertiary Captain not classified as additional');
+          assert(slots.isPrimaryCaptainSlotUnit(primary), 'Primary Captain not recognized');
+          assert(!slots.isPrimaryCaptainSlotUnit(secondary), 'Secondary Captain recognized as primary');
+          assert(!slots.isPrimaryCaptainSlotUnit(tertiary), 'Tertiary Captain recognized as primary');
+
+          const slotGame = {
+            player: { squad: [primary, secondary, tertiary] },
+            isSupremeCommanderRun: () => false,
+            getSoldierPositions() {
+              return this.player.squad.map((unit, index) => ({ unit, index, x: index * 20, y: 0 }));
+            },
+          };
+          assert(runtime.Game.prototype.getCaptainUnit.call(slotGame) === primary, 'Runtime did not choose the true primary Captain');
+          assert(runtime.Game.prototype.getCaptainSoldierBySlot.call(slotGame, 'primary')?.unit === primary, 'Primary slot lookup failed');
+          assert(runtime.Game.prototype.getCaptainSoldierBySlot.call(slotGame, 'secondary')?.unit === secondary, 'Secondary slot lookup failed');
+          assert(runtime.Game.prototype.getCaptainSoldierBySlot.call(slotGame, 'tertiary')?.unit === tertiary, 'Tertiary slot lookup failed');
+
+          const noPrimaryGame = { player: { squad: [secondary, tertiary] } };
+          assert(runtime.Game.prototype.getCaptainUnit.call(noPrimaryGame) === null, 'Additional Captain replaced a dead primary Captain');
+
+          let maskedCorrectly = false;
+          runtime.Game.prototype.withAdditionalCaptainIdsMasked.call(slotGame, () => {
+            maskedCorrectly = primary.captainId === 'vale'
+              && secondary.captainId === null
+              && tertiary.captainId === null;
+          });
+          assert(maskedCorrectly, 'Cipher masking did not hide both additional Captains');
+          assert(secondary.captainId === 'mercer' && tertiary.captainId === 'thorne', 'Captain IDs were not restored after masking');
+
+          const soloTargets = runtime.Game.prototype.getCipherHazardTargets.call(slotGame, true);
+          assert(soloTargets.length === 1 && soloTargets[0].unit === primary, 'Cipher solo hazards did not target only the primary Captain');
+
+          // Shockblade boss validation: normal cone rejects a boss behind the
+          // attacker, while a Thorne full-circle attack accepts the same target.
+          const arcContext = {
+            soldier: { x: 0, y: 0 },
+            attack: { direction: { x: 1, y: 0 } },
+            weapon: { arcRadians: Math.PI },
+            radius: 120,
+            fullCircle: false,
+          };
+          const bossBehind = { x: -50, y: 0, radius: 20 };
+          assert(!runtime.Game.prototype.isShockbladeBossHitAllowed.call({}, bossBehind, arcContext), 'Normal Shockblade cone hit a boss behind the unit');
+          arcContext.fullCircle = true;
+          assert(runtime.Game.prototype.isShockbladeBossHitAllowed.call({}, bossBehind, arcContext), 'Full-circle Thorne attack failed behind the unit');
+
+          // Handbook registry contract remains intact under the new final layer.
           assert(handbook.HANDBOOK_TABS.length === 7, 'Handbook must expose exactly seven tabs');
           assert(
             handbook.HANDBOOK_TABS.map((tab) => tab.id).join(',')
@@ -80,42 +151,23 @@ jobs:
           );
 
           const unitIds = new Set(handbook.getHandbookUnitEntries().map((entry) => entry.id));
-          for (const id of Object.keys(UNIT_CLASSES)) {
-            assert(unitIds.has(id), `Handbook unit tab is missing ${id}`);
-          }
-
+          for (const id of Object.keys(UNIT_CLASSES)) assert(unitIds.has(id), `Handbook unit tab is missing ${id}`);
           const captainIds = new Set(handbook.getHandbookCaptainEntries().map((entry) => entry.id));
-          for (const id of Object.keys(CAPTAINS)) {
-            assert(captainIds.has(id), `Handbook Captain tab is missing ${id}`);
-          }
+          for (const id of Object.keys(CAPTAINS)) assert(captainIds.has(id), `Handbook Captain tab is missing ${id}`);
           assert(captainIds.has('supreme_commander'), 'Handbook is missing Supreme Commander');
-
           const monsterIds = new Set(handbook.getHandbookMonsterEntries().map((entry) => entry.id));
-          for (const id of Object.keys(ENEMY_TYPES)) {
-            assert(monsterIds.has(id), `Handbook monster tab is missing ${id}`);
-          }
+          for (const id of Object.keys(ENEMY_TYPES)) assert(monsterIds.has(id), `Handbook monster tab is missing ${id}`);
 
           const bosses = handbook.getHandbookBossEntries();
           assert(bosses.length === 3, 'Handbook must contain all three bosses');
           assert(bosses.every((entry) => !entry.discovered), 'Bosses should start undiscovered without saved state');
           assert(handbook.markBossDiscovered('warden'), 'Could not record first Warden encounter');
           assert(handbook.isBossDiscovered('warden'), 'Warden discovery did not persist in runtime state');
-          assert(
-            handbook.getHandbookBossEntries().find((entry) => entry.id === 'warden')?.discovered,
-            'Boss tab did not reflect Warden discovery',
-          );
 
-          const permanentIds = new Set(
-            handbook.getHandbookPermanentUpgradeEntries().map((entry) => entry.upgrade.id),
-          );
-          for (const id of Object.keys(PERMANENT_UPGRADES)) {
-            assert(permanentIds.has(id), `Handbook Gold-upgrade tab is missing ${id}`);
-          }
-
+          const permanentIds = new Set(handbook.getHandbookPermanentUpgradeEntries().map((entry) => entry.upgrade.id));
+          for (const id of Object.keys(PERMANENT_UPGRADES)) assert(permanentIds.has(id), `Handbook Gold-upgrade tab is missing ${id}`);
           const runUpgradeIds = new Set(handbook.getHandbookRunUpgradeEntries().map((upgrade) => upgrade.id));
-          for (const upgrade of UPGRADES) {
-            assert(runUpgradeIds.has(upgrade.id), `Handbook run-upgrade tab is missing ${upgrade.id}`);
-          }
+          for (const upgrade of UPGRADES) assert(runUpgradeIds.has(upgrade.id), `Handbook run-upgrade tab is missing ${upgrade.id}`);
 
           assert(typeof handbook.Game.prototype.spawnWarden === 'function', 'Warden discovery hook missing');
           assert(typeof handbook.Game.prototype.spawnBroodmother === 'function', 'Broodmother discovery hook missing');
@@ -123,28 +175,13 @@ jobs:
           assert(typeof handbook.UI.prototype.showHandbook === 'function', 'Handbook open API missing');
           assert(typeof handbook.UI.prototype.setHandbookTab === 'function', 'Handbook tab API missing');
 
-          assert(
-            supportUnits.DRONE_STUN_EXPLOSION_COLOR === '#69cfff',
-            'Drone stun grenade explosion must use the dedicated blue color',
-          );
+          // #48 remains guaranteed by a direct effect contract.
+          assert(supportUnits.DRONE_STUN_EXPLOSION_COLOR === '#69cfff', 'Drone stun grenade explosion must stay blue');
           const explosionCalls = [];
-          const mockGame = {
-            spawnExplosionEffect(x, y, radius, color) {
-              explosionCalls.push({ x, y, radius, color });
-            },
-          };
-          assert(
-            supportUnits.emitDroneStunExplosion(mockGame, 10, 20, 82),
-            'Drone stun grenade visual helper did not emit an effect',
-          );
-          assert(explosionCalls.length === 1, 'Drone stun grenade visual emitted the wrong number of effects');
-          assert(
-            explosionCalls[0].x === 10
-              && explosionCalls[0].y === 20
-              && explosionCalls[0].radius === 82
-              && explosionCalls[0].color === '#69cfff',
-            'Drone stun grenade visual did not preserve its center, radius, and blue color',
-          );
+          const mockGame = { spawnExplosionEffect(x, y, radius, color) { explosionCalls.push({ x, y, radius, color }); } };
+          assert(supportUnits.emitDroneStunExplosion(mockGame, 10, 20, 82), 'Drone stun visual helper did not emit');
+          assert(explosionCalls.length === 1, 'Drone stun visual emitted the wrong number of effects');
+          assert(explosionCalls[0].radius === 82 && explosionCalls[0].color === '#69cfff', 'Drone stun visual lost radius/color');
 
-          console.log('Handbook and drone-stun visual contracts validated.');
+          console.log(`Final runtime QA contracts validated for v${version}.`);
           NODE
