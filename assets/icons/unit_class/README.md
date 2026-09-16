@@ -8,7 +8,6 @@ Current files expected by the game:
 - `rocketeer.png`
 - `shockblade.png`
 - `drone_pilot.png`
-- `anti_air.png`
 
 Reinforcement cards combine the class badge with the full unit portrait from that class's animation folder.
 
