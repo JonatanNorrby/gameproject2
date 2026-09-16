@@ -1,0 +1,477 @@
+/* Viewport adaptation shared by gameplay HUD, overlays and the main menu. */
+
+html,
+body,
+.app-shell {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  min-height: 0;
+}
+
+.app-shell {
+  overflow: hidden;
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* All modal screens must stay usable on short laptop/mobile viewports. */
+.overlay {
+  padding:
+    max(8px, env(safe-area-inset-top))
+    max(8px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.overlay .panel:not(.panel--intro) {
+  max-height: calc(100dvh - 16px);
+  overflow: auto;
+}
+
+#levelup-screen .panel--levelup,
+#captain-select-screen .panel--captain-select,
+#meta-upgrade-screen .panel--meta-upgrades,
+#gameover-screen .panel--gameover {
+  width: min(1120px, calc(100vw - 16px));
+}
+
+#levelup-screen .upgrade-grid,
+#captain-select-screen .upgrade-grid {
+  max-height: min(66dvh, 620px);
+  overflow: auto;
+  padding-right: 2px;
+}
+
+/* Main menu: size from BOTH viewport axes so short laptop screens remain usable. */
+#start-screen {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#start-screen .panel--intro {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+  overflow: hidden;
+  padding:
+    clamp(12px, 3vh, 42px)
+    clamp(14px, 4vw, 72px)
+    clamp(10px, 2.4vh, 26px);
+}
+
+.main-menu__masthead {
+  min-height: 0;
+  padding-bottom: clamp(8px, 2vh, 20px);
+}
+
+#start-screen .main-menu__identity h1 {
+  margin-top: clamp(3px, 1vh, 8px);
+  font-size: clamp(32px, min(5.2vw, 8vh), 72px);
+}
+
+.main-menu__body {
+  min-height: 0;
+  overflow: hidden;
+  grid-template-columns: minmax(170px, 260px) minmax(280px, 1fr) minmax(190px, 290px);
+  gap: clamp(14px, 3vw, 52px);
+  padding: clamp(7px, 2vh, 22px) 0;
+}
+
+.main-menu__nav {
+  min-width: 0;
+}
+
+.main-menu__captain-stage {
+  min-width: 0;
+  min-height: 0 !important;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  place-items: center;
+  overflow: visible;
+}
+
+.main-menu__captain-kicker {
+  position: relative;
+  inset: auto;
+  grid-row: 1;
+  transform: none;
+  margin-bottom: 2px;
+}
+
+#start-screen .selected-captain-summary {
+  grid-row: 2;
+  align-self: stretch;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+#start-screen .selected-captain-card {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+}
+
+#start-screen .selected-captain-card:hover .selected-captain-card__portrait,
+#start-screen .selected-captain-card:focus-visible .selected-captain-card__portrait {
+  filter: brightness(1.08);
+}
+
+#start-screen .selected-captain-card:focus-visible {
+  filter: drop-shadow(0 0 12px rgba(126,249,212,.34));
+}
+
+#start-screen .selected-captain-card__portrait {
+  width: clamp(180px, min(28vw, 42dvh), 410px);
+  height: clamp(190px, min(39dvh, 420px), 460px);
+  max-height: 100%;
+}
+
+#start-screen .selected-captain-card__info {
+  flex: 0 0 auto;
+}
+
+#start-screen .selected-captain-card__info strong {
+  font-size: clamp(23px, min(3vw, 4.7vh), 44px);
+}
+
+.main-menu__captain-controls {
+  position: relative !important;
+  z-index: 3 !important;
+  grid-row: 3;
+  align-self: end !important;
+  justify-self: center !important;
+  width: min(420px, 94%) !important;
+  display: grid !important;
+  gap: 7px !important;
+  margin-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+#start-screen #permanent-run-config {
+  width: 100%;
+  margin: 0 0 2px !important;
+}
+
+.main-menu__footer {
+  min-height: 0;
+  padding-top: clamp(6px, 1.4vh, 14px);
+}
+
+/* Standard laptop heights (768/800/864px): prioritize captain + Begin Run. */
+@media (max-height: 860px) and (min-width: 701px) {
+  #start-screen .panel--intro {
+    padding-top: 14px;
+    padding-bottom: 10px;
+  }
+
+  .main-menu__masthead {
+    padding-bottom: 8px;
+  }
+
+  .main-menu__identity .eyebrow {
+    font-size: 8px;
+  }
+
+  #start-screen .main-menu__identity h1 {
+    font-size: clamp(32px, 5vw, 52px);
+  }
+
+  .main-menu__body {
+    padding: 7px 0;
+  }
+
+  .main-menu__captain-kicker {
+    font-size: 8px;
+  }
+
+  #start-screen .selected-captain-card__portrait {
+    width: clamp(175px, 25vw, 300px);
+    height: clamp(185px, 31dvh, 285px);
+  }
+
+  #start-screen .selected-captain-card__info {
+    margin-top: -5px;
+  }
+
+  #start-screen .selected-captain-card__info strong {
+    margin-top: 4px;
+    font-size: clamp(23px, 2.5vw, 32px);
+  }
+
+  #start-screen .selected-captain-card__role {
+    margin-top: 4px;
+  }
+
+  #start-screen #start-button {
+    min-height: 46px;
+  }
+
+  #start-screen #permanent-run-config {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #start-screen #permanent-run-config label {
+    min-width: 0;
+    padding: 6px 7px !important;
+  }
+
+  #start-screen #permanent-run-config select {
+    padding: 5px !important;
+    font-size: 10px;
+  }
+
+  .main-menu__brief {
+    gap: 8px;
+  }
+
+  .main-menu__brief-block {
+    padding: 8px 0 8px 10px;
+  }
+
+  #start-screen .main-menu__brief p {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .main-menu__footer {
+    font-size: 8px;
+  }
+}
+
+@media (max-height: 720px) and (min-width: 701px) {
+  .main-menu__brief,
+  .main-menu__footer {
+    display: none;
+  }
+
+  .main-menu__body {
+    grid-template-columns: minmax(165px, 240px) minmax(300px, 1fr);
+  }
+
+  #start-screen .selected-captain-card__portrait {
+    height: min(28dvh, 205px);
+  }
+
+  #start-screen .selected-captain-card__label,
+  #start-screen .selected-captain-card__role {
+    font-size: 8px;
+  }
+
+  #start-screen .selected-captain-card__info strong {
+    font-size: 23px;
+  }
+}
+
+/* Tablet widths. */
+@media (max-width: 980px) {
+  .main-menu__body {
+    grid-template-columns: minmax(165px, 230px) minmax(280px, 1fr);
+    gap: 18px;
+  }
+
+  .main-menu__brief {
+    display: none;
+  }
+
+  .main-menu__captain-stage {
+    min-height: 0 !important;
+  }
+}
+
+/* Narrow devices scroll vertically rather than hiding critical controls. */
+@media (max-width: 700px) {
+  #start-screen {
+    overflow: auto;
+  }
+
+  #start-screen .panel--intro {
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow: visible;
+    padding: 16px 14px 20px;
+  }
+
+  .main-menu__masthead {
+    padding-bottom: 10px;
+  }
+
+  #start-screen .main-menu__identity h1 {
+    font-size: clamp(32px, 11vw, 52px);
+  }
+
+  .main-menu__body {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    gap: 14px;
+    padding: 10px 0;
+  }
+
+  .main-menu__captain-stage {
+    order: 1;
+    width: 100%;
+    min-height: 410px !important;
+  }
+
+  .main-menu__nav {
+    order: 2;
+    width: min(440px, 100%);
+    align-self: center;
+  }
+
+  .main-menu__brief {
+    display: none;
+  }
+
+  #start-screen .selected-captain-card__portrait {
+    width: min(72vw, 280px);
+    height: min(42dvh, 300px);
+  }
+
+  .main-menu__footer {
+    display: none;
+  }
+
+  #start-screen #permanent-run-config {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Gameplay HUD adapts instead of overflowing the board. */
+@media (max-width: 900px) {
+  .hud {
+    padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  }
+
+  .hud__top {
+    grid-template-columns: minmax(150px, 1.7fr) repeat(3, minmax(58px, .55fr));
+    gap: 6px;
+  }
+
+  .hud-card {
+    min-width: 0;
+    padding: 7px 8px;
+    border-radius: 9px;
+  }
+
+  .hud-label,
+  .hud-label-row {
+    font-size: 9px;
+  }
+
+  .hud-card strong {
+    font-size: 14px;
+  }
+
+  .bar {
+    height: 6px;
+  }
+
+  .squad-menu,
+  .debug-menu {
+    top: 66px;
+  }
+
+  .squad-builder-toggle {
+    min-height: 34px;
+    padding: 8px 10px;
+    font-size: 9px;
+  }
+
+  .debug-panel {
+    max-height: calc(100dvh - 90px);
+    overflow: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .hud__top {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hud__top .hud-card--wide {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .hud__bottom {
+    left: 8px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .hud__bottom .hud-card--wide {
+    width: 100%;
+  }
+
+  .squad-menu,
+  .debug-menu {
+    top: 91px;
+  }
+
+  #captain-call-hud {
+    right: 8px !important;
+    bottom: max(68px, calc(env(safe-area-inset-bottom) + 68px)) !important;
+    width: min(230px, calc(100vw - 16px)) !important;
+  }
+
+  .upgrade-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-height: 650px) {
+  .hud-card {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .hud-label,
+  .hud-label-row {
+    font-size: 8px;
+  }
+
+  .hud-card strong {
+    font-size: 12px;
+  }
+
+  .squad-menu,
+  .debug-menu {
+    top: 56px;
+  }
+
+  .debug-panel {
+    max-height: calc(100dvh - 68px);
+  }
+
+  #captain-call-hud {
+    bottom: max(56px, calc(env(safe-area-inset-bottom) + 56px)) !important;
+  }
+
+  .panel h2 {
+    font-size: clamp(24px, 5vh, 36px);
+  }
+
+  .panel p {
+    line-height: 1.35;
+  }
+}
