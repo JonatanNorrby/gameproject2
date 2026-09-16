@@ -85,9 +85,10 @@
 }
 
 .panel--captain-select {
-  width: min(760px, 100%);
-  max-height: calc(100dvh - 32px);
+  width: min(1120px, 100%);
+  max-height: calc(100dvh - 24px);
   overflow: auto;
+  padding: clamp(18px, 3vw, 34px);
 }
 
 .captain-select__header {
@@ -97,9 +98,7 @@
   gap: 18px;
 }
 
-.captain-select__header h2 {
-  margin-bottom: 0;
-}
+.captain-select__header h2 { margin-bottom: 0; }
 
 .captain-select__close {
   width: 38px;
@@ -115,18 +114,63 @@
 }
 
 .captain-select__help {
-  margin: 14px 0 0 !important;
+  margin: 10px 0 0 !important;
   color: #9da9bc !important;
-  font-size: 14px;
+  font-size: 13px;
+}
+
+.captain-select-grid--revamped {
+  grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)) !important;
+  align-items: stretch;
+  gap: 14px;
+  margin-top: 16px;
 }
 
 .captain-select-card {
-  min-height: 420px;
+  min-height: 330px;
+  isolation: isolate;
+}
+
+.captain-select-card .upgrade-card__portrait {
+  height: 126px !important;
+  margin: 6px 0 0 !important;
+}
+
+.captain-select-card--active {
+  opacity: 1 !important;
+  filter: none !important;
+  transform: translateY(-3px) scale(1.015) !important;
+  box-shadow:
+    0 0 0 2px var(--rarity-color),
+    0 0 34px color-mix(in srgb, var(--rarity-color) 32%, transparent),
+    0 18px 42px rgba(0,0,0,.42) !important;
+}
+
+.captain-select-card--locked:not(.captain-select-card--secret) {
+  opacity: .52 !important;
+  filter: grayscale(.72) saturate(.3) brightness(.62) !important;
+  border-style: dashed !important;
+}
+
+.captain-select-card--locked:not(.captain-select-card--secret)::after {
+  content: 'LOCKED';
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(0,0,0,.5);
+  color: #b5bfcc;
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .12em;
 }
 
 .captain-select-card__selected {
   width: 100%;
-  margin: -4px 0 10px;
+  margin: -4px 0 8px;
   border-radius: 8px;
   padding: 7px 10px;
   background: var(--rarity-color);
@@ -137,10 +181,82 @@
   text-align: center;
 }
 
+.captain-select-card--secret {
+  --rarity-color: #343a45 !important;
+  min-height: 330px;
+  display: flex;
+  align-items: center !important;
+  justify-content: center;
+  text-align: center !important;
+  border: 1px solid rgba(255,255,255,.1) !important;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255,255,255,.055), transparent 42%),
+    linear-gradient(165deg, #050607, #000 72%) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 20px 42px rgba(0,0,0,.42) !important;
+  cursor: not-allowed !important;
+}
+
+.captain-secret__lock {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #626a76;
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .16em;
+}
+
+.captain-secret__question {
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 132px;
+  margin: 18px auto 10px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 50%;
+  background: #020202;
+  color: #77808c;
+  font-size: 92px;
+  font-weight: 1000;
+  line-height: 1;
+  box-shadow: inset 0 0 36px rgba(255,255,255,.035), 0 12px 30px rgba(0,0,0,.7);
+}
+
+.captain-select-card--secret strong {
+  width: 100%;
+  margin-top: 0 !important;
+  color: #8a929d;
+  text-align: center;
+  letter-spacing: .18em;
+}
+
+.captain-select-card--secret small {
+  width: 100%;
+  margin-top: 6px !important;
+  padding-top: 0 !important;
+  color: #4f5660 !important;
+  text-align: center;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
 #captain-menu-back {
   display: block;
   min-width: 180px;
-  margin: 20px auto 0;
+  margin: 18px auto 0;
+}
+
+@media (max-height: 780px) {
+  .captain-select-card { min-height: 285px; }
+  .captain-select-card .upgrade-card__portrait { height: 96px !important; }
+  .captain-select-card--secret { min-height: 285px; }
+  .captain-secret__question { width: 102px; height: 102px; font-size: 70px; }
 }
 
 @media (max-width: 620px) {
@@ -156,7 +272,19 @@
     height: 104px;
   }
 
-  .captain-select-card {
-    min-height: 360px;
+  .captain-select-grid--revamped {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px;
   }
+
+  .captain-select-card,
+  .captain-select-card--secret {
+    min-height: 270px;
+    padding: 12px;
+  }
+
+  .captain-select-card .upgrade-card__portrait { height: 86px !important; }
+  .captain-select-card p { font-size: 11px; line-height: 1.35; }
+  .captain-select-card small { font-size: 9px; }
+  .captain-secret__question { width: 92px; height: 92px; font-size: 64px; }
 }
