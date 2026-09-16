@@ -6,6 +6,7 @@ import { distanceSq, normalize } from '../utils/math.js';
 const RANGED_DAMAGE_FEEDBACK_INTERVAL = 0.16;
 const RANGED_HIT_INVULNERABILITY_DURATION = 0.1;
 const BURST_SPITTER_TYPE = 'burst_spitter';
+const STATIONARY_RUNNING_FRAME_TIME = 0.000001;
 
 if (!FRAME_SPRITES.enemies.spitter) {
   FRAME_SPRITES.enemies.spitter = createStandardFrameSet('spitter', { drawSize: 38 });
@@ -67,6 +68,13 @@ function createRangedEnemyCombatSystem(ParentCombatSystem) {
     updateRangedEnemies(enemies, dt) {
       const game = this.game;
       const player = game.player;
+
+      // Movement is tracked explicitly so the Spitter renderer can freeze on
+      // running_1 whenever the AI is standing still, including while firing.
+      for (const enemy of enemies) {
+        if (!enemy.dead) enemy.moving = false;
+      }
+
       if (game.isDropEffectActive('mothership')) return;
 
       const transformerActive = game.isDropEffectActive('transformer');
@@ -94,9 +102,11 @@ function createRangedEnemyCombatSystem(ParentCombatSystem) {
         if (playerDistance > preferredRange + 24) {
           enemy.x += moveDirection.x * enemy.speed * dt;
           enemy.y += moveDirection.y * enemy.speed * dt;
+          enemy.moving = true;
         } else if (playerDistance < retreatRange) {
           enemy.x -= moveDirection.x * enemy.speed * dt;
           enemy.y -= moveDirection.y * enemy.speed * dt;
+          enemy.moving = true;
         }
 
         if ((enemy.rangedBurstRemaining ?? 0) > 0) {
@@ -281,6 +291,65 @@ export class Game extends PreviousGame {
     const RangedEnemyCombatSystem = createRangedEnemyCombatSystem(this.combatSystem.constructor);
     this.combatSystem = new RangedEnemyCombatSystem(this);
     this.combatSystem.reset();
+  }
+
+  drawEnemies(ctx) {
+    const allEnemies = this.entities.enemies;
+    const spitters = [];
+    const otherEnemies = [];
+
+    for (const enemy of allEnemies) {
+      if (enemy.type === 'spitter') spitters.push(enemy);
+      else otherEnemies.push(enemy);
+    }
+
+    this.entities.enemies = otherEnemies;
+    try {
+      super.drawEnemies(ctx);
+    } finally {
+      this.entities.enemies = allEnemies;
+    }
+
+    for (const enemy of spitters) this.drawSpitterEnemy(ctx, enemy);
+  }
+
+  drawSpitterEnemy(ctx, enemy) {
+    const type = ENEMY_TYPES.spitter;
+    const sprite = FRAME_SPRITES.enemies.spitter;
+    const moving = Boolean(enemy.moving);
+    const spriteDrawn = this.animationRenderer.draw(
+      ctx,
+      sprite,
+      'running',
+      moving ? this.animationClock : STATIONARY_RUNNING_FRAME_TIME,
+      enemy.x,
+      enemy.y,
+      { phase: moving ? enemy.id * 0.071 : 0 },
+    );
+
+    if (spriteDrawn) {
+      if (enemy.hitFlash > 0) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,.9)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.radius + 3, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      return;
+    }
+
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+    ctx.fillStyle = enemy.hitFlash > 0 ? '#ffffff' : type.fill;
+    ctx.strokeStyle = type.outline;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 
   drawProjectiles(ctx) {
