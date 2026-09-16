@@ -92,7 +92,7 @@ function createBroodmotherCombatSystem(ParentCombatSystem) {
       let bestDistance = best ? effectiveTargetDistance(x, y, best) : Infinity;
 
       const boss = this.game.getActiveBroodmother?.();
-      if (boss?.targetable !== false) {
+      if (boss && boss.targetable !== false) {
         const bossDistance = effectiveTargetDistance(x, y, boss);
         if (bossDistance <= range + BOSS_TARGET_PADDING && bossDistance < bestDistance) {
           best = boss;
@@ -220,7 +220,7 @@ function createBroodmotherCombatSystem(ParentCombatSystem) {
         }
 
         const boss = game.getActiveBroodmother?.();
-        if (boss?.targetable !== false) {
+        if (boss && boss.targetable !== false) {
           const hitRadius = blastRadius + boss.radius;
           if (distanceSq(projectile.x, projectile.y, boss.x, boss.y) <= hitRadius * hitRadius) {
             game.damageBroodmother(projectile.damage, projectile.x, projectile.y);
@@ -385,7 +385,6 @@ export class Game extends PreviousGame {
     intro.elapsed += dt;
     if (!intro.purged && intro.elapsed >= INTRO_PURGE_TIME) {
       intro.purged = true;
-      // Boss-intro cleanup deliberately bypasses the kill path: no XP or kill credit.
       this.entities.enemies.length = 0;
       this.entities.projectiles.length = 0;
     }
