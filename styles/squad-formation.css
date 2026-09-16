@@ -223,16 +223,20 @@
 /* Keep contextual controls light so the hex layout stays visually dominant. */
 .squad-formation-toolbar {
   justify-content: flex-end;
+  min-height: 0;
   border: 0;
   background: transparent;
   backdrop-filter: none;
-  padding: 4px 2px 8px;
+  padding: 0;
   margin: 0;
 }
 
 /* Only expose removal when a removable unit is actually selected. */
 .squad-formation-remove:disabled {
   display: none;
+}
+.squad-formation-remove:not(:disabled) {
+  margin-bottom: 8px;
 }
 
 /* Center and emphasize the close affordance. */
