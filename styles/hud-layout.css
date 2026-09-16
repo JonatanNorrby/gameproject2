@@ -3,7 +3,7 @@
   width: max-content;
   max-width: 100%;
   margin: 0 auto;
-  grid-template-columns: minmax(210px, 280px) repeat(4, minmax(58px, 72px));
+  grid-template-columns: minmax(210px, 280px) repeat(4, auto);
   gap: 6px;
   align-items: start;
   justify-content: center;
@@ -13,6 +13,10 @@
   min-width: 0;
   padding: 6px 8px;
   border-radius: 9px;
+}
+
+.hud__top .hud-card:not(.hud-card--wide) {
+  width: 64px;
 }
 
 .hud__top .hud-card--wide {
@@ -49,7 +53,7 @@
 
 #gold-hud-card {
   display: grid;
-  gap: 1px;
+  gap: 2px;
   text-align: center;
 }
 
@@ -60,8 +64,12 @@
 @media (max-width: 900px) {
   .hud__top {
     width: 100%;
-    grid-template-columns: minmax(170px, 1.6fr) repeat(4, minmax(52px, .5fr));
+    grid-template-columns: minmax(150px, 1.7fr) repeat(4, minmax(58px, .55fr));
     gap: 5px;
+  }
+
+  .hud__top .hud-card:not(.hud-card--wide) {
+    width: auto;
   }
 }
 
