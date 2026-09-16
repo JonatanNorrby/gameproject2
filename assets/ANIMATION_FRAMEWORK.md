@@ -16,6 +16,7 @@ assets/
   crawler/
   runner/
   brute/
+  charger/
   spitter/
   burst_spitter/
 ```
@@ -65,6 +66,7 @@ dead_1.png
 - `crawler`
 - `runner`
 - `brute`
+- `charger`
 - `spitter`
 - `burst_spitter`
 
