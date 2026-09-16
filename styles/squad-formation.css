@@ -192,3 +192,66 @@
     filter: drop-shadow(0 0 7px rgba(247,201,75,.85));
   }
 }
+
+/* Issue 59: simplify the Squad Builder around the formation itself. */
+.panel--squad-builder {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+/* Remove the FORMATION eyebrow and all squad/unit stat summaries. */
+.squad-builder__header .eyebrow,
+.squad-builder__summary,
+.squad-unit-card__health,
+.squad-unit-card small {
+  display: none !important;
+}
+
+/* A quiet canvas with only the formation hexes on top. */
+.squad-builder__grid {
+  margin-top: 10px;
+  padding: 12px;
+  border: 0 !important;
+  border-radius: 0;
+  background: rgba(7, 11, 18, .5) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  scrollbar-gutter: auto;
+}
+
+/* Keep contextual controls light so the hex layout stays visually dominant. */
+.squad-formation-toolbar {
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  padding: 4px 2px 8px;
+  margin: 0;
+}
+
+/* Only expose removal when a removable unit is actually selected. */
+.squad-formation-remove:disabled {
+  display: none;
+}
+
+/* Center and emphasize the close affordance. */
+.squad-builder__close {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #ff5f79;
+  line-height: 1;
+}
+.squad-builder__close:hover {
+  color: #ff8aa0;
+  border-color: rgba(255, 95, 121, .45);
+  background: rgba(255, 95, 121, .08);
+}
+
+@media (max-width: 760px) {
+  .squad-formation-toolbar {
+    flex-direction: row;
+    align-items: center;
+  }
+  .squad-formation-remove {
+    width: auto;
+  }
+}
