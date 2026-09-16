@@ -3,7 +3,6 @@ import { CAPTAINS } from '../data/content.js';
 import { isCaptainUnlocked } from '../data/unlocks.js';
 import {
   PERMANENT_UPGRADES,
-  getPermanentProgressionState,
   isPermanentUpgradeOwned,
 } from '../data/metaUpgrades.js';
 import { SUPREME_COMMANDER_ID } from '../data/supremeCommander.js';
@@ -11,6 +10,7 @@ import { SUPREME_COMMANDER_ID } from '../data/supremeCommander.js';
 const THIRD_CAPTAIN_UPGRADE_ID = 'third_captain_slot';
 const SECOND_CAPTAIN_UPGRADE_ID = 'second_captain_slot';
 const TERTIARY_SLOT = 'tertiary';
+const SUPREME_BASE_WEAPON_TYPES = Object.freeze(['rocketeer', 'shockblade']);
 
 export class Game extends PreviousGame {
   constructor(...args) {
@@ -20,6 +20,21 @@ export class Game extends PreviousGame {
       this.activateCaptainCall(TERTIARY_SLOT);
     };
     window.addEventListener('keydown', this.thirdCaptainCallKeyHandler);
+  }
+
+  start() {
+    super.start();
+    if (!this.isSupremeCommanderRun?.()) return;
+
+    // The Commander body itself supplies Vale's Rifleman weapon. Add absorbed
+    // Rocketeer and Shockblade systems immediately so all three Captain weapon
+    // families and inherited bonuses are active from the first frame.
+    const existingTypes = new Set((this.player?.squad ?? []).map((unit) => unit.type));
+    for (const unitType of SUPREME_BASE_WEAPON_TYPES) {
+      if (existingTypes.has(unitType)) continue;
+      this.addSquadUnits(unitType, 1);
+      existingTypes.add(unitType);
+    }
   }
 
   getCaptainSoldierBySlot(slot) {
