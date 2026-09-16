@@ -196,10 +196,18 @@ class ShockbladeCombatSystem extends CombatSystem {
       const nextShotCount = mercerEligible ? (this.shotCounts.get(unit.id) ?? 0) + 1 : 0;
       const mercerSpecial = mercerEligible && nextShotCount % captain.effect.everyShots === 0;
       const rangeMultiplier = mercerSpecial ? captain.effect.rangeMultiplier : 1;
+      const preFireRangeMultiplier = Math.max(
+        1,
+        Number(this.getPreFireRangeMultiplier?.(soldier, unitClass)) || 1,
+      );
       const target = this.findNearestTarget(
         soldier.x,
         soldier.y,
-        weapon.range * unitModifiers.range * rangeMultiplier * statMultiplier,
+        weapon.range
+          * unitModifiers.range
+          * rangeMultiplier
+          * preFireRangeMultiplier
+          * statMultiplier,
       );
       if (!target) continue;
 
