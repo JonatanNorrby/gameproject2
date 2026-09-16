@@ -3,7 +3,7 @@ import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 84;
+const GAME_VERSION = 85;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
