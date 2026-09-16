@@ -1,7 +1,8 @@
-import { Game as PreviousGame, UI as PreviousUI } from './sniperClass.js';
+import { Game as PreviousGame, UI as PreviousUI } from './supremeCommander.js';
 
 const MAX_REPORTED_ERRORS = 20;
 const DAMAGE_FEEDBACK_DURATION = 0.18;
+const DEBUG_PIN = '6789';
 
 export class Game extends PreviousGame {
   constructor(...args) {
@@ -139,6 +140,47 @@ export class Game extends PreviousGame {
 }
 
 export class UI extends PreviousUI {
+  bindDebug({ setInfiniteHp, levelUp }) {
+    this.debugUnlocked = false;
+
+    const setOpen = (open) => {
+      this.debugPanel.classList.toggle('debug-panel--visible', open);
+      this.debugPanel.setAttribute('aria-hidden', String(!open));
+      this.debugToggle.setAttribute('aria-expanded', String(open));
+    };
+
+    const unlockDebug = () => {
+      if (this.debugUnlocked) return true;
+      const entered = window.prompt('Enter debug PIN');
+      if (entered !== DEBUG_PIN) {
+        const originalText = this.debugToggle.textContent;
+        this.debugToggle.textContent = 'DENIED';
+        window.setTimeout(() => {
+          this.debugToggle.textContent = originalText;
+        }, 900);
+        return false;
+      }
+      this.debugUnlocked = true;
+      return true;
+    };
+
+    this.debugToggle.addEventListener('click', () => {
+      if (!unlockDebug()) return;
+      setOpen(!this.debugPanel.classList.contains('debug-panel--visible'));
+    });
+    this.debugClose.addEventListener('click', () => setOpen(false));
+    this.debugInfiniteHp.addEventListener('change', (event) => {
+      if (!this.debugUnlocked) {
+        event.currentTarget.checked = false;
+        return;
+      }
+      setInfiniteHp(event.currentTarget.checked);
+    });
+    this.debugLevelUp.addEventListener('click', () => {
+      if (this.debugUnlocked) levelUp();
+    });
+  }
+
   bindSquadBuilder(config) {
     super.bindSquadBuilder(config);
 
