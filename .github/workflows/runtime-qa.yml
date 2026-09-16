@@ -1,0 +1,123 @@
+name: Validate final runtime
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate final runtime import and Captain slots
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-default-type=module --input-type=module <<'NODE'
+          const classList = { add() {}, remove() {}, toggle() {}, contains() { return false; } };
+          const elementStub = () => ({
+            dataset: {},
+            style: { setProperty() {} },
+            classList,
+            append() {},
+            appendChild() {},
+            prepend() {},
+            after() {},
+            before() {},
+            remove() {},
+            replaceChildren() {},
+            setAttribute() {},
+            removeAttribute() {},
+            addEventListener() {},
+            querySelector() { return null; },
+            querySelectorAll() { return []; },
+            closest() { return null; },
+            focus() {},
+          });
+
+          globalThis.document = {
+            head: { append() {}, appendChild() {} },
+            body: { append() {}, appendChild() {}, classList },
+            fonts: { ready: Promise.resolve() },
+            querySelector() { return null; },
+            querySelectorAll() { return []; },
+            createElement() { return elementStub(); },
+            createDocumentFragment() { return elementStub(); },
+          };
+          globalThis.window = {
+            localStorage: null,
+            addEventListener() {},
+            removeEventListener() {},
+            setTimeout() { return 0; },
+            clearTimeout() {},
+            queueMicrotask(callback) { callback(); },
+            requestAnimationFrame(callback) { callback(0); },
+            devicePixelRatio: 1,
+            innerWidth: 1280,
+            innerHeight: 720,
+          };
+
+          const runtime = await import('./src/features/captainSlotCompatibility.js');
+          const slots = await import('./src/data/captainSlots.js');
+          const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+          };
+
+          assert(typeof runtime.Game === 'function', 'Final Game runtime export missing');
+          assert(typeof runtime.UI === 'function', 'Final UI runtime export missing');
+          assert(typeof runtime.Game.prototype.getCaptainSoldierBySlot === 'function', 'Captain slot lookup missing');
+          assert(typeof runtime.Game.prototype.beginCipherSquadRetreat === 'function', 'Cipher retreat compatibility missing');
+          assert(typeof runtime.Game.prototype.getCipherHazardTargets === 'function', 'Cipher hazard compatibility missing');
+
+          const primary = { captainId: 'vale', primaryCaptain: true, secondaryCaptain: false, tertiaryCaptain: false, dead: false };
+          const secondary = { captainId: 'mercer', secondaryCaptain: true, tertiaryCaptain: false, dead: false };
+          const tertiary = { captainId: 'thorne', secondaryCaptain: false, tertiaryCaptain: true, dead: false };
+          assert(slots.isPrimaryCaptainSlotUnit(primary), 'Primary Captain was not recognized as primary');
+          assert(!slots.isPrimaryCaptainSlotUnit(secondary), 'Secondary Captain was incorrectly recognized as primary');
+          assert(!slots.isPrimaryCaptainSlotUnit(tertiary), 'Tertiary Captain was incorrectly recognized as primary');
+          assert(slots.isAdditionalCaptainUnit(secondary), 'Secondary Captain was not recognized as additional');
+          assert(slots.isAdditionalCaptainUnit(tertiary), 'Tertiary Captain was not recognized as additional');
+          assert(slots.getCaptainSlot(primary) === 'primary', 'Primary slot resolution failed');
+          assert(slots.getCaptainSlot(secondary) === 'secondary', 'Secondary slot resolution failed');
+          assert(slots.getCaptainSlot(tertiary) === 'tertiary', 'Tertiary slot resolution failed');
+
+          console.log('Final runtime and Captain-slot compatibility validated.');
+          NODE
+
+      - name: Validate HUD Gold layout and version sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib
+          import re
+
+          main = pathlib.Path('src/main.js').read_text(encoding='utf-8')
+          index = pathlib.Path('index.html').read_text(encoding='utf-8')
+          hud = pathlib.Path('styles/hud-layout.css').read_text(encoding='utf-8')
+          progression = pathlib.Path('src/features/metaUpgradeTree.js').read_text(encoding='utf-8')
+
+          match = re.search(r'const GAME_VERSION = (\d+);', main)
+          assert match, 'GAME_VERSION missing from src/main.js'
+          version = match.group(1)
+          assert f'BUILD v{version}' in index, 'Boot version is out of sync'
+          assert f'id="version-text">v{version}<' in index, 'HUD version is out of sync'
+          assert f'SYSTEM ONLINE • v{version}' in index, 'Main-menu version is out of sync'
+
+          assert './styles/hud-layout.css' in index, 'HUD layout stylesheet is not linked'
+          assert "card.id = 'gold-hud-card'" in progression, 'Gold HUD card creation is missing'
+          assert 'hudTop.append(card)' in progression, 'Gold HUD card is not part of the top stats row'
+          assert '#gold-hud-card' in hud, 'Gold HUD card styling is missing'
+          assert 'repeat(4, auto)' in hud, 'Desktop HUD does not reserve four compact stat columns'
+          assert 'repeat(4, minmax(58px, .55fr))' in hud, 'Tablet HUD does not reserve four compact stat columns'
+          assert 'repeat(4, minmax(0, 1fr))' in hud, 'Mobile HUD does not keep all four compact stats on one row'
+          assert 'text-align: center' in hud and 'gap: 2px' in hud, 'Gold label/value spacing is not normalized'
+
+          print(f'HUD Gold layout and v{version} version synchronization validated.')
+          PY
