@@ -28,7 +28,11 @@ function createThorneEveryFifthCombatSystem(ParentCombatSystem) {
     }
 
     performShockbladeSlash(unit, attack) {
-      const thorneActive = super.isThorneActive();
+      // Supreme Commander inherits Thorne even without a physical Thorne unit,
+      // but still must obey the every-third cadence below.
+      const thorneActive = Boolean(
+        this.game.isSupremeCommanderRun?.() || super.isThorneActive()
+      );
       const normalShockbladeForPassive = Boolean(
         unit?.type === SHOCKBLADE_TYPE
         && (unit.captainId !== THORNE_ID || unit.secondaryCaptain)
