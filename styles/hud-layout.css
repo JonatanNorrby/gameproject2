@@ -1,0 +1,31 @@
+/* Shared gameplay HUD layout refinements. */
+.hud__top {
+  grid-template-columns: minmax(220px, 360px) repeat(4, auto);
+}
+
+#gold-hud-card {
+  display: grid;
+  gap: 2px;
+  text-align: center;
+}
+
+#gold-hud-card #gold-text {
+  color: #f7c94b;
+}
+
+@media (max-width: 900px) {
+  .hud__top {
+    grid-template-columns: minmax(150px, 1.7fr) repeat(4, minmax(58px, .55fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .hud__top {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .hud__top .hud-card--wide {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
