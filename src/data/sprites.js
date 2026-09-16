@@ -51,6 +51,22 @@ export function createStandardFrameSet(folder, options = {}) {
   };
 }
 
+// Normal enemies deliberately use one attack frame. The renderer's standard
+// shooting fallback then skips the absent idle_shooting animation and resolves
+// directly to running_1 when shooting_1.png has not been supplied yet.
+export function createEnemyFrameSet(folder, options = {}) {
+  const standard = createStandardFrameSet(folder, options);
+  return {
+    ...standard,
+    animations: {
+      idle: standard.animations.idle,
+      running: standard.animations.running,
+      shooting: singleFrame('shooting_1.png'),
+      dead: standard.animations.dead,
+    },
+  };
+}
+
 export const FRAME_SPRITES = {
   units: {
     rifleman: createStandardFrameSet('rifleman', { drawSize: 42 }),
@@ -68,13 +84,13 @@ export const FRAME_SPRITES = {
     }),
   },
   enemies: {
-    crawler: createStandardFrameSet('crawler', { drawSize: 51 }),
-    runner: createStandardFrameSet('runner', { drawSize: 30 }),
+    crawler: createEnemyFrameSet('crawler', { drawSize: 51 }),
+    runner: createEnemyFrameSet('runner', { drawSize: 30 }),
     // #40: make the slow tank visually imposing without changing its gameplay hitbox.
-    brute: createStandardFrameSet('brute', { drawSize: 96, runningFps: 4 }),
-    charger: createStandardFrameSet('charger', { drawSize: 72 }),
-    spitter: createStandardFrameSet('spitter', { drawSize: 38, shootingLoop: false }),
-    burst_spitter: createStandardFrameSet('burst_spitter', { drawSize: 36, shootingLoop: false }),
+    brute: createEnemyFrameSet('brute', { drawSize: 96, runningFps: 4 }),
+    charger: createEnemyFrameSet('charger', { drawSize: 72 }),
+    spitter: createEnemyFrameSet('spitter', { drawSize: 38 }),
+    burst_spitter: createEnemyFrameSet('burst_spitter', { drawSize: 36 }),
   },
 };
 
