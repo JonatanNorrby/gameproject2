@@ -51,13 +51,20 @@
   line-height: 1;
 }
 
+.meta-upgrade-summary__points span {
+  color: #f7c94b;
+}
+
 .meta-upgrade-summary__points span,
 .meta-upgrade-summary__detail {
-  color: #9eabc0;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: .05em;
   text-transform: uppercase;
+}
+
+.meta-upgrade-summary__detail {
+  color: #9eabc0;
 }
 
 .meta-upgrade-help {
@@ -157,6 +164,13 @@
   font-size: 9px;
   font-weight: 1000;
   letter-spacing: .08em;
+}
+
+.meta-upgrade-node:not(.meta-upgrade-node--active) .meta-upgrade-node__topline span:last-child,
+.meta-upgrade-node:disabled:not(.meta-upgrade-node--active) .meta-upgrade-node__status,
+.main-menu__gold-balance {
+  color: #f7c94b;
+  text-shadow: 0 0 12px rgba(247,201,75,.2);
 }
 
 .meta-upgrade-node strong {
