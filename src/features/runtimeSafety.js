@@ -1,4 +1,4 @@
-import { Game as PreviousGame, UI } from './cipherBoss.js';
+import { Game as PreviousGame, UI } from './sniperClass.js';
 
 const MAX_REPORTED_ERRORS = 20;
 const DAMAGE_FEEDBACK_DURATION = 0.18;
