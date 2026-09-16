@@ -39,7 +39,7 @@
 
       <div class="hud__bottom">
         <div class="hud-card hud-card--wide">
-          <div class="hud-label-row"><span id="level-text">Level 1</span><span id="version-text">v56</span><span id="xp-text">0 / 8 XP</span></div>
+          <div class="hud-label-row"><span id="level-text">Level 1</span><span id="version-text">v72</span><span id="xp-text">0 / 20 XP</span></div>
           <div class="bar"><div id="xp-bar" class="bar__fill bar__fill--xp"></div></div>
         </div>
       </div>
@@ -90,10 +90,10 @@
         <p>Survive the swarm. Move with <strong>WASD</strong> or <strong>arrow keys</strong>. Your squad attacks automatically at nearby enemies. Recruit specialized classes, arrange your formation, and build around your Captain's unique combat bonuses.</p>
         <div id="selected-captain-summary" class="selected-captain-summary" aria-live="polite"></div>
         <button id="captain-menu-open" class="captain-menu-button" type="button">Change Captain</button>
-        <button id="meta-upgrade-open" class="captain-menu-button" type="button">Upgrade Tree</button>
+        <button id="meta-upgrade-open" class="captain-menu-button" type="button">Gold Upgrades</button>
         <button id="start-button" class="primary-button">Begin Run</button>
         <button id="reset-progress-button" class="captain-menu-button" type="button" style="margin-top:10px;border-color:rgba(255,113,136,.45);color:#ff9aaa;">Reset Progress</button>
-        <p class="muted">Your Captain is the squad leader. If the Captain dies, the run ends.</p>
+        <p class="muted">Your primary Captain is the squad leader. If the primary Captain dies, the run ends.</p>
       </div>
     </section>
 
@@ -106,7 +106,7 @@
           </div>
           <button id="captain-menu-close" class="captain-select__close" type="button" aria-label="Close Captain selection">×</button>
         </div>
-        <p class="captain-select__help">Choose the Captain who will lead the next run. Captain bonuses may be adjacency-based or squad-wide.</p>
+        <p class="captain-select__help">Choose the primary Captain who will lead the next run. Captain bonuses may be adjacency-based or squad-wide.</p>
         <div id="captain-options" class="upgrade-grid" aria-label="Captain selection"></div>
         <button id="captain-menu-back" class="primary-button" type="button">Back to Main Menu</button>
       </div>
@@ -116,22 +116,22 @@
       <div class="panel panel--meta-upgrades">
         <div class="meta-upgrade-header">
           <div>
-            <p class="eyebrow">PERSISTENT PROGRESSION</p>
-            <h2>Upgrade Tree</h2>
+            <p class="eyebrow">PERMANENT PROGRESSION</p>
+            <h2>Gold Upgrades</h2>
           </div>
-          <button id="meta-upgrade-close" class="meta-upgrade-close" type="button" aria-label="Close upgrade tree">×</button>
+          <button id="meta-upgrade-close" class="meta-upgrade-close" type="button" aria-label="Close Gold upgrades">×</button>
         </div>
         <div class="meta-upgrade-summary">
           <div class="meta-upgrade-summary__points">
             <strong id="meta-upgrade-points">0</strong>
-            <span>Available Upgrade Points</span>
+            <span>Gold</span>
           </div>
-          <span id="meta-upgrade-points-detail" class="meta-upgrade-summary__detail">0 allocated / 0 earned</span>
+          <span id="meta-upgrade-points-detail" class="meta-upgrade-summary__detail">0 / 3 permanent upgrades owned</span>
         </div>
-        <p class="meta-upgrade-help">These upgrades persist between runs and are designed to change how you build and play. Activate or refund nodes at any time with no penalty. Refunding a parent also refunds dependent nodes.</p>
-        <div id="meta-upgrade-branches" class="meta-upgrade-branches" aria-label="Persistent upgrade tree"></div>
+        <p class="meta-upgrade-help">Gold can drop from defeated enemies. Spend it on permanent upgrades in any order; there are no prerequisites or upgrade-tree paths.</p>
+        <div id="meta-upgrade-branches" class="meta-upgrade-branches" aria-label="Permanent Gold upgrades"></div>
         <div class="meta-upgrade-footer">
-          <button id="meta-upgrade-debug-point" class="captain-menu-button meta-upgrade-debug" type="button">DEBUG: Give Upgrade Point</button>
+          <button id="meta-upgrade-debug-point" class="captain-menu-button meta-upgrade-debug" type="button">DEBUG: +25 Gold</button>
           <button id="meta-upgrade-back" class="primary-button" type="button">Back to Main Menu</button>
         </div>
       </div>
