@@ -23,7 +23,7 @@ jobs:
           test -f src/data/captainSlots.js
           test -f src/features/captainSlotCompatibility.js
           grep -q './styles/handbook.css' index.html
-          grep -q "./features/captainSlotCompatibility.js" src/main.js
+          grep -q "./features/bossVisibilityFix.js" src/main.js
 
           node --experimental-default-type=module --input-type=module <<'NODE'
           import fs from 'node:fs';
@@ -66,7 +66,7 @@ jobs:
             innerHeight: 720,
           };
 
-          const runtime = await import('./src/features/captainSlotCompatibility.js');
+          const runtime = await import('./src/features/bossVisibilityFix.js');
           const handbook = await import('./src/features/handbook.js');
           const supportUnits = await import('./src/features/supportUnits.js');
           const slots = await import('./src/data/captainSlots.js');
