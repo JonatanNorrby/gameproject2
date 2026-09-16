@@ -41,7 +41,6 @@ export function createStandardFrameSet(folder, options = {}) {
     smoothing: options.smoothing ?? true,
     preserveAspect: options.preserveAspect ?? true,
     forwardAngle: Number.isFinite(options.forwardAngle) ? options.forwardAngle : Math.PI / 2,
-    directionMode: options.directionMode ?? null,
     animations: {
       idle: singleFrame('idle_1.png'),
       running: twoFrame('running', options.runningFps ?? 8, true),
@@ -58,14 +57,6 @@ export const FRAME_SPRITES = {
     rocketeer: createStandardFrameSet('rocketeer', { drawSize: 44, shootingLoop: false }),
     shockblade: createStandardFrameSet('shockblade', { drawSize: 44, shootingLoop: false }),
     drone_pilot: createStandardFrameSet('drone_pilot', { drawSize: 42, shootingLoop: false }),
-    anti_air: createStandardFrameSet('anti_air', {
-      drawSize: 72,
-      drawWidth: 72,
-      drawHeight: 46,
-      shootingLoop: false,
-      forwardAngle: Math.PI,
-      directionMode: 'west-cardinal',
-    }),
   },
   captains: {
     mercer: createStandardFrameSet('captain_mercer', { drawSize: 44, shootingLoop: false }),
