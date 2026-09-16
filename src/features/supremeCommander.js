@@ -1,5 +1,4 @@
 import { Game as PreviousGame, UI as PreviousUI } from './sniperClass.js';
-import { CAPTAINS } from '../data/content.js';
 import { evaluateUnlocks } from '../data/unlocks.js';
 import {
   SUPREME_COMMANDER,
@@ -340,14 +339,18 @@ export class UI extends PreviousUI {
       ...config,
       getSquad: () => {
         const squad = config.getSquad?.() ?? [];
-        if (!this.game?.isSupremeCommanderRun?.()) return squad;
-        return this.game.getSquadBuilderUnits?.() ?? squad.filter((unit) => !unit.absorbedBySupremeCommander);
+        const supremeActive = squad.some((unit) => (
+          unit.captainId === SUPREME_COMMANDER_ID || unit.absorbedBySupremeCommander
+        ));
+        return supremeActive
+          ? squad.filter((unit) => !unit.absorbedBySupremeCommander)
+          : squad;
       },
     });
   }
 
   renderRunConfiguration(...args) {
-    super.renderRunConfiguration?.(...args);
+    super.renderRunConfiguration(...args);
 
     const primaryId = this.getSelectedCaptainId?.() ?? null;
     if (!this.secondCaptainSelect || primaryId === SUPREME_COMMANDER_ID) return;
@@ -364,7 +367,7 @@ export class UI extends PreviousUI {
   }
 
   getSelectedSecondCaptainId() {
-    const id = super.getSelectedSecondCaptainId?.() ?? null;
+    const id = super.getSelectedSecondCaptainId();
     return id === SUPREME_COMMANDER_ID ? null : id;
   }
 
