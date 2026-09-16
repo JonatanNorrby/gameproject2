@@ -76,6 +76,9 @@ jobs:
           assert(typeof runtime.Game.prototype.getCipherHazardTargets === 'function', 'Cipher hazard compatibility missing');
           assert(typeof runtime.Game.prototype.drawBossEncounterEntities === 'function', 'Boss visibility compatibility renderer missing');
           assert(typeof runtime.Game.prototype.drawSupremeCommanderGlow === 'function', 'Supreme Commander glow renderer missing');
+          assert(typeof runtime.UI.prototype.applyIssue54Presentation === 'function', 'Issue 54 main/loading screen cleanup missing');
+          assert(typeof runtime.UI.prototype.applyIssue54CaptainPrompt === 'function', 'Issue 54 Captain prompt cleanup missing');
+          assert(typeof runtime.UI.prototype.installMainMenuDebug === 'function', 'Issue 54 main-menu debug placement missing');
 
           const primary = { captainId: 'vale', primaryCaptain: true, secondaryCaptain: false, tertiaryCaptain: false, dead: false };
           const secondary = { captainId: 'mercer', secondaryCaptain: true, tertiaryCaptain: false, dead: false };
@@ -141,10 +144,10 @@ jobs:
           assert(glowCalls.arcs === 1 && glowCalls.fills === 1, 'Supreme Commander glow was not filled exactly once');
           assert(glowCalls.strokes === 0, 'Supreme Commander gameplay platform ring returned');
 
-          console.log('Final runtime, Captain-slot compatibility, boss rendering and Supreme Commander glow validated.');
+          console.log('Final runtime, Captain-slot compatibility, boss rendering, Supreme Commander glow and issue 54 presentation APIs validated.');
           NODE
 
-      - name: Validate HUD Gold layout, Supreme menu glow and version sync
+      - name: Validate HUD Gold layout, Supreme menu glow, issue 54 UI and version sync
         shell: bash
         run: |
           set -euo pipefail
@@ -156,14 +159,16 @@ jobs:
           index = pathlib.Path('index.html').read_text(encoding='utf-8')
           hud = pathlib.Path('styles/hud-layout.css').read_text(encoding='utf-8')
           progression = pathlib.Path('src/features/metaUpgradeTree.js').read_text(encoding='utf-8')
+          runtime = pathlib.Path('src/features/bossVisibilityFix.js').read_text(encoding='utf-8')
           supreme_css = pathlib.Path('styles/issue-37-38.css').read_text(encoding='utf-8')
 
           match = re.search(r'const GAME_VERSION = (\d+);', main)
           assert match, 'GAME_VERSION missing from src/main.js'
           version = match.group(1)
-          assert f'BUILD v{version}' in index, 'Boot version is out of sync'
-          assert f'id="version-text">v{version}<' in index, 'HUD version is out of sync'
-          assert f'SYSTEM ONLINE • v{version}' in index, 'Main-menu version is out of sync'
+          assert f'BUILD v{version}' in index, 'Boot version source marker is out of sync'
+          assert f'id="version-text">v{version}<' in index, 'HUD version source marker is out of sync'
+          assert f'SYSTEM ONLINE • v{version}' in index, 'Main-menu version source marker is out of sync'
+          assert 'setGameVersion?.(GAME_VERSION)' in main, 'Settings version is not synchronized from GAME_VERSION'
 
           assert './styles/hud-layout.css' in index, 'HUD layout stylesheet is not linked'
           assert "card.id = 'gold-hud-card'" in progression, 'Gold HUD card creation is missing'
@@ -184,5 +189,17 @@ jobs:
           assert 'content: none' in after_rules and 'display: none' in after_rules, 'Supreme Commander menu platform is not disabled'
           assert 'radial-gradient' in supreme_css and 'supreme-menu-glow' in supreme_css, 'Supreme Commander menu glow was removed with the platform'
 
-          print(f'HUD layout, Supreme Commander glow-only visuals and v{version} synchronization validated.')
+          # #54: visible presentation is rewritten by the final runtime before the
+          # app shell is revealed. Keep these phrases/layout rules as contracts.
+          assert 'initialazing nightfall protocol command systems' in runtime, 'Loading-screen systems text missing'
+          assert "build.textContent = 'SYSTEM ONLINE'" in runtime, 'Main-menu SYSTEM ONLINE cleanup missing'
+          assert '// Nightfall command systems' in runtime, 'Bottom-left command systems label missing'
+          assert 'Click here to choose Captain' in runtime, 'Captain choice prompt missing'
+          assert "title.textContent = 'Select Captain'" in runtime, 'Captain prompt was not simplified'
+          assert 'main-menu__debug-launch' in runtime, 'Small bottom-left main debug control missing'
+          assert '.boot-screen::after' in runtime and '.boot-screen__track' in runtime, 'Loading-screen line cleanup missing'
+          assert 'width: 9px' in runtime and '0 0 38px' in runtime, 'SYSTEM ONLINE indicator glow/size contract missing'
+          assert 'main-menu__brief' in runtime and "querySelector('#start-screen .main-menu__brief')?.remove?.()" in runtime, 'Mission/controls panel cleanup missing'
+
+          print(f'HUD layout, Supreme Commander glow-only visuals, issue 54 menu/loading presentation and v{version} synchronization validated.')
           PY

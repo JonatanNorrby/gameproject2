@@ -16,6 +16,85 @@ const CAPTAIN_CALL_ACTIONS = Object.freeze([
   Object.freeze({ slot: 'tertiary', action: 'tertiaryCall' }),
 ]);
 
+const ISSUE_54_STYLE_ID = 'issue-54-presentation';
+const ISSUE_54_STYLES = `
+  .boot-screen::after,
+  .boot-screen__track,
+  .boot-screen__version {
+    display: none !important;
+  }
+
+  #version-text,
+  #start-screen .main-menu__identity .eyebrow,
+  #start-screen .main-menu__captain-kicker,
+  #start-screen .main-menu__brief {
+    display: none !important;
+  }
+
+  #start-screen .main-menu__body {
+    grid-template-columns: minmax(230px, 300px) minmax(360px, 1fr);
+  }
+
+  #start-screen .main-menu__footer {
+    justify-content: flex-start;
+  }
+
+  #start-screen .main-menu__build::before {
+    width: 9px;
+    height: 9px;
+    background: #63cfff;
+    box-shadow:
+      0 0 7px rgba(99, 207, 255, .98),
+      0 0 20px rgba(99, 207, 255, .66),
+      0 0 38px rgba(99, 207, 255, .3);
+  }
+
+  #start-screen .main-menu__debug-launch {
+    position: fixed;
+    left: max(24px, env(safe-area-inset-left));
+    bottom: max(58px, calc(env(safe-area-inset-bottom) + 44px));
+    z-index: 95;
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 4px;
+    padding: 4px 7px;
+    background: rgba(4, 12, 17, .22);
+    color: #36505b;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    opacity: .42;
+    box-shadow: none;
+    clip-path: none;
+    cursor: pointer;
+    transition: color 120ms ease, opacity 120ms ease, background 120ms ease;
+  }
+
+  #start-screen .main-menu__debug-launch::before {
+    content: none;
+    display: none;
+  }
+
+  #start-screen .main-menu__debug-launch:hover,
+  #start-screen .main-menu__debug-launch[aria-expanded="true"] {
+    transform: none;
+    border-color: transparent;
+    background: rgba(18, 43, 52, .42);
+    color: #7197a5;
+    opacity: .82;
+  }
+
+  @media (max-width: 700px) {
+    #start-screen .main-menu__build,
+    #start-screen .main-menu__footer {
+      display: flex;
+    }
+  }
+`;
+
 function isEditableTarget(target) {
   const tag = target?.tagName?.toLowerCase?.();
   return tag === 'input' || tag === 'select' || tag === 'textarea' || target?.isContentEditable;
@@ -138,6 +217,9 @@ export class UI extends PreviousUI {
   constructor(...args) {
     super(...args);
 
+    this.installIssue54PresentationStyles();
+    this.applyIssue54Presentation();
+
     this.installSettingsStyles();
     this.versionText?.style && (this.versionText.style.display = 'none');
     const bootVersion = document.querySelector('#boot-version');
@@ -154,6 +236,80 @@ export class UI extends PreviousUI {
 
     this.bindSettingsMenu();
     this.renderSettingsMenu();
+  }
+
+  installIssue54PresentationStyles() {
+    if (document.querySelector(`#${ISSUE_54_STYLE_ID}`)) return;
+    const style = document.createElement('style');
+    style.id = ISSUE_54_STYLE_ID;
+    style.textContent = ISSUE_54_STYLES;
+    document.head?.append(style);
+  }
+
+  applyIssue54Presentation() {
+    const bootEyebrow = document.querySelector('.boot-screen__eyebrow');
+    if (bootEyebrow) {
+      bootEyebrow.textContent = 'initialazing nightfall protocol command systems';
+    }
+
+    document.querySelector('.boot-screen__track')?.remove?.();
+    document.querySelector('#boot-version')?.remove?.();
+    document.querySelector('#start-screen .main-menu__identity .eyebrow')?.remove?.();
+    document.querySelector('#start-screen .main-menu__captain-kicker')?.remove?.();
+    document.querySelector('#start-screen .main-menu__brief')?.remove?.();
+
+    const build = document.querySelector('#start-screen .main-menu__build');
+    if (build) build.textContent = 'SYSTEM ONLINE';
+
+    const footer = document.querySelector('#start-screen .main-menu__footer');
+    if (footer) {
+      const entries = [...footer.querySelectorAll('span')];
+      if (entries[0]) entries[0].remove();
+      const commandSystems = entries[1] ?? footer.querySelector('span');
+      if (commandSystems) commandSystems.textContent = '// Nightfall command systems';
+    }
+
+    this.applyIssue54CaptainPrompt();
+  }
+
+  applyIssue54CaptainPrompt() {
+    const summary = this.selectedCaptainSummary ?? document.querySelector('#selected-captain-summary');
+    const card = summary?.querySelector('.selected-captain-card--empty');
+    if (!card) return;
+
+    card.querySelector('.selected-captain-card__label')?.remove?.();
+    const title = card.querySelector('.selected-captain-card__info strong');
+    if (title) title.textContent = 'Select Captain';
+    const detail = card.querySelector('.selected-captain-card__role');
+    if (detail) detail.textContent = 'Click here to choose Captain';
+  }
+
+  requireCaptainSelection(...args) {
+    const result = super.requireCaptainSelection(...args);
+    const startButton = document.querySelector('#start-button');
+    if (startButton) startButton.textContent = 'Select Captain';
+    this.applyIssue54CaptainPrompt();
+    return result;
+  }
+
+  renderSelectedCaptainSummary(...args) {
+    const result = super.renderSelectedCaptainSummary(...args);
+    this.applyIssue54CaptainPrompt();
+    return result;
+  }
+
+  installMainMenuDebug(...args) {
+    const result = super.installMainMenuDebug(...args);
+    const toggle = this.mainDebugToggle ?? document.querySelector('#main-debug-toggle');
+    if (toggle) toggle.className = 'main-menu__debug-launch';
+
+    const panel = this.mainDebugPanel ?? document.querySelector('#main-debug-panel');
+    if (panel) {
+      panel.style.top = 'auto';
+      panel.style.bottom = '74px';
+      panel.style.left = 'max(14px, env(safe-area-inset-left))';
+    }
+    return result;
   }
 
   installSettingsStyles() {
