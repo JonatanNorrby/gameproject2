@@ -1,11 +1,9 @@
-import { Game, UI } from './features/runtimeSafety.js';
+import { Game, UI } from './features/prestigeSystem.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { getSpritePortraitSources } from './data/sprites.js';
-import { resetUnlockProgress } from './data/unlocks.js';
-import { resetPermanentProgression } from './data/metaUpgrades.js';
 
-const GAME_VERSION = 80;
+const GAME_VERSION = 81;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
@@ -95,30 +93,6 @@ ui.bindDebug({
   levelUp() {
     game.progression.debugLevelUp();
   },
-});
-
-const resetProgressButton = document.querySelector('#reset-progress-button');
-resetProgressButton?.addEventListener('click', () => {
-  const confirmed = window.confirm(
-    'Reset all progress? Captain unlocks, Gold and permanent upgrades will be erased. Captain Vale will remain available.',
-  );
-  if (!confirmed) return;
-
-  resetUnlockProgress();
-  resetPermanentProgression();
-
-  ui.selectedCaptainId = null;
-  ui.selectedSecondCaptainId = null;
-  ui.captainSelectionRequired = false;
-  ui.renderCaptainOptions?.();
-  ui.renderSelectedCaptainSummary?.();
-  ui.renderPermanentShop?.();
-  ui.renderRunConfiguration?.();
-
-  resetProgressButton.textContent = 'Progress Reset';
-  window.setTimeout(() => {
-    resetProgressButton.textContent = 'Reset Progress';
-  }, 1600);
 });
 
 for (const button of document.querySelectorAll('[data-debug-drop]')) {
