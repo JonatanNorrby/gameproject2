@@ -1,4 +1,4 @@
-import { Game, UI } from './features/captainSlotCompatibility.js';
+import { Game, UI } from './features/bossVisibilityFix.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import {
@@ -7,7 +7,7 @@ import {
 } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 93;
+const GAME_VERSION = 94;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
