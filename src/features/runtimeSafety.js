@@ -26,6 +26,12 @@ export class Game extends PreviousGame {
     this.damageFeedback = DAMAGE_FEEDBACK_DURATION;
   }
 
+  getCaptainUnit() {
+    return (this.player?.squad ?? []).find((unit) => (
+      !unit.dead && Boolean(unit.captainId) && !unit.secondaryCaptain
+    )) ?? null;
+  }
+
   withSecondaryCaptainIdsMasked(callback) {
     const secondaryCaptains = (this.player?.squad ?? [])
       .filter((unit) => !unit.dead && unit.secondaryCaptain && unit.captainId)
