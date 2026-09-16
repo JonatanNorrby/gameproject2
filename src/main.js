@@ -11,6 +11,8 @@ const canvas = document.querySelector('#game-canvas');
 const touchStick = document.querySelector('#touch-stick');
 const ui = new UI();
 ui.versionText.textContent = `v${GAME_VERSION}`;
+const mainMenuBuild = document.querySelector('.main-menu__build');
+if (mainMenuBuild) mainMenuBuild.textContent = `SYSTEM ONLINE • v${GAME_VERSION}`;
 const input = new Input(canvas, touchStick);
 const game = new Game(canvas, input, ui);
 
