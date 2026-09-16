@@ -180,6 +180,27 @@ export class UI extends PreviousUI {
     return super.applyFormationAction(result, options);
   }
 
+  renderSelectedCaptainSummary(...args) {
+    super.renderSelectedCaptainSummary(...args);
+
+    const summary = this.selectedCaptainSummary ?? document.querySelector('#selected-captain-summary');
+    const card = summary?.querySelector('.selected-captain-card');
+    if (!card || card.classList.contains('selected-captain-card--empty')) return;
+
+    // The center Captain presentation is the sole main-menu Captain selector.
+    // Empty cards already receive this behavior in captainMenu.js.
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', 'Change Captain');
+    card.title = 'Change Captain';
+    card.addEventListener('click', () => this.showCaptainSelection?.());
+    card.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      this.showCaptainSelection?.();
+    });
+  }
+
   renderPermanentShop(...args) {
     super.renderPermanentShop(...args);
     const button = this.metaUpgradeOpen ?? document.querySelector('#meta-upgrade-open');
