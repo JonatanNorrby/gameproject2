@@ -23,6 +23,53 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Validate JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+          done < <(find src -type f -name '*.js' -print0)
+
+      - name: Validate local module imports
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          root = pathlib.Path('.').resolve()
+          failures = []
+          import_pattern = re.compile(
+              r"(?:\bfrom\s*|\bimport\s*)['\"]([^'\"]+)['\"]"
+          )
+
+          for source in pathlib.Path('src').rglob('*.js'):
+              text = source.read_text(encoding='utf-8')
+              for specifier in import_pattern.findall(text):
+                  if not specifier.startswith('.'):
+                      continue
+                  target = (source.parent / specifier).resolve()
+                  if target.exists():
+                      continue
+                  if target.suffix == '' and target.with_suffix('.js').exists():
+                      continue
+                  failures.append(f"{source}: missing import {specifier}")
+
+          entry = pathlib.Path('src/main.js')
+          if not entry.exists():
+              failures.append('Missing src/main.js entry point')
+
+          if failures:
+              print('\n'.join(failures), file=sys.stderr)
+              raise SystemExit(1)
+
+          print('All relative JavaScript imports resolve.')
+          PY
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload static site
