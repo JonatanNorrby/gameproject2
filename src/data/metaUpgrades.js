@@ -18,6 +18,14 @@ export const PERMANENT_UPGRADES = Object.freeze({
     color: '#74c9ff',
     description: 'Select a second Captain before the run. They fight as a normal unit but still provide their Captain bonus.',
   }),
+  third_captain_slot: Object.freeze({
+    id: 'third_captain_slot',
+    name: 'Third Captain',
+    cost: 50,
+    color: '#c17cff',
+    requires: Object.freeze(['second_captain_slot']),
+    description: 'Deploy a third Captain so Vale, Mercer and Thorne can fight together. Requires Second Captain Slot.',
+  }),
   captains_call: Object.freeze({
     id: 'captains_call',
     name: "Captains Call",
@@ -146,8 +154,11 @@ export function grantGold(amount = 1) {
 
 export function canPurchasePermanentUpgrade(id) {
   const definition = PERMANENT_UPGRADES[id];
+  const requirementsMet = (definition?.requires ?? [])
+    .every((requiredId) => isPermanentUpgradeOwned(requiredId));
   return Boolean(
     definition
+    && requirementsMet
     && !isPermanentUpgradeOwned(id)
     && progressionState.gold >= definition.cost
   );
