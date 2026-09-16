@@ -8,6 +8,13 @@ const DRONE_PILOT_TYPE = 'drone_pilot';
 const ROCKETEER_CLASS = 'rocketeer';
 const MERCER_ID = 'mercer';
 const DAMAGE_FLASH_DURATION = 0.16;
+export const DRONE_STUN_EXPLOSION_COLOR = '#69cfff';
+
+export function emitDroneStunExplosion(game, x, y, radius) {
+  if (!game?.spawnExplosionEffect) return false;
+  game.spawnExplosionEffect(x, y, radius, DRONE_STUN_EXPLOSION_COLOR);
+  return true;
+}
 
 const DRONE_SPRITE = Object.freeze({
   basePath: './assets/drone_pilot',
@@ -133,7 +140,6 @@ function createSupportCombatSystem(ParentCombatSystem) {
       const radius = support.aoeRadius
         * modifiers.blastRadius
         * mercerAttack.aoeMultiplier;
-      let stunnedCount = 0;
       for (const enemy of game.entities.enemies) {
         if (enemy.dead) continue;
         if ((enemy.stunnedUntil ?? 0) > now) continue;
@@ -142,16 +148,13 @@ function createSupportCombatSystem(ParentCombatSystem) {
         if (distanceSq(target.x, target.y, enemy.x, enemy.y) > hitRadius * hitRadius) continue;
         enemy.stunnedUntil = now + support.stunDuration;
         enemy.droneRecentlyStunnedUntil = now + support.recentStunLockout;
-        stunnedCount += 1;
       }
-      if (stunnedCount > 0) {
-        game.spawnExplosionEffect(
-          target.x,
-          target.y,
-          radius,
-          mercerAttack.color ?? support.color,
-        );
-      }
+
+      // #48: the stun grenade itself should always be readable, even if every
+      // enemy in the blast is already on stun lockout. Keep the visual blue on
+      // Mercer's enlarged third grenade too; only the radius changes.
+      emitDroneStunExplosion(game, target.x, target.y, radius);
+
       drone.targetId = null;
       drone.grenadeCooldown = support.cooldown / modifiers.fireRate;
     }
