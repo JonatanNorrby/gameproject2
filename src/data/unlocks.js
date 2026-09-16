@@ -37,6 +37,18 @@ export const UNLOCK_DEFINITIONS = Object.freeze({
       count: 5,
     }),
   }),
+  'captain:supreme_commander': Object.freeze({
+    id: 'captain:supreme_commander',
+    category: 'captain',
+    targetId: 'supreme_commander',
+    label: 'Supreme Commander',
+    defaultUnlocked: false,
+    requirementText: 'Defeat The Cipher, the final boss.',
+    condition: Object.freeze({
+      type: 'boss-defeated',
+      bossId: 'cipher',
+    }),
+  }),
 });
 
 function getDefaultUnlockIds() {
@@ -121,7 +133,7 @@ export function unlock(unlockId) {
   return definition;
 }
 
-function conditionMet(condition, { squad = [] } = {}) {
+function conditionMet(condition, { squad = [], defeatedBossIds = [] } = {}) {
   if (!condition) return true;
 
   if (condition.type === 'living-unit-count') {
@@ -129,6 +141,10 @@ function conditionMet(condition, { squad = [] } = {}) {
       !unit.dead && unit.type === condition.unitType
     )).length;
     return livingCount >= condition.count;
+  }
+
+  if (condition.type === 'boss-defeated') {
+    return defeatedBossIds.includes(condition.bossId);
   }
 
   return false;
