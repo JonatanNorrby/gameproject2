@@ -4,7 +4,7 @@ import { THORNE_CAPTAIN } from '../data/captainThorne.js';
 
 const THORNE_ID = THORNE_CAPTAIN.id;
 const SHOCKBLADE_TYPE = 'shockblade';
-const DEFAULT_SWEEP_INTERVAL = 5;
+const DEFAULT_SWEEP_INTERVAL = 3;
 
 function createThorneEveryFifthCombatSystem(ParentCombatSystem) {
   return class ThorneEveryFifthCombatSystem extends ParentCombatSystem {
