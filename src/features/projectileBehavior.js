@@ -1,6 +1,7 @@
 import { Game as PreviousGame, UI as PreviousUI } from './captainThorne.js';
 import { UPGRADES } from '../data/content.js';
 import { getUnitModifiers } from '../data/unitModifiers.js';
+import { getUnitClassMembers } from '../data/unitFamilies.js';
 
 const PROJECTILE_FADE_MIN_DISTANCE = 24;
 const PROJECTILE_FADE_MAX_DISTANCE = 50;
@@ -20,12 +21,15 @@ const riflemanPierceUpgrade = UPGRADES.find((upgrade) => (
 if (riflemanPierceUpgrade) {
   riflemanPierceUpgrade.describe = (rarity) => {
     const amount = PIERCE_BONUS_BY_RARITY[rarity.id] ?? 1;
-    return `+${amount} Rifleman projectile pierce.`;
+    return `+${amount} Rifleman-class projectile pierce.`;
   };
   riflemanPierceUpgrade.apply = (game, rarity) => {
     const amount = PIERCE_BONUS_BY_RARITY[rarity.id] ?? 1;
-    if (!game.unitModifiers?.rifleman) return;
-    game.unitModifiers.rifleman.pierce += amount;
+    for (const unitType of getUnitClassMembers('rifleman')) {
+      const modifiers = game.unitModifiers?.[unitType];
+      if (!modifiers) continue;
+      modifiers.pierce += amount;
+    }
   };
 }
 
@@ -145,7 +149,7 @@ export class UI extends PreviousUI {
       if (upgrade?.unitType !== 'rifleman' || upgrade?.stat !== 'pierce') return;
       const progress = card.querySelector('small');
       const totalBonus = this.game?.unitModifiers?.rifleman?.pierce ?? 0;
-      if (progress) progress.textContent = `Rifleman Pierce bonus: +${formatPierce(totalBonus)} total`;
+      if (progress) progress.textContent = `Rifleman Class Pierce bonus: +${formatPierce(totalBonus)} total`;
     });
   }
 }
