@@ -1,7 +1,7 @@
 import { Game as PreviousGame, UI } from './beefedUp.js';
 import {
   grantGold,
-  isPermanentUpgradeOwned,
+  isPermanentUpgradeActive,
 } from '../data/metaUpgrades.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
@@ -26,7 +26,7 @@ function createTreasureChestCombatSystem(ParentCombatSystem) {
       const wasAlive = Boolean(enemy && !enemy.dead);
       super.killEnemy(enemy, options);
       if (!wasAlive || !enemy?.dead || options.allowDrop === false) return;
-      if (!isPermanentUpgradeOwned(TREASURE_CHEST_UPGRADE_ID)) return;
+      if (!isPermanentUpgradeActive(TREASURE_CHEST_UPGRADE_ID)) return;
       if (Math.random() >= TREASURE_CHEST_DROP_CHANCE) return;
       this.game.spawnTreasureChest(enemy.x, enemy.y);
     }
@@ -49,7 +49,7 @@ export class Game extends PreviousGame {
   }
 
   spawnTreasureChest(x, y) {
-    if (!isPermanentUpgradeOwned(TREASURE_CHEST_UPGRADE_ID)) return null;
+    if (!isPermanentUpgradeActive(TREASURE_CHEST_UPGRADE_ID)) return null;
     const chest = {
       id: `treasure-${this.entities.createId()}`,
       x,

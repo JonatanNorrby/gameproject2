@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'nightfall-protocol.permanent-gold.v1';
 const LEGACY_STORAGE_KEY = 'nightfall-protocol.meta-upgrades.v1';
-const STATE_VERSION = 1;
+const STATE_VERSION = 2;
 const LEGACY_POINT_GOLD_VALUE = 10;
 
 export const BEEFED_UP_HP_BONUS = 50;
@@ -78,6 +78,7 @@ function createDefaultState() {
     version: STATE_VERSION,
     gold: 0,
     ownedIds: [],
+    activeIds: [],
     selectedDoctrineId: null,
   };
 }
@@ -85,6 +86,31 @@ function createDefaultState() {
 function normalizeState(candidate) {
   const ownedIds = [...new Set(candidate?.ownedIds ?? [])]
     .filter((id) => Boolean(PERMANENT_UPGRADES[id]));
+
+  // Saves created before #61 did not have a separate active list. Treat every
+  // previously purchased upgrade as active so existing progression behaves
+  // exactly as it did before the toggle system was introduced.
+  const requestedActiveIds = Array.isArray(candidate?.activeIds)
+    ? candidate.activeIds
+    : ownedIds;
+  const requestedActiveSet = new Set(
+    requestedActiveIds.filter((id) => ownedIds.includes(id)),
+  );
+  const activeSet = new Set(ownedIds.filter((id) => requestedActiveSet.has(id)));
+
+  // Active dependencies must form a valid chain. Turning a prerequisite off
+  // therefore deactivates dependent upgrades without removing their ownership.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const id of [...activeSet]) {
+      const requirements = PERMANENT_UPGRADES[id]?.requires ?? [];
+      if (requirements.every((requiredId) => activeSet.has(requiredId))) continue;
+      activeSet.delete(id);
+      changed = true;
+    }
+  }
+
   const doctrineOwned = ownedIds.includes('squad_doctrine');
   const requestedDoctrine = candidate?.selectedDoctrineId;
   const selectedDoctrineId = doctrineOwned && SQUAD_DOCTRINES[requestedDoctrine]
@@ -97,6 +123,7 @@ function normalizeState(candidate) {
     version: STATE_VERSION,
     gold: Math.max(0, Math.floor(Number(candidate?.gold) || 0)),
     ownedIds,
+    activeIds: ownedIds.filter((id) => activeSet.has(id)),
     selectedDoctrineId,
   };
 }
@@ -146,12 +173,17 @@ export function getPermanentProgressionState() {
     version: progressionState.version,
     gold: progressionState.gold,
     ownedIds: [...progressionState.ownedIds],
+    activeIds: [...progressionState.activeIds],
     selectedDoctrineId: progressionState.selectedDoctrineId,
   };
 }
 
 export function isPermanentUpgradeOwned(id) {
   return progressionState.ownedIds.includes(id);
+}
+
+export function isPermanentUpgradeActive(id) {
+  return isPermanentUpgradeOwned(id) && progressionState.activeIds.includes(id);
 }
 
 export function getPermanentUpgradeDefinition(id) {
@@ -188,12 +220,44 @@ export function purchasePermanentUpgrade(id) {
     ...progressionState,
     gold: progressionState.gold - definition.cost,
     ownedIds: [...progressionState.ownedIds, id],
+    activeIds: [...progressionState.activeIds, id],
     selectedDoctrineId: id === 'squad_doctrine'
       ? (progressionState.selectedDoctrineId ?? 'combined_arms')
       : progressionState.selectedDoctrineId,
   });
   persistState();
   return true;
+}
+
+export function setPermanentUpgradeActive(id, enabled) {
+  if (!isPermanentUpgradeOwned(id)) return false;
+
+  const shouldEnable = Boolean(enabled);
+  const currentlyActive = isPermanentUpgradeActive(id);
+  if (shouldEnable === currentlyActive) return true;
+
+  if (shouldEnable) {
+    const requirementsMet = (PERMANENT_UPGRADES[id]?.requires ?? [])
+      .every((requiredId) => isPermanentUpgradeActive(requiredId));
+    if (!requirementsMet) return false;
+  }
+
+  const activeIds = shouldEnable
+    ? [...progressionState.activeIds, id]
+    : progressionState.activeIds.filter((activeId) => activeId !== id);
+  const nextState = normalizeState({
+    ...progressionState,
+    activeIds,
+  });
+
+  if (shouldEnable && !nextState.activeIds.includes(id)) return false;
+  progressionState = nextState;
+  persistState();
+  return true;
+}
+
+export function togglePermanentUpgrade(id) {
+  return setPermanentUpgradeActive(id, !isPermanentUpgradeActive(id));
 }
 
 export function setSelectedDoctrine(id) {

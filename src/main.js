@@ -3,7 +3,7 @@ import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import {
   BEEFED_UP_HP_BONUS,
-  isPermanentUpgradeOwned,
+  isPermanentUpgradeActive,
 } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
@@ -45,7 +45,7 @@ function markStartingCaptain(captain) {
   startingUnit.tertiaryCaptain = false;
   startingUnit.captainSlot = 'primary';
 
-  const beefedUpBonus = isPermanentUpgradeOwned('beefed_up')
+  const beefedUpBonus = isPermanentUpgradeActive('beefed_up')
     ? BEEFED_UP_HP_BONUS
     : 0;
   const configuredCaptainHp = Number(captain.maxHp);

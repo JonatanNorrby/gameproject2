@@ -1,7 +1,7 @@
-import { Game as PreviousGame, UI } from './thirdCaptain.js';
+import { Game as PreviousGame, UI } from './upgradeActivation.js';
 import {
   BEEFED_UP_HP_BONUS,
-  isPermanentUpgradeOwned,
+  isPermanentUpgradeActive,
 } from '../data/metaUpgrades.js';
 
 const BEEFED_UPGRADE_ID = 'beefed_up';
@@ -23,7 +23,7 @@ export class Game extends PreviousGame {
     const previousIds = new Set((this.player?.squad ?? []).map((unit) => unit.id));
     super.addSquadUnits(type, amount);
 
-    if (!isPermanentUpgradeOwned(BEEFED_UPGRADE_ID)) return;
+    if (!isPermanentUpgradeActive(BEEFED_UPGRADE_ID)) return;
     for (const unit of this.player?.squad ?? []) {
       if (previousIds.has(unit.id)) continue;
       applyBeefedUpHealthBonus(unit);
