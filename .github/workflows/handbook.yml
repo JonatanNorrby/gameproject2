@@ -62,6 +62,7 @@ jobs:
           };
 
           const handbook = await import('./src/features/handbook.js');
+          const supportUnits = await import('./src/features/supportUnits.js');
           const { CAPTAINS, ENEMY_TYPES, UNIT_CLASSES, UPGRADES } = await import('./src/data/content.js');
           const { PERMANENT_UPGRADES } = await import('./src/data/metaUpgrades.js');
 
@@ -122,5 +123,28 @@ jobs:
           assert(typeof handbook.UI.prototype.showHandbook === 'function', 'Handbook open API missing');
           assert(typeof handbook.UI.prototype.setHandbookTab === 'function', 'Handbook tab API missing');
 
-          console.log('Handbook runtime contract validated.');
+          assert(
+            supportUnits.DRONE_STUN_EXPLOSION_COLOR === '#69cfff',
+            'Drone stun grenade explosion must use the dedicated blue color',
+          );
+          const explosionCalls = [];
+          const mockGame = {
+            spawnExplosionEffect(x, y, radius, color) {
+              explosionCalls.push({ x, y, radius, color });
+            },
+          };
+          assert(
+            supportUnits.emitDroneStunExplosion(mockGame, 10, 20, 82),
+            'Drone stun grenade visual helper did not emit an effect',
+          );
+          assert(explosionCalls.length === 1, 'Drone stun grenade visual emitted the wrong number of effects');
+          assert(
+            explosionCalls[0].x === 10
+              && explosionCalls[0].y === 20
+              && explosionCalls[0].radius === 82
+              && explosionCalls[0].color === '#69cfff',
+            'Drone stun grenade visual did not preserve its center, radius, and blue color',
+          );
+
+          console.log('Handbook and drone-stun visual contracts validated.');
           NODE
