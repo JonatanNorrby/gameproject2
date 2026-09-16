@@ -1,6 +1,6 @@
 export const VALE_COORDINATED_FIRE = Object.freeze({
-  description: 'Starts with an upgraded burst rifle and turns nearby Riflemen into a disciplined focus-fire team.',
-  passiveText: 'Vale and adjacent Riflemen build Focus by sustaining fire on the same target. Focus fades slowly, and at max Focus they gain +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target every time he attacks.',
+  description: 'Starts with an upgraded burst rifle and turns nearby Rifleman-class units into a disciplined focus-fire team.',
+  passiveText: 'Vale plus adjacent Riflemen and Snipers build Focus by sustaining fire. At max Focus they gain +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target every time he attacks.',
   effect: Object.freeze({
     type: 'coordinated-fire',
     focusGainPerShot: 0.16,
@@ -17,18 +17,14 @@ export const VALE_COORDINATED_FIRE = Object.freeze({
 });
 
 export const MERCER_CHAIN_REACTION = Object.freeze({
-  description: 'Starts with an upgraded fragmentation rocket launcher and turns nearby Rocketeers into a cascading demolition team.',
-  passiveText: 'Mercer and adjacent Rocketeer explosions mark enemies. Every third rocket is a Heavy Warhead that detonates marks into chain reactions. Mercer rockets scatter light burst rounds after exploding.',
+  description: 'Starts with an upgraded fragmentation rocket launcher and empowers nearby Rocketeer-class units.',
+  passiveText: 'Every third attack from an adjacent Rocketeer-class unit gains 3× area size. On Rocketeers, that third rocket also gains 75% more range. Drone Pilots gain the larger third stun field but no range bonus.',
   effect: Object.freeze({
     type: 'rocketeer-special-rocket',
-    mechanic: 'chain-reaction',
+    mechanic: 'third-attack-area-surge',
     everyShots: 3,
-    rangeMultiplier: 1,
-    aoeMultiplier: 1,
-    markDuration: 8,
-    maxMarks: 3,
-    cascadeRadius: 70,
-    cascadeDamageMultiplier: 0.45,
+    rangeMultiplier: 1.75,
+    aoeMultiplier: 3,
     color: '#ffe780',
     markColor: '#ff9f43',
   }),
