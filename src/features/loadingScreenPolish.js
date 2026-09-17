@@ -146,7 +146,7 @@ if (!GROUND_DROPS[HEALTH_DROP_TYPE]) {
     label: 'HP',
     symbol: '+',
     color: '#70dc8b',
-    description: 'Restore 10% max HP to every living squad unit.',
+    description: 'Restore 10% of maximum Squad Health.',
     kind: 'instant',
   });
 }
@@ -188,12 +188,9 @@ export class Game extends PreviousGame {
   collectGroundDrop(type) {
     if (type !== HEALTH_DROP_TYPE) return super.collectGroundDrop(type);
 
-    for (const unit of this.player?.squad ?? []) {
-      if (unit.dead) continue;
-      const maxHp = Number(unit.maxHp) || 0;
-      unit.hp = Math.min(maxHp, (Number(unit.hp) || 0) + maxHp * HEALTH_DROP_HEAL_FRACTION);
-    }
-    this.syncCaptainHealth?.();
+    // #153: HP drops heal the one shared Squad Health pool directly. Squad
+    // members no longer own mutable combat HP, so writing unit.hp cannot heal.
+    this.healSquadHealthFraction?.(HEALTH_DROP_HEAL_FRACTION);
 
     const definition = GROUND_DROPS[HEALTH_DROP_TYPE];
     this.spawnExplosionEffect(this.player.x, this.player.y, 42, definition.color);
