@@ -6,8 +6,8 @@ export const THORNE_CAPTAIN = Object.freeze({
   maxHp: 300,
   shortLabel: 'THR',
   color: '#ff9adf',
-  description: 'A high-health melee Captain wielding a massive two-handed power sword and empowering the entire Shockblade class.',
-  passiveText: '5% lifesteal. Every 3rd Shockblade attack becomes a full 360° sweep. Every 3rd Stormlancer attack chains to twice as many targets. No adjacency required.',
+  description: 'A high-health melee Captain wielding a massive two-handed power sword and sharing his lifesteal with adjacent Vanguard-class units.',
+  passiveText: '5% lifesteal for Thorne and adjacent Vanguard-class units. Every 3rd Shockblade attack becomes a full 360° sweep. Every 3rd Stormlancer attack chains to twice as many targets. The attack bonuses require no adjacency.',
   weapon: Object.freeze({
     kind: 'melee',
     damage: 120,
