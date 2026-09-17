@@ -175,11 +175,15 @@ jobs:
           assert(typeof handbook.UI.prototype.showHandbook === 'function', 'Handbook open API missing');
           assert(typeof handbook.UI.prototype.setHandbookTab === 'function', 'Handbook tab API missing');
 
-          // #133/#136: Drone Pilot uses Rocketeer-style explosive damage and
-          // now enters the shared projectile resolver from the Drone position.
+          // #133/#136/#158: Drone Pilot keeps Rocketeer-style explosive damage,
+          // while #158 makes battlefield drones long-range, invulnerable and
+          // biased toward ranged threats before falling back to nearest target.
           const dronePilot = UNIT_CLASSES.drone_pilot;
           assert(dronePilot?.weapon?.damage === UNIT_CLASSES.rocketeer.weapon.damage, 'Drone grenade base damage must match Rocketeer');
           assert(dronePilot?.support?.aoeRadius === 82, 'Drone grenade base blast radius changed unexpectedly');
+          assert(dronePilot?.support?.range === 1000, 'Drone range buff is missing');
+          assert(!('droneHp' in dronePilot.support), 'Drone support still exposes damageable HP');
+          assert(!('respawnDelay' in dronePilot.support), 'Drone support still exposes respawn timing');
           assert(!('stunDuration' in dronePilot.support), 'Drone Pilot still exposes stun duration');
           assert(!('recentStunLockout' in dronePilot.support), 'Drone Pilot still exposes stun lockout');
           assert(CAPTAINS.mercer?.effect?.aoeMultiplier === 3, 'Mercer Drone grenade area bonus must remain 3x');
@@ -189,7 +193,12 @@ jobs:
           assert(supportSource.includes('game.entities.projectiles.push({'), 'Drone grenades are not entering the shared projectile queue');
           assert(supportSource.includes("kind: 'rocket'"), 'Drone grenades are not using Rocketeer projectile logic');
           assert(supportSource.includes('x: drone.x') && supportSource.includes('y: drone.y'), 'Drone grenade is not spawned under the Drone');
-          assert(supportSource.includes('this.findNearestTarget(drone.x, drone.y, range)'), 'Drone targeting is not using the Rocketeer nearest-target helper');
+          assert(supportSource.includes("DRONE_PRIORITY_ENEMY_TYPES = new Set(['spitter', 'burst_spitter'])"), 'Drone ranged-enemy priority list is missing');
+          assert(supportSource.includes('this.findDroneTarget(drone.x, drone.y, range)'), 'Drone targeting is not using ranged-enemy priority targeting');
+          assert(supportSource.includes('return priorityTarget ?? this.findNearestTarget(x, y, range);'), 'Drone priority targeting does not fall back to normal nearest-target logic');
+          assert(!supportSource.includes('resolveDroneProjectileHits'), 'Drones can still be hit by ranged projectiles');
+          assert(!supportSource.includes('drone.hp'), 'Drone runtime still tracks damageable HP');
+          assert(!supportSource.includes('findNearestSoldierTarget(x, y, soldiers)'), 'Support layer still injects drones into ranged-enemy targeting');
           assert(!supportSource.includes('buildDroneTargetGrid'), 'Legacy Drone cluster-grid targeting is still present');
           const handbookPolishSource = fs.readFileSync('src/features/handbookPolish.js', 'utf8');
           assert(handbookPolishSource.includes('damaging explosive grenades'), 'Handbook Drone Pilot description still describes stun grenades');
