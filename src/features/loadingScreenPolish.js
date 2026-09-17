@@ -1,4 +1,5 @@
 import { Game as PreviousGame, UI as PreviousUI } from './prestigePopup.js';
+import { HANDBOOK_BOSS_STORAGE_KEY } from './handbook.js';
 import { recordHighestRunLevel } from '../data/prestige.js';
 
 const ISSUE_88_STYLE_ID = 'issue-88-loading-screen';
@@ -164,6 +165,31 @@ export class UI extends PreviousUI {
     });
 
     this.endRunButton = button;
+  }
+
+  installFullResetDebugControl(...args) {
+    const result = super.installFullResetDebugControl(...args);
+    const detail = document.querySelector('#debug-reset-all-progress small');
+    if (detail) {
+      detail.textContent = 'Erase Captains, Gold, upgrades, Prestige and Handbook discoveries';
+    }
+    return result;
+  }
+
+  resetEverythingFromDebug(...args) {
+    const result = super.resetEverythingFromDebug(...args);
+
+    // #111: Handbook boss sightings are their own persistent progression state,
+    // separate from Captain unlocks, Gold upgrades and Prestige. Clear that key
+    // as part of Reset ALL, then reload so the Handbook cannot retain stale
+    // discoveries from its in-memory cache after the reset.
+    try {
+      window.localStorage?.removeItem(HANDBOOK_BOSS_STORAGE_KEY);
+    } catch (error) {
+      console.warn('Could not reset Handbook progress.', error);
+    }
+    window.location.reload();
+    return result;
   }
 
   showGameOver(game, ...args) {
