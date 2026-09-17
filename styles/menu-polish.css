@@ -69,46 +69,53 @@
   filter: none !important;
 }
 
-/* #91: locked Captain cards use a visual lock instead of textual LOCKED chips.
-   Keep the unlock requirement at the bottom, while the otherwise-generic
-   command-profile area becomes a clear centered lock state. */
+/* #91 + #108: locked Captain cards use a visual lock instead of textual LOCKED
+   chips. Anchor the lock to the command-profile cell itself instead of using a
+   percentage of the whole card, so it stays centered at every card width. */
 #captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) .upgrade-card__rarity {
   display: none !important;
 }
 
 #captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > p {
+  position: relative;
   visibility: hidden;
 }
 
+/* Disable the old card-level lock pieces; the profile cell owns them below. */
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret)::before,
 #captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret)::after {
+  content: none !important;
+  display: none !important;
+}
+
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > p::after {
   content: '';
   position: absolute;
-  inset: auto !important;
-  left: 65%;
-  top: 55%;
-  right: auto !important;
-  bottom: auto !important;
+  left: 50%;
+  top: 50%;
   z-index: 5;
   width: 34px;
   height: 28px;
   padding: 0;
   transform: translate(-50%, -50%);
+  visibility: visible;
   border: 3px solid #ff5f79;
   border-radius: 6px;
   background: rgba(255, 95, 121, .08);
   box-shadow: 0 0 18px rgba(255, 95, 121, .42);
 }
 
-#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret)::before {
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > p::before {
   content: '';
   position: absolute;
-  inset: auto !important;
-  left: 65%;
-  top: calc(55% - 21px);
+  left: 50%;
+  top: calc(50% - 21px);
   z-index: 6;
   width: 20px;
   height: 18px;
+  margin: 0;
   transform: translate(-50%, -50%);
+  visibility: visible;
   border: 3px solid #ff5f79;
   border-bottom: 0;
   border-radius: 12px 12px 0 0;
