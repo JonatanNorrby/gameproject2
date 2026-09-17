@@ -6,6 +6,7 @@ function createDefaultState() {
     version: STATE_VERSION,
     attackRateBonus: 0,
     highestRunLevel: 0,
+    runCompleted: false,
   };
 }
 
@@ -14,6 +15,7 @@ function normalizeState(candidate) {
     version: STATE_VERSION,
     attackRateBonus: Math.max(0, Math.floor(Number(candidate?.attackRateBonus) || 0)),
     highestRunLevel: Math.max(0, Math.floor(Number(candidate?.highestRunLevel) || 0)),
+    runCompleted: Boolean(candidate?.runCompleted),
   };
 }
 
@@ -58,6 +60,16 @@ export function recordHighestRunLevel(level) {
   return getPrestigeState();
 }
 
+export function recordCompletedRun() {
+  if (prestigeState.runCompleted) return getPrestigeState();
+  prestigeState = normalizeState({
+    ...prestigeState,
+    runCompleted: true,
+  });
+  persistState();
+  return getPrestigeState();
+}
+
 export function getPrestigePreview() {
   const current = prestigeState.attackRateBonus;
   const gain = prestigeState.highestRunLevel;
@@ -66,6 +78,7 @@ export function getPrestigePreview() {
     gain,
     total: current + gain,
     highestRunLevel: prestigeState.highestRunLevel,
+    runCompleted: prestigeState.runCompleted,
   };
 }
 
@@ -74,6 +87,7 @@ export function applyPrestige() {
   prestigeState = normalizeState({
     attackRateBonus: preview.total,
     highestRunLevel: 0,
+    runCompleted: false,
   });
   persistState();
   return {

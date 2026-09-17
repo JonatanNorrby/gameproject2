@@ -1,4 +1,4 @@
-import { Game, UI as PreviousUI } from './handbookPolish.js';
+import { Game, UI as PreviousUI } from './prestigePopup.js';
 
 const ISSUE_88_STYLE_ID = 'issue-88-loading-screen';
 const ISSUE_88_STYLES = `
