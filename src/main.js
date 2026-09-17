@@ -1,5 +1,5 @@
-import { Game, UI } from './features/cipherScaleGlow.js';
-// cipherScaleGlow.js composes runConfigurationPopups.js over ./features/bossVisibilityFix.js.
+import { Game, UI } from './features/loadingScreenPolish.js';
+// loadingScreenPolish.js composes cipherScaleGlow.js over ./features/bossVisibilityFix.js.
 import { installEnemyStatusVisuals } from './features/enemyStatusVisuals.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
