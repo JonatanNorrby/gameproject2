@@ -5,6 +5,7 @@ import { getUnitModifiers } from '../data/unitModifiers.js';
 import { distanceSq } from '../utils/math.js';
 
 export const SNIPER_TYPE = 'sniper';
+const SNIPER_TRANSIT_PIERCE = Number.MAX_SAFE_INTEGER;
 
 // Sniper remains a distinct battlefield unit, but belongs to the Rifleman class
 // for upgrades/Captain effects. Keeping its unit type preserves targeting, art,
@@ -75,6 +76,33 @@ function isLivingTarget(target) {
   );
 }
 
+function getSniperTargetKind(game, target) {
+  if (!target) return 'enemy';
+  if (target === game.getActiveWarden?.()) return 'warden';
+  if (target === game.getActiveBroodmother?.()) return 'broodmother';
+  if ((game.broodEggs ?? []).includes(target)) return 'brood-egg';
+  if (target === game.getActiveCipher?.()) return 'cipher';
+  return 'enemy';
+}
+
+function sniperProjectileReachedTarget(projectile) {
+  const targetId = projectile?.sniperTargetId;
+  if (targetId == null) return false;
+
+  switch (projectile.sniperTargetKind) {
+    case 'warden':
+      return Boolean(projectile.wardenHit);
+    case 'broodmother':
+      return Boolean(projectile.broodmotherHit);
+    case 'brood-egg':
+      return projectile.broodHitIds instanceof Set && projectile.broodHitIds.has(targetId);
+    case 'cipher':
+      return Boolean(projectile.cipherHit);
+    default:
+      return projectile.hitIds instanceof Set && projectile.hitIds.has(targetId);
+  }
+}
+
 function createSniperCombatSystem(ParentCombatSystem) {
   return class SniperCombatSystem extends ParentCombatSystem {
     getSniperCandidates() {
@@ -142,7 +170,39 @@ function createSniperCombatSystem(ParentCombatSystem) {
         if (highestHealthTarget) target = highestHealthTarget;
       }
 
+      const projectiles = this.game.entities.projectiles;
+      const beforeCount = projectiles.length;
       super.fireWeapon(soldier, unitClass, target, shotEffect);
+
+      if (soldier?.unit?.type !== SNIPER_TYPE || projectiles.length <= beforeCount) return;
+      const projectile = projectiles[projectiles.length - 1];
+      if (!projectile || projectile.dead || projectile.hostile || projectile.sourceType !== SNIPER_TYPE) return;
+
+      // #142: a Sniper round must never be consumed by an enemy standing in
+      // front of the unit it deliberately selected. Give the projectile
+      // effectively unlimited transit pierce, remember that selected target,
+      // then retire the round as soon as the intended target is actually hit.
+      projectile.sniperTargetId = target?.id ?? null;
+      projectile.sniperTargetKind = getSniperTargetKind(this.game, target);
+      projectile.sniperOriginalPierce = projectile.pierce;
+      projectile.pierce = SNIPER_TRANSIT_PIERCE;
+    }
+
+    updateProjectiles(dt) {
+      super.updateProjectiles(dt);
+
+      for (const projectile of this.game.entities.projectiles) {
+        if (
+          projectile.dead
+          || projectile.hostile
+          || projectile.sourceType !== SNIPER_TYPE
+          || projectile.sniperTargetId == null
+        ) continue;
+
+        if (sniperProjectileReachedTarget(projectile)) {
+          projectile.dead = true;
+        }
+      }
     }
   };
 }
