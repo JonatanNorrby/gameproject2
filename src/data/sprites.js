@@ -89,7 +89,7 @@ export const FRAME_SPRITES = {
   },
   enemies: {
     crawler: createEnemyFrameSet('crawler', { drawSize: 51 }),
-    runner: createEnemyFrameSet('runner', { drawSize: 30 }),
+    runner: createEnemyFrameSet('runner', { drawSize: 30, runningFps: 12 }),
     // #40: make the slow tank visually imposing without changing its gameplay hitbox.
     brute: createEnemyFrameSet('brute', { drawSize: 96, runningFps: 4 }),
     charger: createEnemyFrameSet('charger', { drawSize: 72 }),
