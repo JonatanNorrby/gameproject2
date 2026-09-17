@@ -149,6 +149,12 @@
   margin: 0 !important;
 }
 
+/* #109: Captain Vale is the primary/default comparison point, so keep his card
+   in the upper-left slot without changing the relative order of other Captains. */
+#captain-select-screen .captain-select-card[aria-label^="Captain Vale"] {
+  order: -1;
+}
+
 /* #103: make the in-run debug launcher match the intentionally subdued main-menu
    launcher from #54. Keep the existing debug panel and PIN behavior unchanged;
    only move/style the launcher and let the panel open upward from it. */
