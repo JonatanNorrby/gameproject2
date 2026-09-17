@@ -29,4 +29,4 @@ Asset rules:
 - `drone.png` is a single static transparent image, not an animation.
 - The drone is drawn independently on the battlefield and is not part of the Squad Builder.
 - The drone has its own HP and can be shot by ranged enemies.
-- Stun-grenade blast and stun indicators are procedural and should not be baked into the drone image.
+- Explosive-grenade blast effects are procedural and should not be baked into the drone image.
