@@ -6,7 +6,7 @@ import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { getBeefedUpHpBonus } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 110;
+const GAME_VERSION = 111;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
@@ -198,28 +198,14 @@ function getBootCaptainSources() {
 
 async function finishBootSequence() {
   const bootScreen = document.querySelector('#boot-screen');
-  const bootStatus = document.querySelector('#boot-status');
   const bootVersion = document.querySelector('#boot-version');
   const app = document.querySelector('#app');
   const startedAt = performance.now();
 
   if (bootVersion) bootVersion.textContent = `BUILD v${GAME_VERSION}`;
   const sources = getBootCaptainSources();
-  let completedAssets = 0;
 
-  if (bootStatus) {
-    bootStatus.textContent = sources.length > 0
-      ? `Loading Captain assets • 0/${sources.length}`
-      : 'Finalizing command interface';
-  }
-
-  const portraitLoad = Promise.all(sources.map(async (source) => {
-    await preloadImage(source);
-    completedAssets += 1;
-    if (bootStatus) {
-      bootStatus.textContent = `Loading Captain assets • ${completedAssets}/${sources.length}`;
-    }
-  }));
+  const portraitLoad = Promise.all(sources.map((source) => preloadImage(source)));
 
   const fontLoad = document.fonts?.ready
     ? document.fonts.ready.catch(() => undefined)
@@ -234,8 +220,6 @@ async function finishBootSequence() {
   if (remainingMinimum > 0) {
     await new Promise((resolve) => window.setTimeout(resolve, remainingMinimum));
   }
-
-  if (bootStatus) bootStatus.textContent = 'Command interface ready';
 
   app?.classList.remove('app-shell--booting');
   app?.removeAttribute('aria-hidden');
