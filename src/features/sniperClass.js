@@ -20,7 +20,7 @@ if (!UNIT_CLASSES[SNIPER_TYPE]) {
     outline: '#e3fff4',
     weapon: {
       kind: 'bullet',
-      damage: 180,
+      damage: 135,
       cooldown: 3.2,
       projectileSpeed: 1200,
       projectileRadius: 4,
