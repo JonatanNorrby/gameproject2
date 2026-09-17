@@ -1,3 +1,5 @@
+import { isUnitInClassFamily } from './unitFamilies.js';
+
 const STORAGE_KEY = 'nightfall-protocol.unlocks.v1';
 const STATE_VERSION = 1;
 
@@ -17,10 +19,10 @@ export const UNLOCK_DEFINITIONS = Object.freeze({
     targetId: 'mercer',
     label: 'Captain Mercer',
     defaultUnlocked: false,
-    requirementText: 'Have 5 Rocketeers alive in your squad at once.',
+    requirementText: 'Have 5 Specialists alive in your squad at once.',
     condition: Object.freeze({
-      type: 'living-unit-count',
-      unitType: 'rocketeer',
+      type: 'living-class-count',
+      familyId: 'rocketeer',
       count: 5,
     }),
   }),
@@ -30,10 +32,10 @@ export const UNLOCK_DEFINITIONS = Object.freeze({
     targetId: 'thorne',
     label: 'Captain Thorne',
     defaultUnlocked: false,
-    requirementText: 'Have 5 Shockblades alive in your squad at once.',
+    requirementText: 'Have 5 Vanguards alive in your squad at once.',
     condition: Object.freeze({
-      type: 'living-unit-count',
-      unitType: 'shockblade',
+      type: 'living-class-count',
+      familyId: 'shockblade',
       count: 5,
     }),
   }),
@@ -135,6 +137,13 @@ export function unlock(unlockId) {
 
 function conditionMet(condition, { squad = [], defeatedBossIds = [] } = {}) {
   if (!condition) return true;
+
+  if (condition.type === 'living-class-count') {
+    const livingCount = squad.filter((unit) => (
+      !unit.dead && isUnitInClassFamily(unit.type, condition.familyId)
+    )).length;
+    return livingCount >= condition.count;
+  }
 
   if (condition.type === 'living-unit-count') {
     const livingCount = squad.filter((unit) => (
