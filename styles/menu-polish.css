@@ -13,6 +13,12 @@
   }
 }
 
+/* #118: give the left-hand command rail a little more breathing room without
+   changing individual button sizing or the order of dynamically injected actions. */
+#start-screen .main-menu__nav {
+  gap: 12px;
+}
+
 /* #81: captain-menu.css defines the reusable selected-Captain card as a
    two-column grid, while the main menu turns that same component into a
    vertical showcase. Own the complete center axis here so intermediate laptop
