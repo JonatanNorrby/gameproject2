@@ -6,7 +6,7 @@ import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { getBeefedUpHpBonus } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 113;
+const GAME_VERSION = 114;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
@@ -29,6 +29,160 @@ if (hudBottom && squadMenu) hudBottom.append(squadMenu);
 
 const input = new Input(canvas, touchStick);
 const game = new Game(canvas, input, ui);
+
+// #140: Reset All Progress belongs in main-menu Settings, not the main menu.
+// Clone the legacy button to discard its older listener, move the live control
+// into Settings, and route the destructive action through the comprehensive
+// reset path that also clears Prestige and Handbook progression.
+const legacyResetProgressButton = document.querySelector('#reset-progress-button');
+const settingsScreen = ui.settingsScreen ?? document.querySelector('#settings-screen');
+const settingsFooter = settingsScreen?.querySelector('.settings-footer');
+if (legacyResetProgressButton && settingsScreen && settingsFooter) {
+  const resetProgressButton = legacyResetProgressButton.cloneNode(true);
+  legacyResetProgressButton.replaceWith(resetProgressButton);
+  resetProgressButton.textContent = 'Reset All Progress';
+  resetProgressButton.className = 'settings-reset-progress-button';
+  resetProgressButton.title = 'Completely erase all progression without receiving a Prestige bonus';
+  resetProgressButton.setAttribute(
+    'aria-label',
+    'Reset all progress. This completely erases progression and grants no Prestige bonus.',
+  );
+
+  let resetSection = settingsScreen.querySelector('.settings-reset-progress-section');
+  if (!resetSection) {
+    resetSection = document.createElement('section');
+    resetSection.className = 'settings-section settings-reset-progress-section';
+    resetSection.innerHTML = `
+      <div class="settings-section__heading">
+        <h3>Reset All Progress</h3>
+        <p>Permanent destructive reset</p>
+      </div>
+      <div class="settings-reset-progress-warning">
+        <strong>This completely resets all progression.</strong>
+        <span>Captain unlocks, Gold, Gold Upgrades, Prestige progress/bonuses, and Handbook discoveries will be erased.</span>
+        <span>Unlike Prestige, resetting gives no permanent bonus or reward.</span>
+      </div>
+      <div class="settings-reset-progress-actions"></div>
+    `;
+    settingsFooter.before(resetSection);
+  }
+
+  const resetActions = resetSection.querySelector('.settings-reset-progress-actions');
+  resetActions?.append(resetProgressButton);
+
+  let confirmation = resetSection.querySelector('#reset-all-progress-confirmation');
+  if (!confirmation) {
+    confirmation = document.createElement('div');
+    confirmation.id = 'reset-all-progress-confirmation';
+    confirmation.className = 'settings-reset-progress-confirmation';
+    confirmation.hidden = true;
+    confirmation.setAttribute('aria-hidden', 'true');
+    confirmation.innerHTML = `
+      <p>This cannot be undone. Reset everything without receiving any Prestige bonus?</p>
+      <div class="settings-reset-progress-confirmation__actions">
+        <button id="reset-all-progress-cancel" type="button">Cancel</button>
+        <button id="reset-all-progress-confirm" type="button">Permanently Reset</button>
+      </div>
+    `;
+    resetSection.append(confirmation);
+  }
+
+  if (!document.querySelector('#issue-140-reset-progress-style')) {
+    const style = document.createElement('style');
+    style.id = 'issue-140-reset-progress-style';
+    style.textContent = `
+      .settings-reset-progress-section[hidden],
+      .settings-reset-progress-confirmation[hidden] { display: none !important; }
+      .settings-reset-progress-warning,
+      .settings-reset-progress-confirmation {
+        display: grid;
+        gap: 7px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255,95,121,.24);
+        border-radius: 11px;
+        background: rgba(255,95,121,.05);
+        color: #aebfc6;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+      .settings-reset-progress-warning strong,
+      .settings-reset-progress-confirmation strong { color: #ffe8ed; }
+      .settings-reset-progress-actions { display: grid; gap: 8px; }
+      .settings-reset-progress-button,
+      .settings-reset-progress-confirmation__actions button {
+        min-height: 42px;
+        border: 1px solid rgba(255,95,121,.62);
+        border-radius: 10px;
+        padding: 9px 12px;
+        background: linear-gradient(180deg, rgba(139,28,47,.96), rgba(80,13,27,.96));
+        color: #ffe7ec;
+        font: inherit;
+        font-size: 10px;
+        font-weight: 1000;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .settings-reset-progress-confirmation__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      #reset-all-progress-cancel {
+        border-color: rgba(126,249,212,.28);
+        background: rgba(126,249,212,.06);
+        color: #d9fff4;
+      }
+      @media (max-width: 560px) {
+        .settings-reset-progress-confirmation__actions { grid-template-columns: 1fr; }
+      }
+    `;
+    document.head?.append(style);
+  }
+
+  const cancelResetButton = confirmation.querySelector('#reset-all-progress-cancel');
+  const confirmResetButton = confirmation.querySelector('#reset-all-progress-confirm');
+  const setResetConfirmationVisible = (visible) => {
+    const isVisible = Boolean(visible);
+    confirmation.hidden = !isVisible;
+    confirmation.setAttribute('aria-hidden', String(!isVisible));
+    resetProgressButton.disabled = isVisible;
+    if (isVisible) confirmResetButton?.focus?.();
+  };
+
+  resetProgressButton.addEventListener('click', () => setResetConfirmationVisible(true));
+  cancelResetButton?.addEventListener('click', () => {
+    setResetConfirmationVisible(false);
+    resetProgressButton.focus?.();
+  });
+  confirmResetButton?.addEventListener('click', () => {
+    setResetConfirmationVisible(false);
+    ui.resetEverythingFromDebug?.();
+  });
+
+  const syncResetSectionVisibility = () => {
+    const visible = !ui.settingsOpenedInGame;
+    resetSection.hidden = !visible;
+    resetSection.setAttribute('aria-hidden', String(!visible));
+    if (!visible) setResetConfirmationVisible(false);
+  };
+
+  const previousShowSettingsForReset = ui.showSettings.bind(ui);
+  ui.showSettings = (...args) => {
+    const result = previousShowSettingsForReset(...args);
+    syncResetSectionVisibility();
+    return result;
+  };
+
+  const previousHideSettingsForReset = ui.hideSettings.bind(ui);
+  ui.hideSettings = (...args) => {
+    setResetConfirmationVisible(false);
+    return previousHideSettingsForReset(...args);
+  };
+
+  resetSection.hidden = true;
+  resetSection.setAttribute('aria-hidden', 'true');
+}
 
 // #139: replace the legacy End Run listener with an in-game confirmation card.
 // Cloning removes the old window.confirm listener installed lower in the UI
