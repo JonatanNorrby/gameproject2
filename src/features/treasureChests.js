@@ -4,12 +4,13 @@ import {
   grantGold,
   isPermanentUpgradeActive,
 } from '../data/metaUpgrades.js';
-import { distanceSq, normalize } from '../utils/math.js';
+import { distanceSq } from '../utils/math.js';
 
 export const TREASURE_CHEST_UPGRADE_ID = 'treasure_chests';
 export const TREASURE_CHEST_DROP_CHANCE = 0.025;
 export const TREASURE_CHEST_GOLD_REWARD = 5;
 export const TREASURE_CHEST_XP_FRACTION = 0.25;
+export const TREASURE_CHEST_UNLOCK_DURATION = 5;
 
 const TREASURE_CHEST_TUNING = Object.freeze([
   Object.freeze({ dropChance: 0, goldReward: 0, xpFraction: 0 }),
@@ -18,10 +19,10 @@ const TREASURE_CHEST_TUNING = Object.freeze([
   Object.freeze({ dropChance: 0.06, goldReward: 12, xpFraction: 0.45 }),
 ]);
 
+const BOSS_CHEST_TUNING = TREASURE_CHEST_TUNING[TREASURE_CHEST_TUNING.length - 1];
 const CHEST_RADIUS = 16;
-const CHEST_MAGNET_RADIUS = 105;
-const CHEST_PICKUP_RADIUS = 24;
-const CHEST_PULL_SPEED = 210;
+const BOSS_CHEST_RADIUS = 21;
+const CHEST_UNLOCK_PADDING = 6;
 
 function getTreasureChestTuning() {
   if (!isPermanentUpgradeActive(TREASURE_CHEST_UPGRADE_ID)) return TREASURE_CHEST_TUNING[0];
@@ -29,9 +30,13 @@ function getTreasureChestTuning() {
   return TREASURE_CHEST_TUNING[rank];
 }
 
-export function getTreasureChestXpReward(player) {
+function getChestRewardTuning(chest) {
+  return chest?.bossReward ? BOSS_CHEST_TUNING : getTreasureChestTuning();
+}
+
+export function getTreasureChestXpReward(player, chest = null) {
   const xpToNext = Math.max(1, Number(player?.xpToNext) || 1);
-  return Math.max(1, Math.round(xpToNext * getTreasureChestTuning().xpFraction));
+  return Math.max(1, Math.round(xpToNext * getChestRewardTuning(chest).xpFraction));
 }
 
 function createTreasureChestCombatSystem(ParentCombatSystem) {
@@ -62,30 +67,74 @@ export class Game extends PreviousGame {
     super.resetState();
   }
 
-  spawnTreasureChest(x, y) {
-    if (!isPermanentUpgradeActive(TREASURE_CHEST_UPGRADE_ID)) return null;
+  spawnTreasureChest(x, y, options = {}) {
+    const bossReward = Boolean(options.bossReward);
+    if (!bossReward && !isPermanentUpgradeActive(TREASURE_CHEST_UPGRADE_ID)) return null;
+
     const chest = {
       id: `treasure-${this.entities.createId()}`,
       x,
       y,
-      radius: CHEST_RADIUS,
+      radius: bossReward ? BOSS_CHEST_RADIUS : CHEST_RADIUS,
       dead: false,
       pulseOffset: Math.random() * Math.PI * 2,
+      unlockProgress: 0,
+      bossReward,
+      bossId: bossReward ? (options.bossId ?? null) : null,
     };
     this.treasureChests.push(chest);
     return chest;
+  }
+
+  spawnBossTreasureChest(x, y, bossId) {
+    return this.spawnTreasureChest(x, y, {
+      bossReward: true,
+      bossId,
+    });
+  }
+
+  defeatWarden(boss) {
+    const wasAlive = Boolean(boss && !boss.dead);
+    const rewardPosition = boss ? { x: boss.x, y: boss.y } : null;
+    super.defeatWarden(boss);
+    if (wasAlive && boss?.dead && rewardPosition) {
+      this.spawnBossTreasureChest(rewardPosition.x, rewardPosition.y, 'warden');
+    }
+  }
+
+  defeatBroodmother(boss) {
+    const wasAlive = Boolean(boss && !boss.dead);
+    const rewardPosition = boss ? { x: boss.x, y: boss.y } : null;
+    super.defeatBroodmother(boss);
+    if (wasAlive && boss?.dead && rewardPosition) {
+      this.spawnBossTreasureChest(rewardPosition.x, rewardPosition.y, 'broodmother');
+    }
+  }
+
+  defeatCipher(boss) {
+    const wasAlive = Boolean(boss && !boss.dead);
+    const rewardPosition = boss ? { x: boss.x, y: boss.y } : null;
+    super.defeatCipher(boss);
+    if (wasAlive && boss?.dead && rewardPosition) {
+      this.spawnBossTreasureChest(rewardPosition.x, rewardPosition.y, 'cipher');
+    }
   }
 
   collectTreasureChest(chest) {
     if (!chest || chest.dead) return false;
     chest.dead = true;
 
-    const tuning = getTreasureChestTuning();
-    const xpReward = getTreasureChestXpReward(this.player);
+    const tuning = getChestRewardTuning(chest);
+    const xpReward = getTreasureChestXpReward(this.player, chest);
     grantGold(tuning.goldReward);
     this.runGoldCollected = (this.runGoldCollected ?? 0) + tuning.goldReward;
     this.progression.addXp(xpReward);
-    this.spawnExplosionEffect(chest.x, chest.y, 36, '#f7c94b');
+    this.spawnExplosionEffect(
+      chest.x,
+      chest.y,
+      chest.bossReward ? 54 : 36,
+      chest.bossReward ? '#fff1a8' : '#f7c94b',
+    );
     this.ui?.renderPermanentShop?.();
     return true;
   }
@@ -94,20 +143,22 @@ export class Game extends PreviousGame {
     const player = this.player;
     if (!player) return;
 
-    const magnetRadiusSq = CHEST_MAGNET_RADIUS * CHEST_MAGNET_RADIUS;
     for (const chest of this.treasureChests ?? []) {
       if (chest.dead) continue;
-      const distSq = distanceSq(player.x, player.y, chest.x, chest.y);
-      if (distSq <= magnetRadiusSq) {
-        const direction = normalize(player.x - chest.x, player.y - chest.y);
-        const distance = Math.sqrt(distSq);
-        const pull = CHEST_PULL_SPEED + Math.max(0, CHEST_MAGNET_RADIUS - distance) * 2.5;
-        chest.x += direction.x * pull * dt;
-        chest.y += direction.y * pull * dt;
+      const unlockRadius = player.radius + chest.radius + CHEST_UNLOCK_PADDING;
+      const standingOnChest = distanceSq(player.x, player.y, chest.x, chest.y)
+        <= unlockRadius * unlockRadius;
+
+      if (!standingOnChest) {
+        chest.unlockProgress = 0;
+        continue;
       }
 
-      const pickupRadius = player.radius + chest.radius + CHEST_PICKUP_RADIUS;
-      if (distanceSq(player.x, player.y, chest.x, chest.y) <= pickupRadius * pickupRadius) {
+      chest.unlockProgress = Math.min(
+        TREASURE_CHEST_UNLOCK_DURATION,
+        (chest.unlockProgress ?? 0) + dt,
+      );
+      if (chest.unlockProgress >= TREASURE_CHEST_UNLOCK_DURATION) {
         this.collectTreasureChest(chest);
       }
     }
@@ -127,29 +178,71 @@ export class Game extends PreviousGame {
     for (const chest of this.treasureChests ?? []) {
       if (chest.dead) continue;
       const pulse = 1 + Math.sin(this.animationClock * 5 + chest.pulseOffset) * 0.06;
+      const bossReward = Boolean(chest.bossReward);
+      const halfWidth = bossReward ? 22 : 17;
+      const halfHeight = bossReward ? 13 : 10;
+      const progress = Math.max(
+        0,
+        Math.min(1, (chest.unlockProgress ?? 0) / TREASURE_CHEST_UNLOCK_DURATION),
+      );
+
       ctx.save();
       ctx.translate(chest.x, chest.y);
       ctx.scale(pulse, pulse);
 
-      ctx.shadowBlur = 22;
-      ctx.shadowColor = '#f7c94b';
-      ctx.fillStyle = '#7d4f18';
-      ctx.strokeStyle = '#ffe58a';
-      ctx.lineWidth = 2;
+      ctx.shadowBlur = bossReward ? 30 : 22;
+      ctx.shadowColor = bossReward ? '#fff1a8' : '#f7c94b';
+      ctx.fillStyle = bossReward ? '#95651d' : '#7d4f18';
+      ctx.strokeStyle = bossReward ? '#fff4bd' : '#ffe58a';
+      ctx.lineWidth = bossReward ? 3 : 2;
       ctx.beginPath();
-      ctx.roundRect(-17, -10, 34, 23, 5);
+      ctx.roundRect(-halfWidth, -halfHeight, halfWidth * 2, halfHeight * 2 + 3, 5);
       ctx.fill();
       ctx.stroke();
 
       ctx.shadowBlur = 0;
-      ctx.fillStyle = '#c78b2b';
-      ctx.fillRect(-17, -4, 34, 6);
-      ctx.fillStyle = '#ffe58a';
-      ctx.fillRect(-3, -4, 6, 10);
+      ctx.fillStyle = bossReward ? '#e7b84b' : '#c78b2b';
+      ctx.fillRect(-halfWidth, -4, halfWidth * 2, 6);
       ctx.fillStyle = '#fff4bd';
+      ctx.fillRect(-3, -4, 6, bossReward ? 13 : 10);
       ctx.beginPath();
-      ctx.arc(0, 1, 2.2, 0, Math.PI * 2);
+      ctx.arc(0, 1, bossReward ? 2.8 : 2.2, 0, Math.PI * 2);
       ctx.fill();
+
+      if (bossReward) {
+        ctx.fillStyle = '#fff4bd';
+        ctx.font = '1000 9px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('BOSS CACHE', 0, -halfHeight - 7);
+      }
+
+      if (progress > 0) {
+        const ringRadius = chest.radius + 12;
+        const remaining = Math.max(
+          0,
+          TREASURE_CHEST_UNLOCK_DURATION - (chest.unlockProgress ?? 0),
+        );
+        ctx.strokeStyle = bossReward ? '#fff4bd' : '#7ef9d4';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(
+          0,
+          0,
+          ringRadius,
+          -Math.PI / 2,
+          -Math.PI / 2 + Math.PI * 2 * progress,
+        );
+        ctx.stroke();
+
+        ctx.fillStyle = '#f8fbff';
+        ctx.font = '900 9px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`${remaining.toFixed(1)}s`, 0, ringRadius + 6);
+      }
+
       ctx.restore();
     }
   }
