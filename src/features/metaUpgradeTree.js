@@ -15,7 +15,7 @@ import {
 } from '../data/metaUpgrades.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
-const GOLD_DROP_CHANCE = 0.04;
+const GOLD_DROP_CHANCE = 0.02;
 const GOLD_DROP_VALUE = 1;
 const GOLD_DROP_RADIUS = 10;
 const GOLD_MAGNET_RADIUS = 120;
