@@ -67,6 +67,7 @@ function createUpgradeColumns(content, cards, upgrades) {
   const paired = cards.map((card, index) => ({
     card,
     upgrade: upgrades[index],
+    originalIndex: index,
   }));
 
   const columns = document.createElement('div');
@@ -89,10 +90,17 @@ function createUpgradeColumns(content, cards, upgrades) {
     const familyCards = document.createElement('div');
     familyCards.className = 'handbook-unit-column__cards';
 
-    for (const { card, upgrade } of paired) {
-      if (!upgrade || getUnitClassFamily(upgrade.unitType) !== family.id) continue;
-      familyCards.append(card);
-    }
+    const familyEntries = paired
+      .filter(({ upgrade }) => (
+        upgrade && getUnitClassFamily(upgrade.unitType) === family.id
+      ))
+      .sort((left, right) => {
+        const reinforcementOrder = Number(right.upgrade.kind === 'reinforcement')
+          - Number(left.upgrade.kind === 'reinforcement');
+        return reinforcementOrder || left.originalIndex - right.originalIndex;
+      });
+
+    for (const { card } of familyEntries) familyCards.append(card);
 
     column.append(familyCards);
     columns.append(column);
