@@ -1,0 +1,55 @@
+name: One-shot v118 version sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/version-bump-v118.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Sync v118 version markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          main_path = Path('src/main.js')
+          main = main_path.read_text(encoding='utf-8')
+          old_main = 'const GAME_VERSION = 117;'
+          assert old_main in main, 'Expected v117 GAME_VERSION marker not found'
+          main_path.write_text(main.replace(old_main, 'const GAME_VERSION = 118;', 1), encoding='utf-8')
+
+          index_path = Path('index.html')
+          index = index_path.read_text(encoding='utf-8')
+          replacements = [
+              ('BUILD v117', 'BUILD v118'),
+              ('id="version-text">v117<', 'id="version-text">v118<'),
+              ('SYSTEM ONLINE • v117', 'SYSTEM ONLINE • v118'),
+          ]
+          for old, new in replacements:
+              assert old in index, f'Expected version marker not found: {old}'
+              index = index.replace(old, new, 1)
+          index_path.write_text(index, encoding='utf-8')
+          PY
+
+      - name: Commit v118
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/main.js index.html
+          git commit -m 'Bump game version to v118 for issue #144'
+          git push origin HEAD:main
