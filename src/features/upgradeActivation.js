@@ -315,7 +315,7 @@ export class UI extends PreviousUI {
     super.configurePermanentShopText();
     const help = this.metaUpgradeScreen?.querySelector('.meta-upgrade-help');
     if (help) {
-      help.textContent = 'Buy ranks in sequence. Each new rank costs more and strengthens the upgrade. Owned upgrades can still be activated or deactivated without refunding Gold.';
+      help.textContent = 'Each upgrade has its own column. Ranks unlock downward in sequence — buy the next box to advance that upgrade. Owned upgrades can still be activated or deactivated without refunding Gold.';
     }
   }
 
@@ -337,81 +337,32 @@ export class UI extends PreviousUI {
 
     this.metaUpgradeBranches.replaceChildren();
 
-    const center = document.createElement('div');
-    center.className = 'meta-upgrade-ring-center';
-    center.innerHTML = `
-      <span>PERMANENT</span>
-      <strong>${state.gold}</strong>
-      <span>GOLD</span>
-      <small>${purchasedRanks}/${totalRanks} RANKS</small>
-    `;
-    this.metaUpgradeBranches.append(center);
-
-    upgrades.forEach((upgrade, index) => {
+    for (const upgrade of upgrades) {
       const rank = getPermanentUpgradeRank(upgrade.id);
       const owned = rank > 0;
       const active = isPermanentUpgradeActive(upgrade.id);
       const maxed = rank >= upgrade.maxRank;
       const nextCost = getPermanentUpgradeNextCost(upgrade.id);
-      const purchasable = canPurchasePermanentUpgrade(upgrade.id);
-      const affordable = nextCost !== null && state.gold >= nextCost;
-      const currentDescription = owned
-        ? getPermanentUpgradeRankDescription(upgrade.id, rank)
-        : upgrade.rankDescriptions[0] ?? upgrade.description;
+      const nextPurchasable = canPurchasePermanentUpgrade(upgrade.id);
 
       const section = document.createElement('section');
-      section.className = 'meta-upgrade-branch';
+      section.className = `meta-upgrade-branch${active ? ' meta-upgrade-branch--active' : ''}`;
       section.style.setProperty('--branch-color', upgrade.color);
-      section.style.setProperty('--node-angle', `${(360 / upgrades.length) * index}deg`);
+      section.dataset.upgradeId = upgrade.id;
 
-      const card = document.createElement('article');
-      card.className = `meta-upgrade-node${owned ? ' meta-upgrade-node--owned' : ''}${active ? ' meta-upgrade-node--active' : ''}`;
-      card.dataset.upgradeId = upgrade.id;
-
-      const rankPips = Array.from({ length: upgrade.maxRank }, (_, rankIndex) => (
-        `<span class="meta-upgrade-rank-pip${rankIndex < rank ? ' meta-upgrade-rank-pip--filled' : ''}"></span>`
-      )).join('');
-
-      card.innerHTML = `
-        <span class="meta-upgrade-node__topline">
-          <span>RANK ${rank} / ${upgrade.maxRank}</span>
-          <span>${owned ? (active ? 'ACTIVE' : 'INACTIVE') : 'LOCKED'}</span>
-        </span>
-        <div class="meta-upgrade-node__ranks" aria-label="Rank ${rank} of ${upgrade.maxRank}">${rankPips}</div>
+      const header = document.createElement('div');
+      header.className = 'meta-upgrade-branch__header';
+      header.innerHTML = `
+        <span class="meta-upgrade-branch__eyebrow">UPGRADE PATH</span>
         <strong>${upgrade.name}</strong>
-        <p>${currentDescription}</p>
-        <span class="meta-upgrade-node__status">
-          ${maxed
-            ? 'Maximum rank reached'
-            : affordable
-              ? `Rank ${rank + 1} ready to purchase`
-              : `Need ${Math.max(0, nextCost - state.gold)} more Gold`}
-        </span>
+        <p>${upgrade.description}</p>
+        <span class="meta-upgrade-branch__progress">${rank} / ${upgrade.maxRank} RANKS</span>
       `;
-
-      const actions = document.createElement('div');
-      actions.className = 'meta-upgrade-node__actions';
-
-      const purchase = document.createElement('button');
-      purchase.type = 'button';
-      purchase.className = 'meta-upgrade-node__purchase';
-      purchase.disabled = maxed || !purchasable;
-      purchase.innerHTML = maxed
-        ? '<span>MAX RANK</span>'
-        : `<span>PURCHASE RANK ${rank + 1}</span><strong>${nextCost} GOLD</strong>`;
-      purchase.addEventListener('click', () => {
-        if (!purchasePermanentUpgrade(upgrade.id)) return;
-        this.renderPermanentShop();
-        this.renderRunConfiguration();
-        this.renderCaptainCallHud(this.game);
-        this.game?.refreshDoctrineBonuses?.();
-      });
-      actions.append(purchase);
 
       if (owned) {
         const toggle = document.createElement('button');
         toggle.type = 'button';
-        toggle.className = `meta-upgrade-node__toggle${active ? ' meta-upgrade-node__toggle--active' : ''}`;
+        toggle.className = `meta-upgrade-branch__toggle${active ? ' meta-upgrade-branch__toggle--active' : ''}`;
         toggle.textContent = active ? 'ACTIVE' : 'INACTIVE';
         toggle.addEventListener('click', () => {
           if (!setPermanentUpgradeActive(upgrade.id, !active)) return;
@@ -420,13 +371,73 @@ export class UI extends PreviousUI {
           this.renderCaptainCallHud(this.game);
           this.game?.refreshDoctrineBonuses?.();
         });
-        actions.append(toggle);
+        header.append(toggle);
       }
 
-      card.append(actions);
-      section.append(card);
+      const track = document.createElement('div');
+      track.className = 'meta-upgrade-rank-track';
+
+      for (let rankNumber = 1; rankNumber <= upgrade.maxRank; rankNumber += 1) {
+        const rankOwned = rankNumber <= rank;
+        const isNext = rankNumber === rank + 1;
+        const futureRank = rankNumber > rank + 1;
+        const cost = upgrade.costs[rankNumber - 1];
+        const affordable = isNext && state.gold >= cost;
+        const description = getPermanentUpgradeRankDescription(upgrade.id, rankNumber)
+          || upgrade.rankDescriptions[rankNumber - 1]
+          || upgrade.description;
+
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = [
+          'meta-upgrade-rank',
+          rankOwned ? 'meta-upgrade-rank--owned' : '',
+          isNext ? 'meta-upgrade-rank--next' : '',
+          isNext && affordable ? 'meta-upgrade-rank--affordable' : '',
+          futureRank ? 'meta-upgrade-rank--locked' : '',
+          rankOwned && active ? 'meta-upgrade-rank--active' : '',
+        ].filter(Boolean).join(' ');
+        card.disabled = !isNext || !affordable || maxed;
+        card.dataset.rank = String(rankNumber);
+
+        const stateLabel = rankOwned
+          ? 'OWNED'
+          : isNext
+            ? affordable ? 'AVAILABLE' : 'NEXT RANK'
+            : 'LOCKED';
+        const footerText = rankOwned
+          ? `Purchased for ${cost} Gold`
+          : isNext
+            ? affordable
+              ? `${cost} Gold • Click to purchase`
+              : `${cost} Gold • Need ${Math.max(0, cost - state.gold)} more`
+            : `${cost} Gold • Requires Rank ${rankNumber - 1}`;
+
+        card.innerHTML = `
+          <span class="meta-upgrade-rank__topline">
+            <span>RANK ${rankNumber}</span>
+            <span>${stateLabel}</span>
+          </span>
+          <strong>${description}</strong>
+          <span class="meta-upgrade-rank__footer">${footerText}</span>
+        `;
+
+        if (isNext && affordable && nextPurchasable && nextCost === cost) {
+          card.addEventListener('click', () => {
+            if (!purchasePermanentUpgrade(upgrade.id)) return;
+            this.renderPermanentShop();
+            this.renderRunConfiguration();
+            this.renderCaptainCallHud(this.game);
+            this.game?.refreshDoctrineBonuses?.();
+          });
+        }
+
+        track.append(card);
+      }
+
+      section.append(header, track);
       this.metaUpgradeBranches.append(section);
-    });
+    }
   }
 
   renderRunConfiguration(...args) {
