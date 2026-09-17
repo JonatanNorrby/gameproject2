@@ -53,6 +53,47 @@ const DRONE_SPRITE = Object.freeze({
   },
 });
 
+function getTargetBucketKey(cellX, cellY) {
+  return `${cellX}:${cellY}`;
+}
+
+function buildDroneTargetGrid(enemies, now, cellSize) {
+  const eligible = [];
+  const buckets = new Map();
+
+  for (const enemy of enemies) {
+    if (enemy.dead) continue;
+    if ((enemy.stunnedUntil ?? 0) > now) continue;
+    if ((enemy.droneRecentlyStunnedUntil ?? 0) > now) continue;
+
+    eligible.push(enemy);
+    const cellX = Math.floor(enemy.x / cellSize);
+    const cellY = Math.floor(enemy.y / cellSize);
+    const key = getTargetBucketKey(cellX, cellY);
+    const bucket = buckets.get(key);
+    if (bucket) bucket.push(enemy);
+    else buckets.set(key, [enemy]);
+  }
+
+  return { eligible, buckets };
+}
+
+function estimateNearbyEnemyCount(buckets, enemy, cellSize) {
+  const cellX = Math.floor(enemy.x / cellSize);
+  const cellY = Math.floor(enemy.y / cellSize);
+  let count = 0;
+
+  // #126: target selection only needs a density estimate. Summing the fixed
+  // 3x3 bucket neighborhood preserves the preference for clustered enemies
+  // without doing an O(enemyCount^2) distance scan for every grenade.
+  for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+    for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+      count += buckets.get(getTargetBucketKey(cellX + offsetX, cellY + offsetY))?.length ?? 0;
+    }
+  }
+  return count;
+}
+
 function createSupportCombatSystem(ParentCombatSystem) {
   return class SupportCombatSystem extends ParentCombatSystem {
     reset() {
@@ -114,22 +155,20 @@ function createSupportCombatSystem(ParentCombatSystem) {
       const now = this.game.elapsed;
       const range = support.range * modifiers.range * this.game.getTransformerStatMultiplier();
       const radius = support.aoeRadius * modifiers.blastRadius;
+      const cellSize = Math.max(48, radius);
+      const { eligible, buckets } = buildDroneTargetGrid(
+        this.game.entities.enemies,
+        now,
+        cellSize,
+      );
       let best = null;
       let bestScore = -Infinity;
 
-      for (const enemy of this.game.entities.enemies) {
-        if (enemy.dead) continue;
-        if ((enemy.stunnedUntil ?? 0) > now) continue;
-        if ((enemy.droneRecentlyStunnedUntil ?? 0) > now) continue;
+      for (const enemy of eligible) {
         const pilotDistanceSq = distanceSq(pilot.x, pilot.y, enemy.x, enemy.y);
         if (pilotDistanceSq > range * range) continue;
 
-        let groupCount = 0;
-        for (const other of this.game.entities.enemies) {
-          if (other.dead || (other.stunnedUntil ?? 0) > now || (other.droneRecentlyStunnedUntil ?? 0) > now) continue;
-          const groupRadius = radius + other.radius;
-          if (distanceSq(enemy.x, enemy.y, other.x, other.y) <= groupRadius * groupRadius) groupCount += 1;
-        }
+        const groupCount = estimateNearbyEnemyCount(buckets, enemy, cellSize);
         const score = pilotDistanceSq + groupCount * range * range * 0.08;
         if (score <= bestScore) continue;
         bestScore = score;
@@ -313,25 +352,6 @@ export class Game extends PreviousGame {
     const SupportCombatSystem = createSupportCombatSystem(this.combatSystem.constructor);
     this.combatSystem = new SupportCombatSystem(this);
     this.combatSystem.reset();
-  }
-
-  drawEnemies(ctx) {
-    super.drawEnemies(ctx);
-    const now = this.elapsed;
-    for (const enemy of this.entities.enemies) {
-      if (enemy.dead || (enemy.stunnedUntil ?? 0) <= now) continue;
-      ctx.save();
-      ctx.strokeStyle = '#7de7ff';
-      ctx.fillStyle = 'rgba(125,231,255,.12)';
-      ctx.lineWidth = 2;
-      ctx.shadowBlur = 14;
-      ctx.shadowColor = '#7de7ff';
-      ctx.beginPath();
-      ctx.arc(enemy.x, enemy.y, enemy.radius + 7, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-    }
   }
 
   drawPlayer(ctx) {
