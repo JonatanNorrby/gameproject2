@@ -2,11 +2,14 @@ import { Game as PreviousGame, UI as PreviousUI } from './gameplayPolish.js';
 import { CAPTAINS, ENEMY_TYPES, GAME_BALANCE, UNIT_CLASSES } from '../data/content.js';
 import { FRAME_SPRITES, createStandardFrameSet } from '../data/sprites.js';
 import { getUnitModifiers } from '../data/unitModifiers.js';
+import { isUnitInClassFamily } from '../data/unitFamilies.js';
 import { THORNE_CAPTAIN } from '../data/captainThorne.js';
+import { areHexSlotsAdjacent } from '../utils/hexFormation.js';
 import { distanceSq } from '../utils/math.js';
 
 const THORNE_ID = THORNE_CAPTAIN.id;
 const SHOCKBLADE_TYPE = 'shockblade';
+const VANGUARD_CLASS = SHOCKBLADE_TYPE;
 const DAMAGE_FEEDBACK_INTERVAL = 0.16;
 const DAMAGE_INVULNERABILITY_DURATION = 0.1;
 
@@ -49,6 +52,45 @@ function createThorneCombatSystem(ParentCombatSystem) {
       return this.game.player.squad.some((unit) => (
         !unit.dead && unit.captainId === THORNE_ID
       ));
+    }
+
+    getThorneLifestealRate() {
+      return Math.max(
+        0,
+        Number(CAPTAINS[THORNE_ID]?.weapon?.lifesteal ?? THORNE_CAPTAIN.weapon?.lifesteal) || 0,
+      );
+    }
+
+    isThorneLifestealEligible(unit) {
+      if (!unit || unit.dead) return false;
+      if (isPrimaryThorne(unit)) return true;
+      if (unit.captainId || !isUnitInClassFamily(unit.type, VANGUARD_CLASS)) return false;
+
+      const soldiers = this.game.getWeaponPositions();
+      const unitSoldier = soldiers.find((soldier) => soldier.unit.id === unit.id);
+      if (!unitSoldier) return false;
+
+      const thorneSoldiers = soldiers.filter((soldier) => (
+        !soldier.unit.dead && soldier.unit.captainId === THORNE_ID
+      ));
+      if (thorneSoldiers.length === 0) return false;
+      if (this.game.isDropEffectActive('transformer')) return true;
+
+      return thorneSoldiers.some((thorneSoldier) => (
+        areHexSlotsAdjacent(unitSoldier.hex, thorneSoldier.hex)
+      ));
+    }
+
+    applyThorneLifesteal(unit, totalDamageDealt) {
+      const lifesteal = this.getThorneLifestealRate();
+      const damage = Math.max(0, Number(totalDamageDealt) || 0);
+      if (lifesteal <= 0 || damage <= 0 || !this.isThorneLifestealEligible(unit)) return 0;
+
+      const hpBefore = Math.max(0, Number(unit.hp) || 0);
+      const maxHp = Math.max(hpBefore, Number(unit.maxHp) || hpBefore);
+      unit.hp = Math.min(maxHp, hpBefore + damage * lifesteal);
+      if (isPrimaryThorne(unit)) this.game.syncCaptainHealth();
+      return Math.max(0, unit.hp - hpBefore);
     }
 
     getUnitArmor(unit) {
@@ -110,10 +152,7 @@ function createThorneCombatSystem(ParentCombatSystem) {
         if (enemy.hp <= 0) this.killEnemy(enemy);
       }
 
-      if (isPrimaryThorne(unit) && weapon.lifesteal > 0 && totalDamageDealt > 0) {
-        unit.hp = Math.min(unit.maxHp, unit.hp + totalDamageDealt * weapon.lifesteal);
-        this.game.syncCaptainHealth();
-      }
+      this.applyThorneLifesteal(unit, totalDamageDealt);
 
       const slashAngle = Math.atan2(attack.direction.y, attack.direction.x);
       for (const angle of [slashAngle, slashAngle + Math.PI]) {
