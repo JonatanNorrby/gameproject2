@@ -10,7 +10,7 @@ export const GROUND_DROPS = {
     label: 'Magnet',
     symbol: 'M',
     color: '#70e8ff',
-    description: 'Pull every XP gem currently on the battlefield into the squad.',
+    description: 'Pull every XP gem and Gold pickup currently on the battlefield into the squad.',
     kind: 'instant',
   },
   fury: {
