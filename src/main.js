@@ -8,7 +8,7 @@ import {
 } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 99;
+const GAME_VERSION = 100;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
@@ -21,6 +21,14 @@ ui.versionText.textContent = `v${GAME_VERSION}`;
 ui.setGameVersion?.(GAME_VERSION);
 const mainMenuBuild = document.querySelector('.main-menu__build');
 if (mainMenuBuild) mainMenuBuild.textContent = 'SYSTEM ONLINE';
+
+// #79: keep the Squad Builder control physically beside the Level / XP HUD.
+// Reparenting the existing control preserves all UI bindings while letting the
+// bottom HUD use normal responsive flex layout rather than absolute offsets.
+const hudBottom = document.querySelector('.hud__bottom');
+const squadMenu = document.querySelector('.squad-menu');
+if (hudBottom && squadMenu) hudBottom.append(squadMenu);
+
 const input = new Input(canvas, touchStick);
 const game = new Game(canvas, input, ui);
 
