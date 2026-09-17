@@ -1,0 +1,7 @@
+/* Shared in-game UI refinements for HUD and squad-management presentation. */
+
+/* Squad Builder still tracks slot indices for formation/reordering and screen
+   readers, but the numbered badge is visual noise on the unit tile itself. */
+#squad-builder-screen .squad-unit-card__slot {
+  display: none !important;
+}
