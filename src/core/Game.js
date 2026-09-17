@@ -536,6 +536,34 @@ export class Game {
       ctx.save();
       ctx.translate(drop.x, drop.y + bob);
       ctx.scale(pulse, pulse);
+
+      if (drop.type === 'health') {
+        const arm = drop.radius * 0.82;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 22;
+        ctx.shadowColor = definition.color;
+        ctx.strokeStyle = definition.color;
+        ctx.lineWidth = Math.max(5, drop.radius * 0.45);
+        ctx.beginPath();
+        ctx.moveTo(-arm, 0);
+        ctx.lineTo(arm, 0);
+        ctx.moveTo(0, -arm);
+        ctx.lineTo(0, arm);
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.58;
+        ctx.shadowBlur = 10;
+        ctx.strokeStyle = '#e2ffea';
+        ctx.lineWidth = Math.max(2, drop.radius * 0.16);
+        ctx.beginPath();
+        ctx.moveTo(-arm, 0);
+        ctx.lineTo(arm, 0);
+        ctx.moveTo(0, -arm);
+        ctx.lineTo(0, arm);
+        ctx.stroke();
+        ctx.restore();
+        continue;
+      }
       ctx.shadowBlur = 20;
       ctx.shadowColor = definition.color;
       ctx.fillStyle = `${definition.color}33`;
