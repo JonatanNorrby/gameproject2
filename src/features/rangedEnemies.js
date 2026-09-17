@@ -12,16 +12,29 @@ if (!FRAME_SPRITES.enemies.spitter) {
   FRAME_SPRITES.enemies.spitter = createStandardFrameSet('spitter', { drawSize: 38 });
 }
 
+if (!FRAME_SPRITES.enemies[BURST_SPITTER_TYPE]) {
+  FRAME_SPRITES.enemies[BURST_SPITTER_TYPE] = createStandardFrameSet(BURST_SPITTER_TYPE, { drawSize: 72 });
+} else {
+  // #119: Burst Spitter artwork should match its doubled gameplay footprint.
+  FRAME_SPRITES.enemies[BURST_SPITTER_TYPE].drawSize = 72;
+}
+
 // Keep ranged enemies uncommon, but make them appear a little more often than before.
 Object.assign(ENEMY_TYPES.spitter, {
   weight: 0.42,
   maxActive: 4,
 });
 
+// #119: make the standard Spitter's acid shots substantially quicker without
+// changing their damage, cooldown or collision size.
+Object.assign(ENEMY_TYPES.spitter.ranged, {
+  projectileSpeed: 130,
+});
+
 if (!ENEMY_TYPES[BURST_SPITTER_TYPE]) {
   ENEMY_TYPES[BURST_SPITTER_TYPE] = {
     label: 'Burst Spitter',
-    radius: 13,
+    radius: 26,
     speed: 55,
     hp: 52,
     damage: 0,
@@ -38,8 +51,8 @@ if (!ENEMY_TYPES[BURST_SPITTER_TYPE]) {
       cooldown: 4.2,
       burstCount: 3,
       burstSpacing: 0.16,
-      projectileSpeed: 100,
-      projectileRadius: 7,
+      projectileSpeed: 150,
+      projectileRadius: 14,
       projectileLife: 5,
       damage: 8,
       color: '#ff7ddd',
