@@ -271,3 +271,12 @@
 .squad-builder__board--freeform .squad-formation-target {
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
+
+/* Issue 134: the outer hex is a live health indicator while unit identity stays
+   on the icon, inner fill, and hover/selection glow. */
+.squad-builder__board--freeform .squad-unit-card {
+  background: var(--health-border-color, var(--unit-color));
+}
+.squad-builder__board--freeform .squad-unit-card--captain::after {
+  display: none;
+}
