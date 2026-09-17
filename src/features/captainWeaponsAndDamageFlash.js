@@ -15,7 +15,7 @@ Object.assign(CAPTAINS[VALE_ID], {
   passiveText: 'Vale plus adjacent Riflemen and Snipers build Focus with every shot. Reaching full Focus activates the full bonus for 5 seconds: +75% fire rate, a 12% chance for +1 pierce, and synchronized volleys. Vale fires 3 rounds one after another at the same target on every attack.',
 });
 Object.assign(CAPTAINS[MERCER_ID], {
-  passiveText: 'Every third attack from an adjacent Rocketeer-class unit gains 3× area size. Rocketeer rockets also gain +75% range on that third attack; Drone Pilot stun attacks gain area only. Mercer rockets still scatter light burst rounds after exploding.',
+  passiveText: 'Every third attack from an adjacent Rocketeer-class unit gains 3× area size. Rocketeer rockets also gain +75% range on that third attack; Drone Pilot explosive grenades gain area only. Mercer rockets still scatter light burst rounds after exploding.',
 });
 
 function isPrimaryCaptainUnit(unit, captainId) {
