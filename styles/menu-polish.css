@@ -68,3 +68,76 @@
   opacity: 1 !important;
   filter: none !important;
 }
+
+/* #91: locked Captain cards use a visual lock instead of textual LOCKED chips.
+   Keep the unlock requirement at the bottom, while the otherwise-generic
+   command-profile area becomes a clear centered lock state. */
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) .upgrade-card__rarity {
+  display: none !important;
+}
+
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > p {
+  visibility: hidden;
+}
+
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret)::after {
+  content: '';
+  position: absolute;
+  inset: auto !important;
+  left: 65%;
+  top: 55%;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: 5;
+  width: 34px;
+  height: 28px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 3px solid #ff5f79;
+  border-radius: 6px;
+  background: rgba(255, 95, 121, .08);
+  box-shadow: 0 0 18px rgba(255, 95, 121, .42);
+}
+
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret)::before {
+  content: '';
+  position: absolute;
+  inset: auto !important;
+  left: 65%;
+  top: calc(55% - 21px);
+  z-index: 6;
+  width: 20px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border: 3px solid #ff5f79;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  background: transparent;
+  box-shadow: 0 -3px 12px rgba(255, 95, 121, .32);
+}
+
+/* The still-secret final Captain should show only the mystery mark. The legacy
+   CLASSIFIED / ??? / SECRET CAPTAIN labels stay in the markup for compatibility
+   but are removed from both layout and accessibility by display:none. */
+#captain-select-screen .captain-select-card--secret {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: 1fr !important;
+  place-items: center !important;
+  column-gap: 0 !important;
+  row-gap: 0 !important;
+}
+
+#captain-select-screen .captain-select-card--secret .captain-secret__lock,
+#captain-select-screen .captain-select-card--secret > strong,
+#captain-select-screen .captain-select-card--secret > small {
+  display: none !important;
+}
+
+#captain-select-screen .captain-select-card--secret .captain-secret__question {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: center !important;
+  justify-self: center !important;
+  margin: 0 !important;
+}
