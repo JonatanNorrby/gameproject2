@@ -175,8 +175,8 @@ jobs:
           assert(typeof handbook.UI.prototype.showHandbook === 'function', 'Handbook open API missing');
           assert(typeof handbook.UI.prototype.setHandbookTab === 'function', 'Handbook tab API missing');
 
-          // #133: Drone Pilot now deals Rocketeer-style explosive damage rather
-          // than stun. Keep the shared-damage path and Mercer 3x area contract.
+          // #133/#136: Drone Pilot uses Rocketeer-style explosive damage and
+          // now enters the shared projectile resolver from the Drone position.
           const dronePilot = UNIT_CLASSES.drone_pilot;
           assert(dronePilot?.weapon?.damage === UNIT_CLASSES.rocketeer.weapon.damage, 'Drone grenade base damage must match Rocketeer');
           assert(dronePilot?.support?.aoeRadius === 82, 'Drone grenade base blast radius changed unexpectedly');
@@ -186,7 +186,11 @@ jobs:
           assert(CAPTAINS.mercer?.passiveText?.includes('Drone Pilot explosive grenades'), 'Mercer description does not mention Drone grenades');
           const supportSource = fs.readFileSync('src/features/supportUnits.js', 'utf8');
           assert(supportSource.includes('dropExplosiveGrenade'), 'Drone explosive grenade path is missing');
-          assert(supportSource.includes('this.explodeProjectile({'), 'Drone grenades are not reusing Rocketeer explosion logic');
+          assert(supportSource.includes('game.entities.projectiles.push({'), 'Drone grenades are not entering the shared projectile queue');
+          assert(supportSource.includes("kind: 'rocket'"), 'Drone grenades are not using Rocketeer projectile logic');
+          assert(supportSource.includes('x: drone.x') && supportSource.includes('y: drone.y'), 'Drone grenade is not spawned under the Drone');
+          assert(supportSource.includes('this.findNearestTarget(drone.x, drone.y, range)'), 'Drone targeting is not using the Rocketeer nearest-target helper');
+          assert(!supportSource.includes('buildDroneTargetGrid'), 'Legacy Drone cluster-grid targeting is still present');
           const handbookPolishSource = fs.readFileSync('src/features/handbookPolish.js', 'utf8');
           assert(handbookPolishSource.includes('damaging explosive grenades'), 'Handbook Drone Pilot description still describes stun grenades');
           assert(typeof supportUnits.collectDronePickupXp === 'function', 'Drone Pickup behavior was lost during grenade rework');
