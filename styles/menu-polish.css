@@ -141,3 +141,51 @@
   justify-self: center !important;
   margin: 0 !important;
 }
+
+/* #103: make the in-run debug launcher match the intentionally subdued main-menu
+   launcher from #54. Keep the existing debug panel and PIN behavior unchanged;
+   only move/style the launcher and let the panel open upward from it. */
+.debug-menu {
+  top: auto;
+  right: auto;
+  left: max(24px, env(safe-area-inset-left));
+  bottom: max(58px, calc(env(safe-area-inset-bottom) + 44px));
+  display: block;
+  justify-items: initial;
+  gap: 0;
+}
+
+.debug-toggle {
+  width: auto;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 4px;
+  padding: 4px 7px;
+  background: rgba(4, 12, 17, .22);
+  color: #36505b;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  opacity: .42;
+  box-shadow: none;
+  clip-path: none;
+  cursor: pointer;
+  transition: color 120ms ease, opacity 120ms ease, background 120ms ease;
+}
+
+.debug-toggle:hover,
+.debug-toggle[aria-expanded="true"] {
+  transform: none;
+  border-color: transparent;
+  background: rgba(18, 43, 52, .42);
+  color: #7197a5;
+  opacity: .82;
+}
+
+.debug-menu .debug-panel {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+}
