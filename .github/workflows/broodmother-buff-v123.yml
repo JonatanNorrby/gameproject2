@@ -1,0 +1,92 @@
+name: Apply Broodmother buff v123
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-broodmother-buff:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply issue 148 balance changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          bosses_path = Path('src/data/bosses.js')
+          bosses = bosses_path.read_text(encoding='utf-8')
+          replacements = {
+              '  maxHp: 8400,': '  maxHp: 25200,',
+              '    tickDamage: 7,': '    tickDamage: 10.5,',
+              '    damage: 27,\n    knockback: 58,': '    damage: 40.5,\n    knockback: 58,',
+              '    damage: 26,\n    knockback: 42,': '    damage: 39,\n    knockback: 42,',
+          }
+          for old, new in replacements.items():
+              count = bosses.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one Broodmother balance marker {old!r}, found {count}')
+              bosses = bosses.replace(old, new, 1)
+          bosses_path.write_text(bosses, encoding='utf-8')
+
+          main_path = Path('src/main.js')
+          main = main_path.read_text(encoding='utf-8')
+          old_version = 'const GAME_VERSION = 122;'
+          if main.count(old_version) != 1:
+              raise SystemExit('Expected one v122 GAME_VERSION marker')
+          main_path.write_text(main.replace(old_version, 'const GAME_VERSION = 123;', 1), encoding='utf-8')
+
+          index_path = Path('index.html')
+          index = index_path.read_text(encoding='utf-8')
+          markers = {
+              'BUILD v122': 'BUILD v123',
+              'id="version-text">v122<': 'id="version-text">v123<',
+              'SYSTEM ONLINE • v122': 'SYSTEM ONLINE • v123',
+          }
+          for old, new in markers.items():
+              count = index.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one version marker {old!r}, found {count}')
+              index = index.replace(old, new, 1)
+          index_path.write_text(index, encoding='utf-8')
+          PY
+
+          node --check src/data/bosses.js
+          node --check src/main.js
+
+          python3 - <<'PY'
+          from pathlib import Path
+          bosses = Path('src/data/bosses.js').read_text(encoding='utf-8')
+          main = Path('src/main.js').read_text(encoding='utf-8')
+          index = Path('index.html').read_text(encoding='utf-8')
+          assert 'maxHp: 25200' in bosses, 'Broodmother 3x HP missing'
+          assert 'tickDamage: 10.5' in bosses, 'Broodmother acid damage buff missing'
+          assert 'damage: 40.5' in bosses, 'Broodmother tail damage buff missing'
+          assert 'damage: 39' in bosses, 'Broodmother lunge damage buff missing'
+          assert 'const GAME_VERSION = 123;' in main, 'v123 runtime marker missing'
+          assert 'BUILD v123' in index, 'v123 boot marker missing'
+          assert 'id="version-text">v123<' in index, 'v123 HUD marker missing'
+          assert 'SYSTEM ONLINE • v123' in index, 'v123 menu marker missing'
+          print('Broodmother issue #148 balance and v123 markers validated.')
+          PY
+
+      - name: Commit v123 and remove helper workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/broodmother-buff-v123.yml
+          git add src/data/bosses.js src/main.js index.html
+          git commit -m 'Buff Broodmother for issue #148 and bump v123'
+          git push
