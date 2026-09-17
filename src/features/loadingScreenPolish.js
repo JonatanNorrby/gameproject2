@@ -113,9 +113,17 @@ const ISSUE_125_STYLES = `
     gap: 10px;
   }
 
+  .settings-run-actions .primary-button,
   .settings-run-actions .end-run-button {
     width: 100%;
+    min-height: 42px;
     align-self: stretch;
+  }
+
+  .settings-run-actions .settings-resume-run {
+    min-width: 86px;
+    padding: 8px 12px;
+    font-size: 10px;
   }
 
   @media (max-width: 560px) {
@@ -227,6 +235,10 @@ export class UI extends PreviousUI {
   constructor(...args) {
     super(...args);
     this.settingsOpenedInGame = false;
+    this.settingsBackHome = this.settingsBack ? {
+      parent: this.settingsBack.parentElement,
+      nextSibling: this.settingsBack.nextSibling,
+    } : null;
     this.applyIssue88LoadingScreen();
     this.installIssue107EndRunControl();
     this.installIssue125InGameSettingsControl();
@@ -358,6 +370,28 @@ export class UI extends PreviousUI {
     this.ingameSettingsButton = button;
   }
 
+  placeSettingsBackButton(inRunActions) {
+    const button = this.settingsBack;
+    if (!button) return;
+
+    if (inRunActions) {
+      const actions = this.settingsRunSection?.querySelector('.settings-run-actions');
+      if (!actions) return;
+      button.classList.add('settings-resume-run');
+      if (button.parentElement !== actions || actions.firstElementChild !== button) actions.prepend(button);
+      return;
+    }
+
+    button.classList.remove('settings-resume-run');
+    const home = this.settingsBackHome;
+    if (!home?.parent || button.parentElement === home.parent) return;
+    if (home.nextSibling && home.nextSibling.parentNode === home.parent) {
+      home.parent.insertBefore(button, home.nextSibling);
+    } else {
+      home.parent.append(button);
+    }
+  }
+
   showSettings(...args) {
     const game = this.game;
     this.settingsOpenedInGame = Boolean(
@@ -375,6 +409,7 @@ export class UI extends PreviousUI {
     } else if (this.settingsBack) {
       this.settingsBack.textContent = 'Back to Main Menu';
     }
+    this.placeSettingsBackButton(this.settingsOpenedInGame);
 
     return super.showSettings(...args);
   }
@@ -386,6 +421,7 @@ export class UI extends PreviousUI {
 
     if (resumeRun) this.game?.resume?.('settings');
     if (this.settingsBack) this.settingsBack.textContent = 'Back to Main Menu';
+    this.placeSettingsBackButton(false);
     return result;
   }
 
