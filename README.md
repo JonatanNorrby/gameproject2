@@ -27,6 +27,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Freeform connected squad formation editing
 - Ground powerups with animated Magnet, Nuke, and Fury effects
 - Shared Squad Health pool that grows by 10% for every additional squad member; combat damage no longer injures or kills individual squad units
+- HP drops restore 10% of maximum shared Squad Health regardless of which squad member collects them
 - Enemy damage feedback uses a lightweight red halo behind damaged sprites without per-hit Canvas blur/filter effects
 - Endless difficulty scaling
 - Death / return-to-menu loop
