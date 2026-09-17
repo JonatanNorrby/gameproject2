@@ -1,0 +1,126 @@
+name: One-shot issue 151 Captain family unlocks v126
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply issue 151 unlock logic and version sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          unlocks_path = Path('src/data/unlocks.js')
+          unlocks = unlocks_path.read_text(encoding='utf-8')
+
+          import_line = "import { isUnitInClassFamily } from './unitFamilies.js';\n\n"
+          if import_line not in unlocks:
+              unlocks = import_line + unlocks
+
+          replacements = {
+              "requirementText: 'Have 5 Rocketeers alive in your squad at once.',": "requirementText: 'Have 5 Specialists alive in your squad at once.',",
+              "type: 'living-unit-count',\n      unitType: 'rocketeer',": "type: 'living-class-count',\n      familyId: 'rocketeer',",
+              "requirementText: 'Have 5 Shockblades alive in your squad at once.',": "requirementText: 'Have 5 Vanguards alive in your squad at once.',",
+              "type: 'living-unit-count',\n      unitType: 'shockblade',": "type: 'living-class-count',\n      familyId: 'shockblade',",
+          }
+          for old, new in replacements.items():
+              if old not in unlocks:
+                  raise SystemExit(f'Missing expected unlock source: {old}')
+              unlocks = unlocks.replace(old, new, 1)
+
+          living_unit_branch = """  if (condition.type === 'living-unit-count') {\n    const livingCount = squad.filter((unit) => (\n      !unit.dead && unit.type === condition.unitType\n    )).length;\n    return livingCount >= condition.count;\n  }\n"""
+          family_branch = """  if (condition.type === 'living-class-count') {\n    const livingCount = squad.filter((unit) => (\n      !unit.dead && isUnitInClassFamily(unit.type, condition.familyId)\n    )).length;\n    return livingCount >= condition.count;\n  }\n\n"""
+          if family_branch not in unlocks:
+              if living_unit_branch not in unlocks:
+                  raise SystemExit('Could not locate living-unit-count branch')
+              unlocks = unlocks.replace(living_unit_branch, family_branch + living_unit_branch, 1)
+
+          unlocks_path.write_text(unlocks, encoding='utf-8')
+
+          main_path = Path('src/main.js')
+          main = main_path.read_text(encoding='utf-8')
+          if 'const GAME_VERSION = 125;' not in main:
+              raise SystemExit('Expected GAME_VERSION 125 before issue 151 bump')
+          main_path.write_text(main.replace('const GAME_VERSION = 125;', 'const GAME_VERSION = 126;', 1), encoding='utf-8')
+
+          index_path = Path('index.html')
+          index = index_path.read_text(encoding='utf-8')
+          for old, new in (
+              ('BUILD v125', 'BUILD v126'),
+              ('id="version-text">v125<', 'id="version-text">v126<'),
+              ('SYSTEM ONLINE • v125', 'SYSTEM ONLINE • v126'),
+          ):
+              if old not in index:
+                  raise SystemExit(f'Missing version marker: {old}')
+              index = index.replace(old, new, 1)
+          index_path.write_text(index, encoding='utf-8')
+          PY
+
+      - name: Validate Captain family unlock behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/data/unlocks.js
+          node --check src/main.js
+          node --experimental-default-type=module --input-type=module <<'NODE'
+          const unlocks = await import('./src/data/unlocks.js');
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+
+          unlocks.resetUnlockProgress();
+          unlocks.evaluateUnlocks({ squad: [
+            { type: 'rocketeer', dead: false },
+            { type: 'rocketeer', dead: false },
+            { type: 'drone_pilot', dead: false },
+            { type: 'drone_pilot', dead: false },
+          ] });
+          assert(!unlocks.isCaptainUnlocked('mercer'), 'Mercer unlocked before 5 Specialists');
+          unlocks.evaluateUnlocks({ squad: [
+            { type: 'rocketeer', dead: false },
+            { type: 'rocketeer', dead: false },
+            { type: 'rocketeer', dead: false },
+            { type: 'drone_pilot', dead: false },
+            { type: 'drone_pilot', dead: false },
+          ] });
+          assert(unlocks.isCaptainUnlocked('mercer'), 'Mercer did not unlock from 5 mixed Specialists');
+
+          unlocks.resetUnlockProgress();
+          unlocks.evaluateUnlocks({ squad: [
+            { type: 'shockblade', dead: false },
+            { type: 'shockblade', dead: false },
+            { type: 'stormlancer', dead: false },
+            { type: 'stormlancer', dead: false },
+            { type: 'stormlancer', dead: false },
+          ] });
+          assert(unlocks.isCaptainUnlocked('thorne'), 'Thorne did not unlock from 5 mixed Vanguards');
+          console.log('Captain family unlock behavior validated.');
+          NODE
+          grep -q "const GAME_VERSION = 126;" src/main.js
+          grep -q "BUILD v126" index.html
+          grep -q 'id="version-text">v126<' index.html
+          grep -q "SYSTEM ONLINE • v126" index.html
+          grep -q "setGameVersion?.(GAME_VERSION)" src/main.js
+
+      - name: Commit cleaned v126 tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/issue-151-captain-family-unlocks-v126.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/unlocks.js src/main.js index.html .github/workflows/issue-151-captain-family-unlocks-v126.yml
+          git commit -m "Use class families for Captain unlocks in issue #151 and bump v126"
+          git push
