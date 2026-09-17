@@ -11,7 +11,7 @@ import { distanceSq, normalize } from '../utils/math.js';
 const DRONE_PILOT_TYPE = 'drone_pilot';
 const ROCKETEER_CLASS = 'rocketeer';
 const MERCER_ID = 'mercer';
-const DAMAGE_FLASH_DURATION = 0.16;
+const DRONE_PRIORITY_ENEMY_TYPES = new Set(['spitter', 'burst_spitter']);
 export const DRONE_PICKUP_UPGRADE_ID = 'drone_pickup';
 export const DRONE_PICKUP_RADIUS = 140;
 export const DRONE_PICKUP_RADIUS_BY_RANK = Object.freeze([0, 140, 210, 280]);
@@ -91,25 +91,12 @@ function createSupportCombatSystem(ParentCombatSystem) {
             x: pilot.x + 28,
             y: pilot.y - 18,
             radius: support.droneRadius,
-            hp: support.droneHp,
-            maxHp: support.droneHp,
             dead: false,
-            respawnAt: 0,
             grenadeCooldown: 0.75,
             target: null,
-            hitFlash: 0,
             mercerAttackCount: 0,
           };
           game.supportDrones.push(drone);
-        } else if (drone.dead && game.elapsed >= drone.respawnAt) {
-          drone.dead = false;
-          drone.hp = drone.maxHp;
-          drone.x = pilot.x + 28;
-          drone.y = pilot.y - 18;
-          drone.grenadeCooldown = 0.75;
-          drone.target = null;
-          drone.hitFlash = 0;
-          drone.mercerAttackCount = 0;
         }
       }
     }
@@ -174,6 +161,22 @@ function createSupportCombatSystem(ParentCombatSystem) {
       drone.grenadeCooldown = support.cooldown / modifiers.fireRate;
     }
 
+    findDroneTarget(x, y, range) {
+      const rangeSq = range * range;
+      let priorityTarget = null;
+      let priorityDistance = Infinity;
+
+      for (const enemy of this.game.entities?.enemies ?? []) {
+        if (enemy.dead || (enemy.hp ?? 0) <= 0 || !DRONE_PRIORITY_ENEMY_TYPES.has(enemy.type)) continue;
+        const dist = distanceSq(x, y, enemy.x, enemy.y);
+        if (dist > rangeSq || dist >= priorityDistance) continue;
+        priorityDistance = dist;
+        priorityTarget = enemy;
+      }
+
+      return priorityTarget ?? this.findNearestTarget(x, y, range);
+    }
+
     updateSupportDrones(dt) {
       const game = this.game;
       const attackSpeed = game.getAttackSpeedMultiplier();
@@ -184,7 +187,6 @@ function createSupportCombatSystem(ParentCombatSystem) {
       );
 
       for (const drone of game.supportDrones ?? []) {
-        drone.hitFlash = Math.max(0, (drone.hitFlash ?? 0) - dt);
         if (drone.dead) continue;
         const pilot = pilots.get(drone.pilotId);
         if (!pilot) continue;
@@ -204,7 +206,7 @@ function createSupportCombatSystem(ParentCombatSystem) {
         ) target = null;
 
         if (!target && drone.grenadeCooldown <= 0) {
-          target = this.findNearestTarget(drone.x, drone.y, range);
+          target = this.findDroneTarget(drone.x, drone.y, range);
         }
         drone.target = target;
 
@@ -252,46 +254,6 @@ function createSupportCombatSystem(ParentCombatSystem) {
       for (const enemy of stunned) enemy.hitFlash = Math.max(0, (enemy.hitFlash ?? 0) - dt);
     }
 
-    findNearestSoldierTarget(x, y, soldiers) {
-      let target = super.findNearestSoldierTarget(x, y, soldiers);
-      let bestDistance = target ? distanceSq(x, y, target.x, target.y) : Infinity;
-      for (const drone of this.game.supportDrones ?? []) {
-        if (drone.dead) continue;
-        const dist = distanceSq(x, y, drone.x, drone.y);
-        if (dist >= bestDistance) continue;
-        bestDistance = dist;
-        target = drone;
-      }
-      return target;
-    }
-
-    updateEnemyProjectiles(projectiles, dt) {
-      super.updateEnemyProjectiles(projectiles, dt);
-      this.resolveDroneProjectileHits(projectiles);
-    }
-
-    resolveDroneProjectileHits(projectiles) {
-      const support = UNIT_CLASSES[DRONE_PILOT_TYPE].support;
-      for (const projectile of projectiles) {
-        if (projectile.dead) continue;
-        for (const drone of this.game.supportDrones ?? []) {
-          if (drone.dead) continue;
-          const hitRadius = projectile.radius + drone.radius;
-          if (distanceSq(projectile.x, projectile.y, drone.x, drone.y) > hitRadius * hitRadius) continue;
-          projectile.dead = true;
-          drone.hp = Math.max(0, drone.hp - projectile.damage);
-          drone.hitFlash = DAMAGE_FLASH_DURATION;
-          if (drone.hp <= 0) {
-            drone.dead = true;
-            drone.respawnAt = this.game.elapsed + support.respawnDelay;
-            drone.target = null;
-            drone.mercerAttackCount = 0;
-            this.game.spawnDeathParticles(drone.x, drone.y, drone.radius);
-          }
-          break;
-        }
-      }
-    }
   };
 }
 
@@ -333,21 +295,6 @@ export class Game extends PreviousGame {
         ctx.restore();
       }
 
-      if ((drone.hitFlash ?? 0) > 0) {
-        ctx.save();
-        ctx.globalAlpha = 0.42;
-        ctx.filter = 'sepia(1) saturate(18) hue-rotate(305deg) brightness(1.15)';
-        this.animationRenderer.draw(ctx, DRONE_SPRITE, 'idle', 0, drone.x, drone.y);
-        ctx.restore();
-      }
-
-      const health = Math.max(0, Math.min(1, drone.hp / Math.max(1, drone.maxHp)));
-      ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,.55)';
-      ctx.fillRect(drone.x - 14, drone.y - 20, 28, 4);
-      ctx.fillStyle = '#79e7ff';
-      ctx.fillRect(drone.x - 14, drone.y - 20, 28 * health, 4);
-      ctx.restore();
     }
   }
 }
