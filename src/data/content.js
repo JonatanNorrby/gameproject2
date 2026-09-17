@@ -132,7 +132,7 @@ export const ENEMY_TYPES = {
     fill: '#e5b84e', outline: '#ffe197', unlockAt: 18, weight: 5,
   },
   brute: {
-    label: 'Brute', radius: 23, speed: 48, hp: 110, damage: 18, xp: 4,
+    label: 'Brute', radius: 23, speed: 48, hp: 220, damage: 18, xp: 4,
     fill: '#8f62d8', outline: '#c3a5ff', unlockAt: 34, weight: 2,
   },
   spitter: {
