@@ -1,0 +1,37 @@
+/* Shared menu presentation refinements. Keep main-menu and Captain-selection fixes here. */
+
+/* Keep the selected Captain showcase centered on the full desktop viewport.
+   The left command rail is balanced by an empty right rail of the same width.
+   This centers both a selected Captain and the empty question-mark prompt. */
+@media (min-width: 981px) {
+  #start-screen .main-menu__body {
+    grid-template-columns: minmax(230px, 300px) minmax(360px, 1fr) minmax(230px, 300px) !important;
+  }
+
+  #start-screen .main-menu__captain-stage {
+    grid-column: 2;
+  }
+}
+
+/* The build indicator remains useful, but the main menu no longer exposes the
+   numeric version in the top-right corner. The version is still available in Settings. */
+#start-screen .main-menu__build {
+  font-size: 0 !important;
+}
+
+#start-screen .main-menu__build::after {
+  content: 'SYSTEM ONLINE';
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+/* Captain selection is a comparison screen: selection/lock state should be
+   conveyed by labels and outlines, not by darkening the artwork. */
+#captain-select-screen .captain-select-card,
+#captain-select-screen .captain-select-card:disabled,
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) {
+  opacity: 1 !important;
+  filter: none !important;
+}
