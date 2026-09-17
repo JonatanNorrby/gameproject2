@@ -1,0 +1,76 @@
+name: One-shot issue 152 Gold drop v127
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/issue-152-half-gold-v127.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply issue 152 Gold drop rate and version sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          gold = Path('src/features/metaUpgradeTree.js')
+          gold_text = gold.read_text(encoding='utf-8')
+          old = 'const GOLD_DROP_CHANCE = 0.04;'
+          new = 'const GOLD_DROP_CHANCE = 0.02;'
+          assert gold_text.count(old) == 1, 'Expected current 4% Gold drop chance exactly once'
+          gold.write_text(gold_text.replace(old, new), encoding='utf-8')
+
+          main = Path('src/main.js')
+          main_text = main.read_text(encoding='utf-8')
+          assert main_text.count('const GAME_VERSION = 126;') == 1, 'Expected GAME_VERSION 126 exactly once'
+          main.write_text(main_text.replace('const GAME_VERSION = 126;', 'const GAME_VERSION = 127;'), encoding='utf-8')
+
+          index = Path('index.html')
+          index_text = index.read_text(encoding='utf-8')
+          replacements = {
+              'BUILD v126': 'BUILD v127',
+              'id="version-text">v126<': 'id="version-text">v127<',
+              'SYSTEM ONLINE • v126': 'SYSTEM ONLINE • v127',
+          }
+          for old_marker, new_marker in replacements.items():
+              assert index_text.count(old_marker) == 1, f'Expected marker exactly once: {old_marker}'
+              index_text = index_text.replace(old_marker, new_marker)
+          index.write_text(index_text, encoding='utf-8')
+          PY
+
+      - name: Validate issue 152 change
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/features/metaUpgradeTree.js
+          node --check src/main.js
+          grep -Fq 'const GOLD_DROP_CHANCE = 0.02;' src/features/metaUpgradeTree.js
+          grep -Fq 'const GOLD_DROP_VALUE = 1;' src/features/metaUpgradeTree.js
+          grep -Fq 'const GAME_VERSION = 127;' src/main.js
+          grep -Fq 'BUILD v127' index.html
+          grep -Fq 'id="version-text">v127<' index.html
+          grep -Fq 'SYSTEM ONLINE • v127' index.html
+          grep -Fq 'setGameVersion?.(GAME_VERSION)' src/main.js
+
+      - name: Commit cleaned v127 tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/issue-152-half-gold-v127.yml
+          git add src/features/metaUpgradeTree.js src/main.js index.html
+          git commit -m 'Halve Gold drop rate for issue #152 and bump v127'
+          git push
