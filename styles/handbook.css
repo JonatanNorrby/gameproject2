@@ -408,6 +408,44 @@
   align-items: center;
 }
 
+/* Issue #99: Supreme Commander uses all three class families. The unlocked
+   Commander is always the final Captain card, with Rifleman kept in the
+   existing middle slot and the other class icons stacked above and below. */
+.handbook-card--captain:last-child .handbook-card__top {
+  min-height: 168px;
+}
+
+.handbook-card--captain:last-child .handbook-class-icon--compact {
+  position: relative;
+  overflow: visible;
+}
+
+.handbook-card--captain:last-child .handbook-class-icon--compact::before,
+.handbook-card--captain:last-child .handbook-class-icon--compact::after {
+  content: '';
+  position: absolute;
+  left: -1px;
+  width: 52px;
+  height: 52px;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--handbook-accent) 40%, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  background-color: rgba(4, 10, 15, 0.82);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.handbook-card--captain:last-child .handbook-class-icon--compact::before {
+  bottom: calc(100% + 4px);
+  background-image: url('../assets/icons/unit_class/rocketeer.png');
+}
+
+.handbook-card--captain:last-child .handbook-class-icon--compact::after {
+  top: calc(100% + 4px);
+  background-image: url('../assets/icons/unit_class/shockblade.png');
+}
+
 .handbook-card--captain .handbook-card__body,
 .handbook-card--monster .handbook-card__body,
 .handbook-card--boss .handbook-card__body,
@@ -588,6 +626,29 @@
     grid-row: 1;
   }
 
+  .handbook-card--captain:last-child .handbook-card__top {
+    min-height: 146px;
+    grid-template-columns: 92px 42px minmax(0, 1fr);
+  }
+
+  .handbook-card--captain:last-child .handbook-class-icon--compact {
+    grid-column: 2;
+    width: 42px;
+    height: 42px;
+    margin: 0;
+  }
+
+  .handbook-card--captain:last-child .handbook-class-icon--compact::before,
+  .handbook-card--captain:last-child .handbook-class-icon--compact::after {
+    width: 42px;
+    height: 42px;
+  }
+
+  .handbook-card--captain:last-child .handbook-card__heading {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
   .handbook-card__media {
     width: 92px;
     height: 92px;
@@ -625,6 +686,29 @@
   }
 
   .handbook-card--captain .handbook-card__heading {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .handbook-card--captain:last-child .handbook-card__top {
+    min-height: 0;
+    grid-template-columns: 1fr;
+  }
+
+  .handbook-card--captain:last-child .handbook-class-icon--compact {
+    grid-column: auto;
+    width: 52px;
+    height: 52px;
+    margin: 56px auto;
+  }
+
+  .handbook-card--captain:last-child .handbook-class-icon--compact::before,
+  .handbook-card--captain:last-child .handbook-class-icon--compact::after {
+    width: 52px;
+    height: 52px;
+  }
+
+  .handbook-card--captain:last-child .handbook-card__heading {
     grid-column: auto;
     grid-row: auto;
   }
