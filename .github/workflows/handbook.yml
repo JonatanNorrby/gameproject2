@@ -175,13 +175,21 @@ jobs:
           assert(typeof handbook.UI.prototype.showHandbook === 'function', 'Handbook open API missing');
           assert(typeof handbook.UI.prototype.setHandbookTab === 'function', 'Handbook tab API missing');
 
-          // #48 remains guaranteed by a direct effect contract.
-          assert(supportUnits.DRONE_STUN_EXPLOSION_COLOR === '#69cfff', 'Drone stun grenade explosion must stay blue');
-          const explosionCalls = [];
-          const mockGame = { spawnExplosionEffect(x, y, radius, color) { explosionCalls.push({ x, y, radius, color }); } };
-          assert(supportUnits.emitDroneStunExplosion(mockGame, 10, 20, 82), 'Drone stun visual helper did not emit');
-          assert(explosionCalls.length === 1, 'Drone stun visual emitted the wrong number of effects');
-          assert(explosionCalls[0].radius === 82 && explosionCalls[0].color === '#69cfff', 'Drone stun visual lost radius/color');
+          // #133: Drone Pilot now deals Rocketeer-style explosive damage rather
+          // than stun. Keep the shared-damage path and Mercer 3x area contract.
+          const dronePilot = UNIT_CLASSES.drone_pilot;
+          assert(dronePilot?.weapon?.damage === UNIT_CLASSES.rocketeer.weapon.damage, 'Drone grenade base damage must match Rocketeer');
+          assert(dronePilot?.support?.aoeRadius === 82, 'Drone grenade base blast radius changed unexpectedly');
+          assert(!('stunDuration' in dronePilot.support), 'Drone Pilot still exposes stun duration');
+          assert(!('recentStunLockout' in dronePilot.support), 'Drone Pilot still exposes stun lockout');
+          assert(CAPTAINS.mercer?.effect?.aoeMultiplier === 3, 'Mercer Drone grenade area bonus must remain 3x');
+          assert(CAPTAINS.mercer?.passiveText?.includes('Drone Pilot explosive grenades'), 'Mercer description does not mention Drone grenades');
+          const supportSource = fs.readFileSync('src/features/supportUnits.js', 'utf8');
+          assert(supportSource.includes('dropExplosiveGrenade'), 'Drone explosive grenade path is missing');
+          assert(supportSource.includes('this.explodeProjectile({'), 'Drone grenades are not reusing Rocketeer explosion logic');
+          const handbookPolishSource = fs.readFileSync('src/features/handbookPolish.js', 'utf8');
+          assert(handbookPolishSource.includes('damaging explosive grenades'), 'Handbook Drone Pilot description still describes stun grenades');
+          assert(typeof supportUnits.collectDronePickupXp === 'function', 'Drone Pickup behavior was lost during grenade rework');
 
           console.log(`Final runtime QA contracts validated for v${version}.`);
           NODE
