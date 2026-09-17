@@ -146,6 +146,40 @@ export class Game extends PreviousGame {
     window.addEventListener('keydown', this.settingsCaptainCallKeyHandler);
   }
 
+  // #161: boss arrival sequences intentionally clean normal combat clutter, but
+  // ground powerups and already-active timed buffs are player rewards and must
+  // survive the transition. Freeze Fury's remaining duration and prevent ground
+  // pickups from being consumed while any boss intro is active.
+  isBossIntroActive() {
+    return Boolean(
+      this.wardenIntro?.active
+      || this.broodIntro?.active
+      || this.cipherIntro?.active
+    );
+  }
+
+  update(dt) {
+    const elapsedBefore = Number(this.elapsed) || 0;
+    const furyUntilBefore = Number(this.dropEffects?.furyUntil) || 0;
+    const furyRemainingBefore = Math.max(0, furyUntilBefore - elapsedBefore);
+    const introWasActive = this.isBossIntroActive();
+
+    super.update(dt);
+
+    const introIsActive = this.isBossIntroActive();
+    if ((introWasActive || introIsActive) && furyRemainingBefore > 0 && this.dropEffects) {
+      this.dropEffects.furyUntil = Math.max(
+        Number(this.dropEffects.furyUntil) || 0,
+        (Number(this.elapsed) || 0) + furyRemainingBefore,
+      );
+    }
+  }
+
+  updateGroundDrops() {
+    if (this.isBossIntroActive()) return;
+    super.updateGroundDrops();
+  }
+
   // #51: OP mode used to be one-way. Keep the original debug flag as the single
   // source of truth, but expose an explicit setter so the debug UI can turn the
   // attack-speed multiplier both on and off during the same session.
