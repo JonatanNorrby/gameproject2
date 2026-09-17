@@ -3,10 +3,11 @@ import { getEnemySprite } from '../data/sprites.js';
 
 const STUN_TINT_COLOR = '#69cfff';
 const STUN_TINT_FILTER = 'brightness(0) saturate(100%) invert(81%) sepia(31%) saturate(1896%) hue-rotate(169deg) brightness(106%) contrast(101%)';
-const ENEMY_DAMAGE_FILTER = 'brightness(.72) saturate(7) sepia(1) hue-rotate(305deg) contrast(1.18)';
 const STATIONARY_SPITTER_FRAME_TIME = 0.000001;
 const RANGED_ATTACK_FRAME_DURATION = 0.28;
 const CHARGER_TYPE = 'charger';
+const MAX_ACTIVE_PARTICLES = 220;
+const DAMAGE_FLASH_COLOR = '#ff4b5f';
 
 function drawEnemyShape(ctx, enemy) {
   if (enemy.type === 'runner') {
@@ -38,13 +39,22 @@ function drawFallbackTint(ctx, enemy) {
   ctx.restore();
 }
 
+function drawDamageFlash(ctx, enemy) {
+  ctx.save();
+  ctx.globalAlpha = 0.78;
+  ctx.strokeStyle = DAMAGE_FLASH_COLOR;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(enemy.x, enemy.y, enemy.radius + 3, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawFallbackEnemy(ctx, enemy, type, takingDamage) {
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
-  ctx.fillStyle = takingDamage ? '#ff314b' : type.fill;
+  ctx.fillStyle = takingDamage ? '#ff4659' : type.fill;
   ctx.strokeStyle = takingDamage ? '#ffc0c8' : type.outline;
-  ctx.shadowBlur = takingDamage ? 18 : 0;
-  ctx.shadowColor = takingDamage ? '#ff263f' : 'transparent';
   ctx.lineWidth = 2;
   ctx.beginPath();
   drawEnemyShape(ctx, enemy);
@@ -53,33 +63,27 @@ function drawFallbackEnemy(ctx, enemy, type, takingDamage) {
   ctx.restore();
 }
 
-function drawEnemyAttackFrame(game, ctx, enemy) {
+function drawEnemyFrame(game, ctx, enemy, attacking) {
   const type = ENEMY_TYPES[enemy.type];
   if (!type || enemy.dead) return;
 
   const takingDamage = (enemy.hitFlash ?? 0) > 0;
   const sprite = getEnemySprite(enemy.type);
-
-  ctx.save();
-  if (takingDamage) {
-    ctx.filter = ENEMY_DAMAGE_FILTER;
-    ctx.shadowBlur = 18;
-    ctx.shadowColor = '#ff263f';
-  }
+  const animationName = attacking ? 'shooting' : 'running';
+  const animationTime = attacking ? 0 : game.animationClock;
   const spriteDrawn = game.animationRenderer.draw(
     ctx,
     sprite,
-    'shooting',
-    0,
+    animationName,
+    animationTime,
     enemy.x,
     enemy.y,
+    { phase: attacking ? 0 : enemy.id * 0.071 },
   );
-  ctx.restore();
 
   if (!spriteDrawn) drawFallbackEnemy(ctx, enemy, type, takingDamage);
+  else if (takingDamage) drawDamageFlash(ctx, enemy);
 
-  // The inherited final normal-enemy renderer also owns this telegraph. Since
-  // attacking enemies are temporarily removed from that pass, restore it here.
   if (enemy.type === CHARGER_TYPE) game.drawChargerTelegraph?.(ctx, enemy);
 }
 
@@ -180,7 +184,18 @@ export function installEnemyStatusVisuals(GameClass) {
 
   const inheritedUpdate = GameClass.prototype.update;
   const inheritedDrawEnemies = GameClass.prototype.drawEnemies;
+  const inheritedCreateParticle = GameClass.prototype.createParticle;
   if (typeof inheritedDrawEnemies !== 'function') return;
+
+  // #143: multi-hit attacks can otherwise create hundreds of short-lived
+  // cosmetic particles in one frame. Bound that work without changing damage,
+  // hit detection, drops or any other gameplay result.
+  if (typeof inheritedCreateParticle === 'function') {
+    GameClass.prototype.createParticle = function createParticleWithBudget(...args) {
+      if ((this.entities?.particles?.length ?? 0) >= MAX_ACTIVE_PARTICLES) return null;
+      return inheritedCreateParticle.apply(this, args);
+    };
+  }
 
   if (typeof inheritedUpdate === 'function') {
     GameClass.prototype.update = function updateWithEnemyAttackTracking(dt) {
@@ -194,22 +209,21 @@ export function installEnemyStatusVisuals(GameClass) {
 
     const allEnemies = this.entities?.enemies ?? [];
     const meleeTargets = getMeleeTargets(this);
-    const attackingEnemies = allEnemies.filter((enemy) => (
-      isEnemyAttacking(this, enemy, meleeTargets)
-    ));
 
-    if (attackingEnemies.length === 0) {
+    // #143: older enemy hit-flash rendering applies an expensive Canvas filter
+    // and shadow blur to every damaged sprite. AoE/piercing hits can make many
+    // enemies flash simultaneously, producing a large render spike. Hide normal
+    // enemies from that inherited pass so it still renders bosses/encounter
+    // entities, then render normal mobs once with a lightweight red outline.
+    this.entities.enemies = [];
+    try {
       inheritedDrawEnemies.call(this, ctx);
-    } else {
-      const attackingIds = new Set(attackingEnemies.map((enemy) => enemy.id));
-      this.entities.enemies = allEnemies.filter((enemy) => !attackingIds.has(enemy.id));
-      try {
-        inheritedDrawEnemies.call(this, ctx);
-      } finally {
-        this.entities.enemies = allEnemies;
-      }
+    } finally {
+      this.entities.enemies = allEnemies;
+    }
 
-      for (const enemy of attackingEnemies) drawEnemyAttackFrame(this, ctx, enemy);
+    for (const enemy of allEnemies) {
+      drawEnemyFrame(this, ctx, enemy, isEnemyAttacking(this, enemy, meleeTargets));
     }
 
     for (const enemy of allEnemies) drawStunTint(this, ctx, enemy);
