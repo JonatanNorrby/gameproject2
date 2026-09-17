@@ -99,6 +99,7 @@ function createStormlancerCombatSystem(ParentCombatSystem) {
       let currentTarget = primary;
       let sourcePoint = { x: soldier.x, y: soldier.y };
       let damage = baseDamage;
+      let totalDamageDealt = 0;
 
       for (let bounce = 0; bounce < maxTargets && currentTarget; bounce += 1) {
         const targetId = this.getStormlancerTargetId(currentTarget);
@@ -112,6 +113,7 @@ function createStormlancerCombatSystem(ParentCombatSystem) {
           sourcePoint.y,
         );
         if (!result) break;
+        totalDamageDealt += Math.max(0, Number(result.damageDealt) || 0);
 
         game.stormlancerArcs.push({
           x1: sourcePoint.x,
@@ -133,6 +135,8 @@ function createStormlancerCombatSystem(ParentCombatSystem) {
           visited,
         );
       }
+
+      this.applyThorneLifesteal?.(unit, totalDamageDealt);
     }
 
     getStormlancerTargetId(target) {
@@ -202,37 +206,62 @@ function createStormlancerCombatSystem(ParentCombatSystem) {
           const plate = game.getWardenArmorPlateAtPoint?.(warden, hitX, hitY);
 
           if (plate && !plate.broken && plate.hp > 0) {
+            const hpBefore = Math.max(0, Number(plate.hp) || 0);
             game.damageWardenArmorPlate?.(plate, damage, hitX, hitY);
-            return { x: hitX, y: hitY };
+            return {
+              x: hitX,
+              y: hitY,
+              damageDealt: Math.max(0, hpBefore - Math.max(0, Number(plate.hp) || 0)),
+            };
           }
         }
 
+        const hpBefore = Math.max(0, Number(warden.hp) || 0);
         game.applyWardenDamage?.(
           damage,
           warden.x,
           warden.y,
           { sourceType: STORMLANCER_TYPE, melee: true, projectilePassedArmor: true },
         );
-        return { x: warden.x, y: warden.y };
+        return {
+          x: warden.x,
+          y: warden.y,
+          damageDealt: Math.max(0, hpBefore - Math.max(0, Number(warden.hp) || 0)),
+        };
       }
 
       const broodmother = game.getActiveBroodmother?.();
       if (target === broodmother) {
+        const hpBefore = Math.max(0, Number(broodmother.hp) || 0);
         game.damageBroodmother?.(damage, broodmother.x, broodmother.y);
-        return { x: broodmother.x, y: broodmother.y };
+        return {
+          x: broodmother.x,
+          y: broodmother.y,
+          damageDealt: Math.max(0, hpBefore - Math.max(0, Number(broodmother.hp) || 0)),
+        };
       }
 
       if ((game.broodEggs ?? []).includes(target)) {
+        const hpBefore = Math.max(0, Number(target.hp) || 0);
         game.damageBroodEgg?.(target, damage, target.x, target.y);
-        return { x: target.x, y: target.y };
+        return {
+          x: target.x,
+          y: target.y,
+          damageDealt: Math.max(0, hpBefore - Math.max(0, Number(target.hp) || 0)),
+        };
       }
 
       if (game.entities.enemies.includes(target)) {
+        const hpBefore = Math.max(0, Number(target.hp) || 0);
         target.hp = Math.max(0, target.hp - damage);
         target.hitFlash = 0.1;
         game.spawnHitParticles(target.x, target.y);
         if (target.hp <= 0) this.killEnemy(target);
-        return { x: target.x, y: target.y };
+        return {
+          x: target.x,
+          y: target.y,
+          damageDealt: Math.max(0, hpBefore - Math.max(0, Number(target.hp) || 0)),
+        };
       }
 
       return null;
