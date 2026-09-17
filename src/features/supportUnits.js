@@ -1,6 +1,7 @@
 import { Game as PreviousGame, UI as PreviousUI } from './captainWeaponsAndDamageFlash.js';
 import '../data/supportUnits.js';
 import { CAPTAINS, UNIT_CLASSES } from '../data/content.js';
+import { isPermanentUpgradeActive } from '../data/metaUpgrades.js';
 import { getEffectiveUnitStats, getUnitModifiers } from '../data/unitModifiers.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
@@ -9,11 +10,37 @@ const ROCKETEER_CLASS = 'rocketeer';
 const MERCER_ID = 'mercer';
 const DAMAGE_FLASH_DURATION = 0.16;
 export const DRONE_STUN_EXPLOSION_COLOR = '#69cfff';
+export const DRONE_PICKUP_UPGRADE_ID = 'drone_pickup';
+export const DRONE_PICKUP_RADIUS = 140;
 
 export function emitDroneStunExplosion(game, x, y, radius) {
   if (!game?.spawnExplosionEffect) return false;
   game.spawnExplosionEffect(x, y, radius, DRONE_STUN_EXPLOSION_COLOR);
   return true;
+}
+
+export function collectDronePickupXp(game) {
+  if (!game || !isPermanentUpgradeActive(DRONE_PICKUP_UPGRADE_ID)) return 0;
+
+  const drones = (game.supportDrones ?? []).filter((drone) => !drone.dead);
+  if (drones.length === 0) return 0;
+
+  let totalXp = 0;
+  for (const gem of game.entities?.gems ?? []) {
+    if (gem.dead) continue;
+    const pickupRadius = DRONE_PICKUP_RADIUS + Math.max(0, Number(gem.radius) || 0);
+    const pickupRadiusSq = pickupRadius * pickupRadius;
+    const collected = drones.some((drone) => (
+      distanceSq(drone.x, drone.y, gem.x, gem.y) <= pickupRadiusSq
+    ));
+    if (!collected) continue;
+
+    gem.dead = true;
+    totalXp += Math.max(0, Number(gem.value) || 0);
+  }
+
+  if (totalXp > 0) game.progression?.addXp?.(totalXp);
+  return totalXp;
 }
 
 const DRONE_SPRITE = Object.freeze({
@@ -36,6 +63,7 @@ function createSupportCombatSystem(ParentCombatSystem) {
     update(dt) {
       this.syncSupportDrones();
       this.updateSupportDrones(dt);
+      collectDronePickupXp(this.game);
       super.update(dt);
     }
 
