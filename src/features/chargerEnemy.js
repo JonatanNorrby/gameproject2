@@ -35,7 +35,7 @@ if (!ENEMY_TYPES[CHARGER_TYPE]) {
     charge: {
       triggerRange: 520,
       windup: 0.82,
-      duration: 0.72,
+      distance: 190,
       speed: 470,
       damage: 30,
       recovery: 1.15,
@@ -105,6 +105,7 @@ function createChargerCombatSystem(ParentCombatSystem) {
       enemy.chargeCooldown = config.cooldownMin
         + Math.random() * (config.cooldownMax - config.cooldownMin);
       enemy.chargeDirection = { x: 0, y: 0 };
+      enemy.chargeEndpoint = null;
       enemy.chargeHitIds = new Set();
     }
 
@@ -121,18 +122,39 @@ function createChargerCombatSystem(ParentCombatSystem) {
         enemy.chargeTimer -= dt;
         if (enemy.chargeTimer <= 0) {
           enemy.chargeState = 'charging';
-          enemy.chargeTimer = config.duration;
+          enemy.chargeTimer = config.distance / config.speed;
           enemy.chargeHitIds.clear();
         }
         return;
       }
 
       if (enemy.chargeState === 'charging') {
-        enemy.x += enemy.chargeDirection.x * config.speed * dt;
-        enemy.y += enemy.chargeDirection.y * config.speed * dt;
-        enemy.chargeTimer -= dt;
+        const endpoint = enemy.chargeEndpoint ?? {
+          x: enemy.x + enemy.chargeDirection.x * config.distance,
+          y: enemy.y + enemy.chargeDirection.y * config.distance,
+        };
+        enemy.chargeEndpoint = endpoint;
+
+        const dx = endpoint.x - enemy.x;
+        const dy = endpoint.y - enemy.y;
+        const remaining = Math.hypot(dx, dy);
+        if (remaining <= 0.001) {
+          enemy.x = endpoint.x;
+          enemy.y = endpoint.y;
+          enemy.chargeState = 'recovery';
+          enemy.chargeTimer = config.recovery;
+          return;
+        }
+
+        const step = Math.min(config.speed * dt, remaining);
+        enemy.x += (dx / remaining) * step;
+        enemy.y += (dy / remaining) * step;
+        enemy.chargeTimer = Math.max(0, enemy.chargeTimer - dt);
         this.damageSquadFromCharger(enemy, config.damage, true);
-        if (enemy.chargeTimer <= 0) {
+
+        if (step >= remaining - 0.001) {
+          enemy.x = endpoint.x;
+          enemy.y = endpoint.y;
           enemy.chargeState = 'recovery';
           enemy.chargeTimer = config.recovery;
         }
@@ -143,6 +165,7 @@ function createChargerCombatSystem(ParentCombatSystem) {
         enemy.chargeTimer -= dt;
         if (enemy.chargeTimer <= 0) {
           enemy.chargeState = 'approach';
+          enemy.chargeEndpoint = null;
           enemy.chargeCooldown = config.cooldownMin
             + Math.random() * (config.cooldownMax - config.cooldownMin);
         }
@@ -157,6 +180,10 @@ function createChargerCombatSystem(ParentCombatSystem) {
 
       if (enemy.chargeCooldown <= 0 && distance <= config.triggerRange) {
         enemy.chargeDirection = normalize(dx, dy);
+        enemy.chargeEndpoint = {
+          x: enemy.x + enemy.chargeDirection.x * config.distance,
+          y: enemy.y + enemy.chargeDirection.y * config.distance,
+        };
         enemy.chargeState = 'windup';
         enemy.chargeTimer = config.windup;
         return;
@@ -283,6 +310,11 @@ export class Game extends PreviousGame {
     const alpha = state === 'windup'
       ? 0.45 + 0.45 * (1 - Math.max(0, enemy.chargeTimer) / config.windup)
       : 0.7;
+    const direction = enemy.chargeDirection ?? { x: 0, y: 0 };
+    const endpoint = enemy.chargeEndpoint ?? {
+      x: enemy.x + direction.x * config.distance,
+      y: enemy.y + direction.y * config.distance,
+    };
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -291,16 +323,8 @@ export class Game extends PreviousGame {
     ctx.shadowBlur = 16;
     ctx.shadowColor = '#ff634f';
     ctx.beginPath();
-    ctx.arc(enemy.x, enemy.y, enemy.radius + 8, 0, Math.PI * 2);
-    ctx.stroke();
-
-    const direction = enemy.chargeDirection ?? { x: 0, y: 0 };
-    ctx.beginPath();
     ctx.moveTo(enemy.x, enemy.y);
-    ctx.lineTo(
-      enemy.x + direction.x * (state === 'windup' ? 190 : 90),
-      enemy.y + direction.y * (state === 'windup' ? 190 : 90),
-    );
+    ctx.lineTo(endpoint.x, endpoint.y);
     ctx.stroke();
     ctx.restore();
   }
