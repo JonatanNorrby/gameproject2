@@ -16,6 +16,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Captain Thorne: heavily armored Shockblade-class melee Captain with a slow 360-degree greatsword sweep, lifesteal, and every-fifth-attack 360-degree Shockblade support
 - Multiple enemy archetypes that unlock over time, with fragile Runners and ranged Spitter pressure becoming more prominent as a run develops
 - Spitter and Burst Spitter: capped ranged enemies that keep their distance and pressure the squad with dodgeable projectiles
+- Boss 2 — The Broodmother: 25,200 HP with stronger Acid, Tail Sweep, and Lunge attacks
 - XP pickups and level-ups
 - Randomized, infinitely repeatable upgrade choices with rarity-based stat bonuses
 - Reinforcement upgrades that can introduce new squad classes
