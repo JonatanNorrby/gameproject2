@@ -9,7 +9,7 @@ import {
 } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 102;
+const GAME_VERSION = 103;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
@@ -32,6 +32,35 @@ if (hudBottom && squadMenu) hudBottom.append(squadMenu);
 
 const input = new Input(canvas, touchStick);
 const game = new Game(canvas, input, ui);
+
+// #129: End Run should act immediately rather than showing the old browser
+// confirmation. Replace the button node to discard the previous listener while
+// keeping the UI object's visibility handling pointed at the live control.
+if (ui.endRunButton?.parentNode) {
+  const directEndRunButton = ui.endRunButton.cloneNode(true);
+  ui.endRunButton.replaceWith(directEndRunButton);
+  ui.endRunButton = directEndRunButton;
+  directEndRunButton.addEventListener('click', () => {
+    if (!game.running || game.pauseReasons?.has('gameover')) return;
+    ui.hideSettings();
+    game.endRun?.();
+  });
+}
+
+// #129: runGoldCollected is maintained by the permanent-Gold and treasure-chest
+// systems, so expose that existing run total alongside the other end-run stats.
+const previousShowGameOver = ui.showGameOver.bind(ui);
+ui.showGameOver = (currentGame, ...args) => {
+  const result = previousShowGameOver(currentGame, ...args);
+  const resultGold = document.querySelector('#result-gold');
+  if (resultGold) {
+    resultGold.textContent = String(Math.max(
+      0,
+      Math.floor(Number(currentGame?.runGoldCollected) || 0),
+    ));
+  }
+  return result;
+};
 
 game.debug = {
   infiniteHp: false,
