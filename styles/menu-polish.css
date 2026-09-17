@@ -13,6 +13,39 @@
   }
 }
 
+/* #81: captain-menu.css defines the reusable selected-Captain card as a
+   two-column grid, while the main menu turns that same component into a
+   vertical showcase. Own the complete center axis here so intermediate laptop
+   viewports cannot inherit an offset from the reusable card layout. */
+#start-screen .selected-captain-summary {
+  justify-self: center;
+  margin-inline: auto;
+}
+
+#start-screen .selected-captain-card {
+  width: 100%;
+  grid-template-columns: none;
+  justify-items: center;
+  align-items: center;
+}
+
+#start-screen .selected-captain-card__portrait {
+  margin-inline: auto;
+  justify-items: center;
+  align-items: end;
+}
+
+#start-screen .selected-captain-card__portrait img {
+  display: block;
+  margin-inline: auto;
+}
+
+#start-screen .selected-captain-card__info {
+  width: 100%;
+  align-items: center;
+  text-align: center;
+}
+
 /* The build indicator remains useful, but the main menu no longer exposes the
    numeric version in the top-right corner. The version is still available in Settings. */
 #start-screen .main-menu__build {
