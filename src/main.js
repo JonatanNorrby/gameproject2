@@ -1,5 +1,5 @@
-import { Game, UI } from './features/captainAbilityHud.js';
-// captainAbilityHud.js is the presentation layer over ./features/bossVisibilityFix.js.
+import { Game, UI } from './features/runConfigurationPopups.js';
+// runConfigurationPopups.js composes captainAbilityHud.js over ./features/bossVisibilityFix.js.
 import { installEnemyStatusVisuals } from './features/enemyStatusVisuals.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';
