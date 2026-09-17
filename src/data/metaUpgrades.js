@@ -42,6 +42,13 @@ export const PERMANENT_UPGRADES = Object.freeze({
     color: '#f7c94b',
     description: 'Defeated enemies gain a small chance to drop a treasure chest containing Gold and XP.',
   }),
+  drone_pickup: Object.freeze({
+    id: 'drone_pickup',
+    name: 'Drone Pickup',
+    cost: 50,
+    color: '#79e7ff',
+    description: 'Support drones collect XP gems in a large area beneath their flight path.',
+  }),
   captains_call: Object.freeze({
     id: 'captains_call',
     name: "Captains Call",
