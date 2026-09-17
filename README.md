@@ -22,6 +22,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Freeform connected squad formation editing
 - Ground powerups with animated Magnet, Nuke, and Fury effects
 - Per-unit health, Captain-only run failure, persistent corpses, and per-unit red damage flashes
+- Enemy damage feedback uses a lightweight red halo behind damaged sprites without per-hit Canvas blur/filter effects
 - Endless difficulty scaling
 - Death / return-to-menu loop
 - Responsive canvas UI
