@@ -10,6 +10,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Rifleman: automatic bullet fire with pierce upgrades
 - Rocketeer: slower explosive rockets with AoE damage
 - Shockblade: jump-pack melee unit that lunges at nearby enemies and cuts a forward half-moon arc while invulnerable
+- Stormlancer: long-reach lightning melee unit with 200 base strike range, 65 base damage, and 240 base chain-lightning jump range
 - Drone Pilot: low-HP support unit that operates a separate battlefield drone; the drone uses Rocketeer-style targeting and drops orange explosive grenades beneath itself
 - Captain Vale: Coordinated Fire commander; Vale and adjacent Riflemen build Focus on sustained same-target fire, and Vale fires three-round bursts
 - Captain Mercer: Chain Reaction commander; Mercer and adjacent Rocketeers mark enemies for heavy-warhead cascades, while Mercer's own rockets scatter light burst rounds
