@@ -9,7 +9,7 @@ import {
 } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 99;
+const GAME_VERSION = 100;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
