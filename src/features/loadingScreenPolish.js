@@ -288,6 +288,7 @@ export class UI extends PreviousUI {
       `;
       settingsFooter.before(runSection);
     }
+    runSection.hidden = true;
 
     const actions = runSection.querySelector('.settings-run-actions');
     if (!actions) return;
