@@ -210,3 +210,79 @@
     flex-basis: 44px;
   }
 }
+
+/* #103: make the in-game Debug entry use the same left-side command position
+   and angular button language as the Debug entry on the main menu. */
+.debug-menu {
+  top: 50% !important;
+  left: clamp(14px, 4vw, 72px);
+  right: auto !important;
+  width: min(260px, calc(100vw - 28px));
+  justify-items: stretch;
+  transform: translateY(-50%);
+}
+
+.debug-menu > .debug-toggle {
+  position: relative;
+  width: 100%;
+  min-height: 50px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  border: 1px solid rgba(90, 164, 176, .24);
+  border-radius: 2px;
+  padding: 0 16px 0 20px;
+  background: linear-gradient(90deg, rgba(11, 33, 41, .82), rgba(8, 18, 25, .54));
+  color: #9bc9d1;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-align: left;
+  box-shadow: none;
+  backdrop-filter: none;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.debug-menu > .debug-toggle::before {
+  content: '';
+  width: 3px;
+  height: 22px;
+  flex: 0 0 auto;
+  margin-right: 12px;
+  background: #416c76;
+  box-shadow: 0 0 10px rgba(126, 249, 212, .16);
+}
+
+.debug-menu > .debug-toggle:hover,
+.debug-menu > .debug-toggle[aria-expanded="true"] {
+  transform: translateX(4px);
+  border-color: rgba(126, 249, 212, .58);
+  background: linear-gradient(90deg, rgba(23, 72, 80, .72), rgba(8, 22, 29, .7));
+  color: #e9fffa;
+}
+
+.debug-menu > .debug-panel {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
+  transform: translateY(-50%);
+}
+
+@media (max-width: 700px) {
+  .debug-menu {
+    left: max(8px, env(safe-area-inset-left));
+    width: min(220px, calc(100vw - 16px));
+  }
+
+  .debug-menu > .debug-panel {
+    left: 0;
+    top: calc(100% + 8px);
+    max-height: calc(50dvh - 20px);
+    transform: none;
+  }
+}
