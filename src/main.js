@@ -6,7 +6,7 @@ import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { getBeefedUpHpBonus } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 112;
+const GAME_VERSION = 113;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
@@ -30,18 +30,71 @@ if (hudBottom && squadMenu) hudBottom.append(squadMenu);
 const input = new Input(canvas, touchStick);
 const game = new Game(canvas, input, ui);
 
-// #129: End Run should act immediately rather than showing the old browser
-// confirmation. Replace the button node to discard the previous listener while
-// keeping the UI object's visibility handling pointed at the live control.
+// #139: replace the legacy End Run listener with an in-game confirmation card.
+// Cloning removes the old window.confirm listener installed lower in the UI
+// stack while preserving the live button reference used by visibility updates.
 if (ui.endRunButton?.parentNode) {
-  const directEndRunButton = ui.endRunButton.cloneNode(true);
-  ui.endRunButton.replaceWith(directEndRunButton);
-  ui.endRunButton = directEndRunButton;
-  directEndRunButton.addEventListener('click', () => {
+  const actions = ui.endRunButton.parentNode;
+  const endRunButton = ui.endRunButton.cloneNode(true);
+  ui.endRunButton.replaceWith(endRunButton);
+  ui.endRunButton = endRunButton;
+
+  let confirmation = actions.querySelector('#end-run-confirmation');
+  if (!confirmation) {
+    confirmation = document.createElement('div');
+    confirmation.id = 'end-run-confirmation';
+    confirmation.className = 'end-run-confirmation';
+    confirmation.hidden = true;
+    confirmation.setAttribute('aria-hidden', 'true');
+    confirmation.innerHTML = `
+      <p>End this run now? Permanent Gold, unlocks and other progress earned so far will be kept.</p>
+      <div class="end-run-confirmation__actions">
+        <button id="end-run-cancel" class="end-run-confirmation__button end-run-confirmation__button--cancel" type="button">Cancel</button>
+        <button id="end-run-confirm" class="end-run-confirmation__button end-run-confirmation__button--confirm" type="button">Confirm End Run</button>
+      </div>
+    `;
+    actions.append(confirmation);
+  }
+
+  const cancelEndRunButton = confirmation.querySelector('#end-run-cancel');
+  const confirmEndRunButton = confirmation.querySelector('#end-run-confirm');
+
+  const setEndRunConfirmationVisible = (visible) => {
+    const isVisible = Boolean(visible);
+    confirmation.hidden = !isVisible;
+    confirmation.setAttribute('aria-hidden', String(!isVisible));
+    endRunButton.classList.toggle('end-run-button--confirming', isVisible);
+    endRunButton.disabled = isVisible;
+    endRunButton.tabIndex = isVisible ? -1 : 0;
+    if (isVisible) confirmEndRunButton?.focus?.();
+  };
+
+  endRunButton.addEventListener('click', () => {
     if (!game.running || game.pauseReasons?.has('gameover')) return;
+    setEndRunConfirmationVisible(true);
+  });
+
+  cancelEndRunButton?.addEventListener('click', () => {
+    setEndRunConfirmationVisible(false);
+    endRunButton.focus?.();
+  });
+
+  confirmEndRunButton?.addEventListener('click', () => {
+    if (!game.running || game.pauseReasons?.has('gameover')) {
+      setEndRunConfirmationVisible(false);
+      return;
+    }
+
+    setEndRunConfirmationVisible(false);
     ui.hideSettings();
     game.endRun?.();
   });
+
+  const previousHideSettings = ui.hideSettings.bind(ui);
+  ui.hideSettings = (...args) => {
+    setEndRunConfirmationVisible(false);
+    return previousHideSettings(...args);
+  };
 }
 
 // #129: runGoldCollected is maintained by the permanent-Gold and treasure-chest
