@@ -18,6 +18,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Captain unlocks use class families: Mercer requires 5 living Specialists total (Rocketeers + Drone Pilots), while Thorne requires 5 living Vanguards total (Shockblades + Stormlancers)
 - Multiple enemy archetypes that unlock over time, with fragile Runners and ranged Spitter pressure becoming more prominent as a run develops
 - Spitter and Burst Spitter: capped ranged enemies that keep their distance and pressure the squad with dodgeable projectiles
+- Normal eligible enemy kills have a 2% chance to drop a 1-Gold pickup; chest and Boss Cache Gold rewards use their separate reward paths
 - Boss 2 — The Broodmother: 25,200 HP with stronger Acid, Tail Sweep, and Lunge attacks
 - Boss Caches award 150% of the current next-level XP requirement before global XP scaling, plus their existing Gold reward
 - XP pickups and level-ups
