@@ -211,78 +211,80 @@
   }
 }
 
-/* #103: make the in-game Debug entry use the same left-side command position
-   and angular button language as the Debug entry on the main menu. */
+/* Keep the in-game Debug entry deliberately unobtrusive, matching the tiny
+   bottom-left launcher used on the main menu. */
 .debug-menu {
-  top: 50% !important;
-  left: clamp(14px, 4vw, 72px);
+  top: auto !important;
   right: auto !important;
-  width: min(260px, calc(100vw - 28px));
-  justify-items: stretch;
-  transform: translateY(-50%);
+  left: max(24px, env(safe-area-inset-left));
+  bottom: max(58px, calc(env(safe-area-inset-bottom) + 44px));
+  width: auto;
+  display: block;
+  justify-items: initial;
+  gap: 0;
+  transform: none;
 }
 
 .debug-menu > .debug-toggle {
   position: relative;
-  width: 100%;
-  min-height: 50px;
+  width: auto;
+  min-height: 0;
   margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  border: 1px solid rgba(90, 164, 176, .24);
-  border-radius: 2px;
-  padding: 0 16px 0 20px;
-  background: linear-gradient(90deg, rgba(11, 33, 41, .82), rgba(8, 18, 25, .54));
-  color: #9bc9d1;
-  font-size: 12px;
-  font-weight: 950;
-  letter-spacing: .12em;
+  display: block;
+  border: 0;
+  border-radius: 4px;
+  padding: 4px 7px;
+  background: rgba(4, 12, 17, .22);
+  color: #36505b;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .16em;
   text-transform: uppercase;
   text-align: left;
+  opacity: .42;
   box-shadow: none;
   backdrop-filter: none;
-  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
+  clip-path: none;
+  cursor: pointer;
+  transition: color 120ms ease, opacity 120ms ease, background 120ms ease;
 }
 
 .debug-menu > .debug-toggle::before {
-  content: '';
-  width: 3px;
-  height: 22px;
-  flex: 0 0 auto;
-  margin-right: 12px;
-  background: #416c76;
-  box-shadow: 0 0 10px rgba(126, 249, 212, .16);
+  content: none;
+  display: none;
 }
 
 .debug-menu > .debug-toggle:hover,
 .debug-menu > .debug-toggle[aria-expanded="true"] {
-  transform: translateX(4px);
-  border-color: rgba(126, 249, 212, .58);
-  background: linear-gradient(90deg, rgba(23, 72, 80, .72), rgba(8, 22, 29, .7));
-  color: #e9fffa;
+  transform: none;
+  border-color: transparent;
+  background: rgba(18, 43, 52, .42);
+  color: #7197a5;
+  opacity: .82;
 }
 
 .debug-menu > .debug-panel {
   position: absolute;
-  left: calc(100% + 8px);
-  top: 50%;
-  max-height: calc(100dvh - 28px);
+  left: 0;
+  bottom: calc(100% + 8px);
+  top: auto;
+  max-height: calc(100dvh - 110px);
   overflow-y: auto;
-  transform: translateY(-50%);
+  transform: none;
 }
 
 @media (max-width: 700px) {
   .debug-menu {
-    left: max(8px, env(safe-area-inset-left));
-    width: min(220px, calc(100vw - 16px));
+    left: max(12px, env(safe-area-inset-left));
+    bottom: max(50px, calc(env(safe-area-inset-bottom) + 38px));
+    width: auto;
   }
 
   .debug-menu > .debug-panel {
     left: 0;
-    top: calc(100% + 8px);
-    max-height: calc(50dvh - 20px);
+    top: auto;
+    bottom: calc(100% + 8px);
+    max-height: calc(70dvh - 20px);
     transform: none;
   }
 }
