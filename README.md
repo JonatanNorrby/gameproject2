@@ -20,7 +20,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Spitter and Burst Spitter: capped ranged enemies that keep their distance and pressure the squad with dodgeable projectiles
 - Normal eligible enemy kills have a 2% chance to drop a 1-Gold pickup; chest and Boss Cache Gold rewards use their separate reward paths
 - Boss 2 — The Broodmother: 25,200 HP with stronger Acid, Tail Sweep, and Lunge attacks
-- Boss Caches award 150% of the current next-level XP requirement before global XP scaling, plus their existing Gold reward
+- Boss Caches award 150% of the current next-level XP requirement before global XP scaling, plus their existing Gold reward, and require 2.5 seconds of continuous capture
 - XP pickups and level-ups
 - Randomized, infinitely repeatable upgrade choices with rarity-based stat bonuses
 - Reinforcement upgrades that can introduce new squad classes
