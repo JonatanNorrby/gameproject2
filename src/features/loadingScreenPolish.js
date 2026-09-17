@@ -1,6 +1,7 @@
 import { Game as PreviousGame, UI as PreviousUI } from './prestigePopup.js';
 import { HANDBOOK_BOSS_STORAGE_KEY } from './handbook.js';
 import { recordHighestRunLevel } from '../data/prestige.js';
+import { GROUND_DROPS } from '../data/groundDrops.js';
 
 const ISSUE_88_STYLE_ID = 'issue-88-loading-screen';
 const ISSUE_88_STYLES = `
@@ -65,7 +66,72 @@ const ISSUE_107_STYLES = `
   }
 `;
 
+const HEALTH_DROP_TYPE = 'health';
+const HEALTH_DROP_CHANCE = 0.33;
+const HEALTH_DROP_HEAL_FRACTION = 0.1;
+const HEALTH_DROP_ENEMY_TYPES = new Set(['brute', 'charger']);
+
+// #120: this pickup is deliberately not added to GROUND_DROP_IDS, so normal
+// enemies cannot roll it through the generic 0.5% ground-drop table.
+if (!GROUND_DROPS[HEALTH_DROP_TYPE]) {
+  GROUND_DROPS[HEALTH_DROP_TYPE] = Object.freeze({
+    id: HEALTH_DROP_TYPE,
+    label: 'HP',
+    symbol: '+',
+    color: '#70dc8b',
+    description: 'Restore 10% max HP to every living squad unit.',
+    kind: 'instant',
+  });
+}
+
 export class Game extends PreviousGame {
+  constructor(...args) {
+    super(...args);
+    this.installIssue120HealthDropHook();
+  }
+
+  installIssue120HealthDropHook() {
+    const combatSystem = this.combatSystem;
+    if (!combatSystem || combatSystem.issue120HealthDropHookInstalled) return;
+
+    const previousKillEnemy = combatSystem.killEnemy.bind(combatSystem);
+    combatSystem.killEnemy = (enemy, options = {}) => {
+      const wasDead = Boolean(enemy?.dead);
+      const allowDrop = options?.allowDrop !== false;
+      const enemyType = enemy?.type;
+      const dropX = enemy?.x;
+      const dropY = enemy?.y;
+      const result = previousKillEnemy(enemy, options);
+
+      if (
+        !wasDead
+        && enemy?.dead
+        && allowDrop
+        && HEALTH_DROP_ENEMY_TYPES.has(enemyType)
+        && Math.random() < HEALTH_DROP_CHANCE
+      ) {
+        this.spawnGroundDrop(HEALTH_DROP_TYPE, dropX, dropY);
+      }
+
+      return result;
+    };
+    combatSystem.issue120HealthDropHookInstalled = true;
+  }
+
+  collectGroundDrop(type) {
+    if (type !== HEALTH_DROP_TYPE) return super.collectGroundDrop(type);
+
+    for (const unit of this.player?.squad ?? []) {
+      if (unit.dead) continue;
+      const maxHp = Number(unit.maxHp) || 0;
+      unit.hp = Math.min(maxHp, (Number(unit.hp) || 0) + maxHp * HEALTH_DROP_HEAL_FRACTION);
+    }
+    this.syncCaptainHealth?.();
+
+    const definition = GROUND_DROPS[HEALTH_DROP_TYPE];
+    this.spawnExplosionEffect(this.player.x, this.player.y, 42, definition.color);
+  }
+
   start(...args) {
     this.manualRunEnd = false;
     return super.start(...args);
