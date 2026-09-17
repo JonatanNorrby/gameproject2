@@ -11,7 +11,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Rocketeer: slower explosive rockets with AoE damage
 - Shockblade: jump-pack melee unit that lunges at nearby enemies and cuts a forward half-moon arc while invulnerable
 - Stormlancer: long-reach lightning melee unit with 200 base strike range, 65 base damage, and 240 base chain-lightning jump range
-- Drone Pilot: low-HP support unit that operates a separate battlefield drone; the drone uses Rocketeer-style targeting and drops orange explosive grenades beneath itself
+- Drone Pilot: support unit that operates an invulnerable long-range battlefield drone; the drone prioritizes Spitters and Burst Spitters and drops orange explosive grenades beneath itself
 - Captain Vale: Coordinated Fire commander; Vale and adjacent Riflemen build Focus on sustained same-target fire, and Vale fires three-round bursts
 - Captain Mercer: Chain Reaction commander; Mercer and adjacent Rocketeers mark enemies for heavy-warhead cascades, while Mercer's own rockets scatter light burst rounds
 - Captain Thorne: heavily armored Shockblade-class melee Captain with a slow 360-degree greatsword sweep, lifesteal, and every-fifth-attack 360-degree Shockblade support
@@ -28,7 +28,8 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Freeform connected squad formation editing
 - Ground powerups with animated Magnet, Nuke, and Fury effects
 - Shared Squad Health pool that grows by 10% for every additional squad member; combat damage no longer injures or kills individual squad units
-- HP drops restore 10% of maximum shared Squad Health regardless of which squad member collects them
+- HP drops restore 10% of maximum shared Squad Health regardless of which squad member collects them and render as a glowing green medical plus
+- In-game Settings show a full-width Resume Run action above the full-width End Run action
 - Enemy damage feedback uses a lightweight red halo behind damaged sprites without per-hit Canvas blur/filter effects
 - Endless difficulty scaling
 - Death / return-to-menu loop
@@ -58,7 +59,7 @@ Core unit classes are defined in `src/data/content.js`. Specialized support-clas
 
 The current classes are `rifleman`, `rocketeer`, `shockblade`, `stormlancer`, and `drone_pilot`.
 
-Drone Pilot owns one battlefield drone per living pilot. Drones are not squad units, do not occupy formation hexes, have independent HP, and can be targeted by ranged enemies.
+Drone Pilot owns one battlefield drone per living pilot. Drones are not squad units, do not occupy formation hexes, are invulnerable, and cannot be targeted by ranged enemies.
 
 Captains normally build on a unit class. Captain-specific combat behavior lives in feature layers while still reusing that class's stat-upgrade modifiers.
 
