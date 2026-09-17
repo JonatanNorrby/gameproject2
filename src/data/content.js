@@ -96,7 +96,7 @@ export const CAPTAINS = {
     shortLabel: 'MER',
     color: '#ffd36a',
     description: 'Starts with a rocket launcher and empowers nearby Rocketeer-class units.',
-    passiveText: 'Every third Rocketeer-class attack gains 3× area size. Rocketeer rockets also gain greatly increased range on that third attack.',
+    passiveText: 'Every third Rocketeer-class attack gains 3× area size, including Drone Pilot explosive grenades. Rocketeer rockets also gain greatly increased range on that third attack.',
     effect: {
       type: 'rocketeer-special-rocket',
       everyShots: 3,
