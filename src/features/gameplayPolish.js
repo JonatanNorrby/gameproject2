@@ -7,6 +7,9 @@ import { distanceSq } from '../utils/math.js';
 const GROUND_POWERUP_RADIUS = 24;
 const SQUAD_BUILDER_HEX_SCALE = 1.2;
 const SHOCKBLADE_LUNGE_GAP = 30;
+const XP_ORB_MIN_RADIUS = 3.25;
+const XP_ORB_MAX_RADIUS = 4.75;
+const XP_ORB_COLOR = '#9f8cff';
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, value));
@@ -15,6 +18,11 @@ function clamp01(value) {
 function easeOutCubic(value) {
   const t = clamp01(value);
   return 1 - Math.pow(1 - t, 3);
+}
+
+function getXpOrbRadius(value) {
+  const xp = Math.max(0, Number(value) || 0);
+  return Math.min(XP_ORB_MAX_RADIUS, XP_ORB_MIN_RADIUS + Math.sqrt(xp) * 0.35);
 }
 
 function getLivingSoldiers(game) {
@@ -37,6 +45,13 @@ function getNearestSoldier(soldiers, x, y) {
 
 function createGameplayPolishCombatSystem(ParentCombatSystem) {
   return class GameplayPolishCombatSystem extends ParentCombatSystem {
+    killEnemy(enemy, options = {}) {
+      const gemCountBefore = this.game.entities.gems.length;
+      super.killEnemy(enemy, options);
+      const gem = this.game.entities.gems[gemCountBefore];
+      if (gem && !gem.dead) gem.radius = getXpOrbRadius(gem.value);
+    }
+
     startShockbladeAttack(soldier, unitClass, target) {
       super.startShockbladeAttack(soldier, unitClass, target);
 
@@ -132,6 +147,40 @@ export class Game extends PreviousGame {
     const drop = super.spawnGroundDrop(type, x, y);
     if (drop) drop.radius = GROUND_POWERUP_RADIUS;
     return drop;
+  }
+
+  drawGems(ctx) {
+    for (const gem of this.entities.gems) {
+      if (gem.dead) continue;
+      const radius = Number.isFinite(gem.radius) ? gem.radius : getXpOrbRadius(gem.value);
+      const pulse = 1 + Math.sin(this.animationClock * 4.2 + gem.id * 0.37) * 0.08;
+
+      ctx.save();
+      ctx.translate(gem.x, gem.y);
+      ctx.scale(pulse, pulse);
+
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = XP_ORB_COLOR;
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = XP_ORB_COLOR;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 2.25, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = XP_ORB_COLOR;
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,.82)';
+      ctx.beginPath();
+      ctx.arc(-radius * 0.28, -radius * 0.3, Math.max(0.9, radius * 0.24), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   drawEnemies(ctx) {
