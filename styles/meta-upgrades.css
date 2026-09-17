@@ -280,8 +280,17 @@
   text-transform: uppercase;
 }
 
+.meta-upgrade-rank--next .meta-upgrade-rank__footer {
+  color: #ff667d;
+  font-size: 12px;
+  font-weight: 1000;
+  line-height: 1.25;
+  text-shadow: 0 0 10px rgba(255,102,125,.2);
+}
+
 .meta-upgrade-rank--affordable .meta-upgrade-rank__footer {
-  color: #f0d77c;
+  color: #70dc8b;
+  text-shadow: 0 0 10px rgba(112,220,139,.22);
 }
 
 .meta-upgrade-footer {
