@@ -27,17 +27,19 @@ jobs:
 
           health = Path('src/features/loadingScreenPolish.js')
           health_text = health.read_text(encoding='utf-8')
-          old_logic = '''    for (const unit of this.player?.squad ?? []) {
-      if (unit.dead) continue;
-      const maxHp = Number(unit.maxHp) || 0;
-      unit.hp = Math.min(maxHp, (Number(unit.hp) || 0) + maxHp * HEALTH_DROP_HEAL_FRACTION);
-    }
-    this.syncCaptainHealth?.();
-'''
-          new_logic = '''    // #153: HP drops heal the one shared Squad Health pool directly. Squad
-    // members no longer own mutable combat HP, so writing unit.hp cannot heal.
-    this.healSquadHealthFraction?.(HEALTH_DROP_HEAL_FRACTION);
-'''
+          old_logic = (
+              "    for (const unit of this.player?.squad ?? []) {\n"
+              "      if (unit.dead) continue;\n"
+              "      const maxHp = Number(unit.maxHp) || 0;\n"
+              "      unit.hp = Math.min(maxHp, (Number(unit.hp) || 0) + maxHp * HEALTH_DROP_HEAL_FRACTION);\n"
+              "    }\n"
+              "    this.syncCaptainHealth?.();\n"
+          )
+          new_logic = (
+              "    // #153: HP drops heal the one shared Squad Health pool directly. Squad\n"
+              "    // members no longer own mutable combat HP, so writing unit.hp cannot heal.\n"
+              "    this.healSquadHealthFraction?.(HEALTH_DROP_HEAL_FRACTION);\n"
+          )
           assert health_text.count(old_logic) == 1, 'Expected legacy per-unit health-drop healing exactly once'
           health_text = health_text.replace(old_logic, new_logic)
           old_description = "description: 'Restore 10% max HP to every living squad unit.',"
@@ -72,7 +74,7 @@ jobs:
           node --check src/main.js
           grep -Fq 'this.healSquadHealthFraction?.(HEALTH_DROP_HEAL_FRACTION);' src/features/loadingScreenPolish.js
           grep -Fq "description: 'Restore 10% of maximum Squad Health.'" src/features/loadingScreenPolish.js
-          ! grep -Fq 'unit.hp = Math.min(maxHp' src/features/loadingScreenPolish.js
+          if grep -Fq 'unit.hp = Math.min(maxHp' src/features/loadingScreenPolish.js; then exit 1; fi
           grep -Fq 'const GAME_VERSION = 128;' src/main.js
           grep -Fq 'BUILD v128' index.html
           grep -Fq 'id="version-text">v128<' index.html
@@ -89,5 +91,3 @@ jobs:
           git add src/features/loadingScreenPolish.js src/main.js index.html
           git commit -m 'Heal shared Squad Health from HP drops for issue #153 and bump v128'
           git push
-
-# retrigger: issue-153
