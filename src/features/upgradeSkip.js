@@ -32,18 +32,27 @@ export class UI extends CaptainMenuUI {
     if (!controls) {
       controls = document.createElement('div');
       controls.id = 'upgrade-choice-controls';
-      Object.assign(controls.style, {
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: '10px',
-        flexWrap: 'wrap',
-        margin: '18px auto 0',
-      });
       skipButton.before(controls);
-      controls.append(skipButton);
-      skipButton.style.margin = '0';
     }
+
+    Object.assign(controls.style, {
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: '14px',
+      flexWrap: 'nowrap',
+      margin: '18px auto 0',
+    });
+
+    controls.append(skipButton);
+    Object.assign(skipButton.style, {
+      margin: '6px 0 0',
+      border: '1px solid rgba(255, 94, 116, .72)',
+      background: 'linear-gradient(180deg, rgba(143, 31, 49, .96), rgba(87, 17, 30, .96))',
+      color: '#ffe3e8',
+      boxShadow: '0 0 18px rgba(255, 58, 84, .16)',
+    });
 
     let rerollButton = this.rerollUpgradeButton ?? document.querySelector('#reroll-upgrade-button');
     if (!rerollButton) {
@@ -52,9 +61,9 @@ export class UI extends CaptainMenuUI {
       rerollButton.type = 'button';
       rerollButton.className = 'captain-menu-button';
       rerollButton.textContent = 'Reroll (3)';
-      rerollButton.style.margin = '0';
-      controls.prepend(rerollButton);
     }
+    rerollButton.style.margin = '0';
+    controls.prepend(rerollButton);
     this.rerollUpgradeButton = rerollButton;
   }
 
