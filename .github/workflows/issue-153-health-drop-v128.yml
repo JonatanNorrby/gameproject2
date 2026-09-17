@@ -1,0 +1,91 @@
+name: One-shot issue 153 shared HP drop v128
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/issue-153-health-drop-v128.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply issue 153 shared health drop fix and version sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          health = Path('src/features/loadingScreenPolish.js')
+          health_text = health.read_text(encoding='utf-8')
+          old_logic = '''    for (const unit of this.player?.squad ?? []) {
+      if (unit.dead) continue;
+      const maxHp = Number(unit.maxHp) || 0;
+      unit.hp = Math.min(maxHp, (Number(unit.hp) || 0) + maxHp * HEALTH_DROP_HEAL_FRACTION);
+    }
+    this.syncCaptainHealth?.();
+'''
+          new_logic = '''    // #153: HP drops heal the one shared Squad Health pool directly. Squad
+    // members no longer own mutable combat HP, so writing unit.hp cannot heal.
+    this.healSquadHealthFraction?.(HEALTH_DROP_HEAL_FRACTION);
+'''
+          assert health_text.count(old_logic) == 1, 'Expected legacy per-unit health-drop healing exactly once'
+          health_text = health_text.replace(old_logic, new_logic)
+          old_description = "description: 'Restore 10% max HP to every living squad unit.',"
+          new_description = "description: 'Restore 10% of maximum Squad Health.',"
+          assert health_text.count(old_description) == 1, 'Expected legacy HP drop description exactly once'
+          health_text = health_text.replace(old_description, new_description)
+          health.write_text(health_text, encoding='utf-8')
+
+          main = Path('src/main.js')
+          main_text = main.read_text(encoding='utf-8')
+          assert main_text.count('const GAME_VERSION = 127;') == 1, 'Expected GAME_VERSION 127 exactly once'
+          main.write_text(main_text.replace('const GAME_VERSION = 127;', 'const GAME_VERSION = 128;'), encoding='utf-8')
+
+          index = Path('index.html')
+          index_text = index.read_text(encoding='utf-8')
+          replacements = {
+              'BUILD v127': 'BUILD v128',
+              'id="version-text">v127<': 'id="version-text">v128<',
+              'SYSTEM ONLINE • v127': 'SYSTEM ONLINE • v128',
+          }
+          for old_marker, new_marker in replacements.items():
+              assert index_text.count(old_marker) == 1, f'Expected marker exactly once: {old_marker}'
+              index_text = index_text.replace(old_marker, new_marker)
+          index.write_text(index_text, encoding='utf-8')
+          PY
+
+      - name: Validate issue 153 change
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/features/loadingScreenPolish.js
+          node --check src/main.js
+          grep -Fq 'this.healSquadHealthFraction?.(HEALTH_DROP_HEAL_FRACTION);' src/features/loadingScreenPolish.js
+          grep -Fq "description: 'Restore 10% of maximum Squad Health.'" src/features/loadingScreenPolish.js
+          ! grep -Fq 'unit.hp = Math.min(maxHp' src/features/loadingScreenPolish.js
+          grep -Fq 'const GAME_VERSION = 128;' src/main.js
+          grep -Fq 'BUILD v128' index.html
+          grep -Fq 'id="version-text">v128<' index.html
+          grep -Fq 'SYSTEM ONLINE • v128' index.html
+          grep -Fq 'setGameVersion?.(GAME_VERSION)' src/main.js
+
+      - name: Commit cleaned v128 tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/issue-153-health-drop-v128.yml
+          git add src/features/loadingScreenPolish.js src/main.js index.html
+          git commit -m 'Heal shared Squad Health from HP drops for issue #153 and bump v128'
+          git push
