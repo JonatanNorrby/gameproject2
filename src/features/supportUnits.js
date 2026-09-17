@@ -9,15 +9,8 @@ const DRONE_PILOT_TYPE = 'drone_pilot';
 const ROCKETEER_CLASS = 'rocketeer';
 const MERCER_ID = 'mercer';
 const DAMAGE_FLASH_DURATION = 0.16;
-export const DRONE_STUN_EXPLOSION_COLOR = '#69cfff';
 export const DRONE_PICKUP_UPGRADE_ID = 'drone_pickup';
 export const DRONE_PICKUP_RADIUS = 140;
-
-export function emitDroneStunExplosion(game, x, y, radius) {
-  if (!game?.spawnExplosionEffect) return false;
-  game.spawnExplosionEffect(x, y, radius, DRONE_STUN_EXPLOSION_COLOR);
-  return true;
-}
 
 export function collectDronePickupXp(game) {
   if (!game || !isPermanentUpgradeActive(DRONE_PICKUP_UPGRADE_ID)) return 0;
@@ -57,14 +50,12 @@ function getTargetBucketKey(cellX, cellY) {
   return `${cellX}:${cellY}`;
 }
 
-function buildDroneTargetGrid(enemies, now, cellSize) {
+function buildDroneTargetGrid(enemies, cellSize) {
   const eligible = [];
   const buckets = new Map();
 
   for (const enemy of enemies) {
     if (enemy.dead) continue;
-    if ((enemy.stunnedUntil ?? 0) > now) continue;
-    if ((enemy.droneRecentlyStunnedUntil ?? 0) > now) continue;
 
     eligible.push(enemy);
     const cellX = Math.floor(enemy.x / cellSize);
@@ -152,13 +143,11 @@ function createSupportCombatSystem(ParentCombatSystem) {
     }
 
     chooseDroneTarget(drone, pilot, support, modifiers) {
-      const now = this.game.elapsed;
       const range = support.range * modifiers.range * this.game.getTransformerStatMultiplier();
       const radius = support.aoeRadius * modifiers.blastRadius;
       const cellSize = Math.max(48, radius);
       const { eligible, buckets } = buildDroneTargetGrid(
         this.game.entities.enemies,
-        now,
         cellSize,
       );
       let best = null;
@@ -193,34 +182,44 @@ function createSupportCombatSystem(ParentCombatSystem) {
       const special = drone.mercerAttackCount % interval === 0;
       return {
         special,
-        // Issue #41: Drone Pilots get the enlarged third attack, but never the
-        // Rocketeer-only third-attack range increase.
+        // #133: Drone grenades share Mercer's every-third 3x blast-radius bonus,
+        // while the separate Rocketeer rocket range bonus remains rocket-only.
         aoeMultiplier: special ? (Number(effect?.aoeMultiplier) || 3) : 1,
         color: special ? effect?.color : null,
       };
     }
 
-    dropStunGrenade(drone, pilot, support, modifiers, target) {
+    dropExplosiveGrenade(drone, pilot, support, modifiers, target) {
       const game = this.game;
-      const now = game.elapsed;
+      const weapon = UNIT_CLASSES[DRONE_PILOT_TYPE].weapon;
+      const statMultiplier = game.getTransformerStatMultiplier();
       const mercerAttack = this.getMercerDroneAttack(drone, pilot);
       const radius = support.aoeRadius
         * modifiers.blastRadius
-        * mercerAttack.aoeMultiplier;
-      for (const enemy of game.entities.enemies) {
-        if (enemy.dead) continue;
-        if ((enemy.stunnedUntil ?? 0) > now) continue;
-        if ((enemy.droneRecentlyStunnedUntil ?? 0) > now) continue;
-        const hitRadius = radius + enemy.radius;
-        if (distanceSq(target.x, target.y, enemy.x, enemy.y) > hitRadius * hitRadius) continue;
-        enemy.stunnedUntil = now + support.stunDuration;
-        enemy.droneRecentlyStunnedUntil = now + support.recentStunLockout;
-      }
+        * mercerAttack.aoeMultiplier
+        * statMultiplier;
 
-      // #48: the stun grenade itself should always be readable, even if every
-      // enemy in the blast is already on stun lockout. Keep the visual blue on
-      // Mercer's enlarged third grenade too; only the radius changes.
-      emitDroneStunExplosion(game, target.x, target.y, radius);
+      // #133: use the same explosion resolver as Rocketeer rockets so Drone
+      // Pilot grenade kills, XP, ground drops, damage and blast upgrades all
+      // follow the shared combat rules rather than maintaining a second AoE path.
+      this.explodeProjectile({
+        id: game.entities.createId(),
+        kind: 'rocket',
+        special: mercerAttack.special ? 'mercer-drone-grenade' : 'drone-grenade',
+        sourceType: DRONE_PILOT_TYPE,
+        x: target.x,
+        y: target.y,
+        vx: 0,
+        vy: 0,
+        radius: 0,
+        damage: weapon.damage * modifiers.damage * statMultiplier,
+        life: 0,
+        pierce: 1,
+        aoeRadius: radius,
+        color: mercerAttack.color ?? support.color ?? weapon.color,
+        hitIds: new Set(),
+        dead: false,
+      });
 
       drone.targetId = null;
       drone.grenadeCooldown = support.cooldown / modifiers.fireRate;
@@ -246,13 +245,10 @@ function createSupportCombatSystem(ParentCombatSystem) {
         drone.grenadeCooldown = Math.max(0, (drone.grenadeCooldown ?? 0) - dt * attackSpeed);
 
         let target = game.entities.enemies.find((enemy) => enemy.id === drone.targetId && !enemy.dead) ?? null;
-        const now = game.elapsed;
         const range = support.range * modifiers.range * game.getTransformerStatMultiplier();
         if (
           target
-          && ((target.stunnedUntil ?? 0) > now
-            || (target.droneRecentlyStunnedUntil ?? 0) > now
-            || distanceSq(pilot.x, pilot.y, target.x, target.y) > range * range)
+          && distanceSq(pilot.x, pilot.y, target.x, target.y) > range * range
         ) target = null;
 
         if (!target && drone.grenadeCooldown <= 0) {
@@ -274,11 +270,13 @@ function createSupportCombatSystem(ParentCombatSystem) {
         }
 
         if (target && drone.grenadeCooldown <= 0 && distance <= support.dropDistance) {
-          this.dropStunGrenade(drone, pilot, support, modifiers, target);
+          this.dropExplosiveGrenade(drone, pilot, support, modifiers, target);
         }
       }
     }
 
+    // Preserve generic stun-state handling for other systems. Drone Pilot no
+    // longer creates stunnedUntil/droneRecentlyStunnedUntil states after #133.
     updateEnemies(dt) {
       const allEnemies = this.game.entities.enemies;
       const now = this.game.elapsed;
@@ -419,7 +417,7 @@ export class UI extends PreviousUI {
     if (!stats || !this.squadBuilderSummary) return;
 
     const note = document.createElement('div');
-    note.textContent = `Drone Pilot: ${stats.range.toFixed(0)} drone range • ${stats.fireRate.toFixed(2)}/s grenade rate • ${stats.blastRadius.toFixed(0)} stun radius • ${stats.stunDuration.toFixed(1)}s stun.`;
+    note.textContent = `Drone Pilot: ${stats.damage.toFixed(0)} grenade damage • ${stats.range.toFixed(0)} drone range • ${stats.fireRate.toFixed(2)}/s grenade rate • ${stats.blastRadius.toFixed(0)} blast radius.`;
     Object.assign(note.style, {
       marginTop: '8px',
       color: '#8fa5bb',
