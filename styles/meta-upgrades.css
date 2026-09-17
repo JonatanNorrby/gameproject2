@@ -173,6 +173,11 @@
   text-shadow: 0 0 12px rgba(247,201,75,.2);
 }
 
+.meta-upgrade-node--active .meta-upgrade-node__topline span:last-child {
+  color: #70dc8b;
+  text-shadow: 0 0 12px rgba(112,220,139,.28);
+}
+
 .meta-upgrade-node--owned:not(.meta-upgrade-node--active) .meta-upgrade-node__topline span:last-child {
   color: #ff5f79;
   text-shadow: 0 0 12px rgba(255,95,121,.24);
