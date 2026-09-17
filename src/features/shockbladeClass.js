@@ -7,6 +7,8 @@ import { normalize } from '../utils/math.js';
 
 const SHOOT_ANIMATION_DURATION = 0.36;
 const SHOCKBLADE_TYPE = 'shockblade';
+const SHOCKBLADE_SLASH_COLOR = '#b45cff';
+const SHOCKBLADE_SLASH_SEGMENTS = 28;
 
 class ShockbladeCombatSystem extends CombatSystem {
   constructor(game) {
@@ -130,7 +132,7 @@ class ShockbladeCombatSystem extends CombatSystem {
       y: soldier.y,
       angle: Math.atan2(attack.direction.y, attack.direction.x),
       radius: slashRadius,
-      color: weapon.color ?? '#7ad7ff',
+      color: SHOCKBLADE_SLASH_COLOR,
       life: 0.2,
       maxLife: 0.2,
     });
@@ -279,22 +281,38 @@ export class Game extends PreviousGame {
       const alpha = Math.max(0, slash.life / slash.maxLife);
       const progress = 1 - alpha;
       const radius = slash.radius * (0.72 + progress * 0.28);
+      const arcStart = -Math.PI / 2;
+      const arcEnd = Math.PI / 2;
+      const arcLength = arcEnd - arcStart;
 
       ctx.save();
       ctx.translate(slash.x, slash.y);
       ctx.rotate(slash.angle);
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = `${slash.color}26`;
+      ctx.lineCap = 'round';
       ctx.strokeStyle = slash.color;
-      ctx.lineWidth = 5 * alpha + 1;
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = 16;
       ctx.shadowColor = slash.color;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, radius, -Math.PI / 2, Math.PI / 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+
+      for (let index = 0; index < SHOCKBLADE_SLASH_SEGMENTS; index += 1) {
+        const startT = index / SHOCKBLADE_SLASH_SEGMENTS;
+        const endT = (index + 1) / SHOCKBLADE_SLASH_SEGMENTS;
+        const midpoint = (startT + endT) / 2;
+        const edgeFade = Math.sin(Math.PI * midpoint);
+        const segmentAlpha = alpha * 0.52 * Math.pow(edgeFade, 0.7);
+
+        ctx.globalAlpha = segmentAlpha;
+        ctx.lineWidth = 4.5 + alpha * 2.5;
+        ctx.beginPath();
+        ctx.arc(
+          0,
+          0,
+          radius,
+          arcStart + arcLength * startT,
+          arcStart + arcLength * endT + 0.004,
+        );
+        ctx.stroke();
+      }
+
       ctx.restore();
     }
   }
