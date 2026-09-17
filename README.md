@@ -26,7 +26,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Reinforcement upgrades that can introduce new squad classes
 - Gold Upgrades use a column-based ranked tree: every permanent upgrade has its own column and each sequential rank appears as a separate connected box below the previous rank; next-rank Gold costs are shown larger and turn green when affordable or red when more Gold is needed
 - Freeform connected squad formation editing
-- Ground powerups with animated Magnet, Nuke, and Fury effects
+- Ground powerups with animated Magnet, Nuke, and Fury effects; Fury pickups remain on the ground during boss arrivals and active Fury duration is frozen until the boss intro finishes
 - Shared Squad Health pool that grows by 10% for every additional squad member; combat damage no longer injures or kills individual squad units
 - HP drops restore 10% of maximum shared Squad Health regardless of which squad member collects them and render as a glowing green medical plus
 - In-game Settings show a full-width Resume Run action above the full-width End Run action
