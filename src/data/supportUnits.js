@@ -15,7 +15,7 @@ export const SUPPORT_UNIT_DEFINITIONS = Object.freeze({
     outline: '#c6f2ff',
     weapon: Object.freeze({
       kind: 'support',
-      damage: 0,
+      damage: 38,
       cooldown: 4.6,
       projectileSpeed: 0,
       projectileRadius: 0,
@@ -30,8 +30,6 @@ export const SUPPORT_UNIT_DEFINITIONS = Object.freeze({
       range: 620,
       cooldown: 4.6,
       aoeRadius: 82,
-      stunDuration: 1,
-      recentStunLockout: 3,
       droneHp: 34,
       droneRadius: 10,
       droneSpeed: 185,
