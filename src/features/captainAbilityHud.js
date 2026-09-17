@@ -1,6 +1,9 @@
 import { Game, UI as PreviousUI } from './bossVisibilityFix.js';
 import { CAPTAINS } from '../data/content.js';
-import { isPermanentUpgradeOwned } from '../data/metaUpgrades.js';
+import {
+  CAPTAIN_CALL_UPGRADE_IDS,
+  isPermanentUpgradeActive,
+} from '../data/metaUpgrades.js';
 import { formatKeyBinding, getKeyBinding } from '../data/settings.js';
 
 const ICON_ROOT = './assets/captain_ability_icons';
@@ -34,6 +37,18 @@ const ICON_FILES = Object.freeze({
 function getCaptainIconId(soldier, fallbackCaptainId) {
   const captainId = soldier?.unit?.captainId;
   return ICON_FILES[captainId] ? captainId : fallbackCaptainId;
+}
+
+function isCaptainCallAvailable(game, slot, soldier) {
+  if (!soldier) return false;
+
+  if (game?.isSupremeCommanderRun?.() && slot === 'primary') {
+    return Object.values(CAPTAIN_CALL_UPGRADE_IDS)
+      .every((upgradeId) => isPermanentUpgradeActive(upgradeId));
+  }
+
+  const upgradeId = CAPTAIN_CALL_UPGRADE_IDS[soldier.unit?.captainId];
+  return Boolean(upgradeId && isPermanentUpgradeActive(upgradeId));
 }
 
 function ensureButtonStructure(button) {
@@ -115,28 +130,25 @@ export class UI extends PreviousUI {
     const hud = this.captainCallHud ?? document.querySelector('#captain-call-hud');
     if (!hud) return;
 
-    const owned = isPermanentUpgradeOwned('captains_call');
-    const visible = Boolean(owned && game?.running);
+    const slotStates = SLOT_DEFINITIONS.map((definition) => {
+      const soldier = game?.getCaptainSoldierBySlot?.(definition.slot) ?? null;
+      return {
+        definition,
+        soldier,
+        available: Boolean(game?.running && isCaptainCallAvailable(game, definition.slot, soldier)),
+      };
+    });
+    const visible = slotStates.some((state) => state.available);
     hud.hidden = !visible;
     if (!visible) return;
 
-    for (const definition of SLOT_DEFINITIONS) {
+    for (const { definition, soldier, available } of slotStates) {
       const button = this[definition.buttonProperty]
         ?? hud.querySelector(`#captain-call-${definition.slot}`);
       if (!button) continue;
       ensureButtonStructure(button);
-
-      const soldier = game.getCaptainSoldierBySlot?.(definition.slot) ?? null;
-      const optionalSlot = definition.slot !== 'primary';
-      button.hidden = optionalSlot && !soldier;
-
-      if (!soldier) {
-        button.disabled = true;
-        button.classList.remove('captain-ability-button--ready');
-        button.setAttribute('aria-label', 'Captain Call unavailable');
-        button.title = 'Captain Call unavailable';
-        continue;
-      }
+      button.hidden = !available;
+      if (!available || !soldier) continue;
 
       const iconCaptainId = getCaptainIconId(soldier, definition.fallbackCaptainId);
       const captain = CAPTAINS[soldier.unit.captainId] ?? CAPTAINS[iconCaptainId];
