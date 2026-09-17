@@ -1,0 +1,72 @@
+name: Fix Fury boss intros v136
+
+'on':
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-fury-boss-intros-v136.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Preserve Fury across boss intros and bump v136
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          feature = Path('src/features/bossVisibilityFix.js')
+          text = feature.read_text(encoding='utf-8')
+          anchor = '''  // #51: OP mode used to be one-way. Keep the original debug flag as the single\n'''
+          assert text.count(anchor) == 1, 'Expected bossVisibilityFix insertion anchor once'
+          block = '''  // #161: boss arrival sequences intentionally clean normal combat clutter, but\n  // ground powerups and already-active timed buffs are player rewards and must\n  // survive the transition. Freeze Fury's remaining duration and prevent ground\n  // pickups from being consumed while any boss intro is active.\n  isBossIntroActive() {\n    return Boolean(\n      this.wardenIntro?.active\n      || this.broodIntro?.active\n      || this.cipherIntro?.active\n    );\n  }\n\n  update(dt) {\n    const elapsedBefore = Number(this.elapsed) || 0;\n    const furyUntilBefore = Number(this.dropEffects?.furyUntil) || 0;\n    const furyRemainingBefore = Math.max(0, furyUntilBefore - elapsedBefore);\n    const introWasActive = this.isBossIntroActive();\n\n    super.update(dt);\n\n    const introIsActive = this.isBossIntroActive();\n    if ((introWasActive || introIsActive) && furyRemainingBefore > 0 && this.dropEffects) {\n      this.dropEffects.furyUntil = Math.max(\n        Number(this.dropEffects.furyUntil) || 0,\n        (Number(this.elapsed) || 0) + furyRemainingBefore,\n      );\n    }\n  }\n\n  updateGroundDrops() {\n    if (this.isBossIntroActive()) return;\n    super.updateGroundDrops();\n  }\n\n'''
+          feature.write_text(text.replace(anchor, block + anchor), encoding='utf-8')
+
+          main = Path('src/main.js')
+          text = main.read_text(encoding='utf-8')
+          assert text.count('const GAME_VERSION = 135;') == 1, 'Expected v135 runtime marker once'
+          main.write_text(text.replace('const GAME_VERSION = 135;', 'const GAME_VERSION = 136;'), encoding='utf-8')
+
+          index = Path('index.html')
+          text = index.read_text(encoding='utf-8')
+          for old, new in [
+            ('BUILD v135', 'BUILD v136'),
+            ('id="version-text">v135<', 'id="version-text">v136<'),
+            ('SYSTEM ONLINE • v135', 'SYSTEM ONLINE • v136'),
+          ]:
+            assert text.count(old) == 1, f'Expected version marker once: {old}'
+            text = text.replace(old, new)
+          index.write_text(text, encoding='utf-8')
+          PY
+
+          node --check src/features/bossVisibilityFix.js
+          node --check src/main.js
+          grep -Fq 'isBossIntroActive()' src/features/bossVisibilityFix.js
+          grep -Fq 'const furyRemainingBefore = Math.max(0, furyUntilBefore - elapsedBefore);' src/features/bossVisibilityFix.js
+          grep -Fq 'if (this.isBossIntroActive()) return;' src/features/bossVisibilityFix.js
+          grep -Fq 'const GAME_VERSION = 136;' src/main.js
+          grep -Fq 'BUILD v136' index.html
+          grep -Fq 'id="version-text">v136<' index.html
+          grep -Fq 'SYSTEM ONLINE • v136' index.html
+          grep -Fq 'setGameVersion?.(GAME_VERSION)' src/main.js
+
+      - name: Commit cleaned v136 tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-fury-boss-intros-v136.yml
+          git add src/features/bossVisibilityFix.js src/main.js index.html
+          git commit -m 'Preserve Fury through boss intros for issue #161 and bump v136'
+          git push
