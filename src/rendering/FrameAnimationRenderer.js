@@ -35,6 +35,9 @@ export class FrameAnimationRenderer {
     for (const frame of animation?.frames ?? []) {
       this.getImage(resolveFramePath(definition, frame));
     }
+    for (const frame of animation?.frameFallbacks ?? []) {
+      this.getImage(resolveFramePath(definition, frame));
+    }
   }
 
   findLoadedFrame(definition, animation) {
@@ -64,13 +67,16 @@ export class FrameAnimationRenderer {
       : rawFrameIndex % frames.length;
 
     const preferredSrc = resolveFramePath(definition, frames[frameIndex]);
+    const explicitFallbackFrame = animation.frameFallbacks?.[frameIndex] ?? null;
     let record = this.getImage(preferredSrc);
 
-    if (!record?.loaded || record.failed) {
+    if ((!record?.loaded || record.failed) && explicitFallbackFrame) {
+      record = this.getImage(resolveFramePath(definition, explicitFallbackFrame));
+    } else if (!record?.loaded || record.failed) {
       record = this.findLoadedFrame(definition, animation);
     }
 
-    const fallbackAnimationNames = options.strictAnimation
+    const fallbackAnimationNames = options.strictAnimation || explicitFallbackFrame
       ? []
       : resolvedAnimationName === 'idle_shooting'
         ? ['shooting', 'idle', 'running']

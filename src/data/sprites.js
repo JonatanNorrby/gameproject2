@@ -51,9 +51,10 @@ export function createStandardFrameSet(folder, options = {}) {
   };
 }
 
-// Normal enemies deliberately use one attack frame. The renderer's standard
-// shooting fallback then skips the absent idle_shooting animation and resolves
-// directly to running_1 when shooting_1.png has not been supplied yet.
+// Normal enemies use the same two-frame shooting convention as playable units,
+// but do not need separate idle_shooting art. Each shooting frame explicitly
+// falls back to running_1 so missing attack art can be added one frame at a time
+// without changing the mob's silhouette or animation timing.
 export function createEnemyFrameSet(folder, options = {}) {
   const standard = createStandardFrameSet(folder, options);
   return {
@@ -61,7 +62,10 @@ export function createEnemyFrameSet(folder, options = {}) {
     animations: {
       idle: standard.animations.idle,
       running: standard.animations.running,
-      shooting: singleFrame('shooting_1.png'),
+      shooting: {
+        ...standard.animations.shooting,
+        frameFallbacks: ['running_1.png', 'running_1.png'],
+      },
       dead: standard.animations.dead,
     },
   };

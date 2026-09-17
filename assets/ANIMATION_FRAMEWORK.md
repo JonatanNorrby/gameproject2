@@ -36,15 +36,16 @@ dead_1.png
 
 For playable units and Captains, `idle_1.png` and `dead_1.png` are single-frame states. Running, idle shooting, and moving shooting each use exactly two frames.
 
-Normal enemies use the same running convention, but their attack artwork is intentionally a **single frame**:
+Normal enemies use the same two-frame running and attack conventions, without separate idle-shooting artwork:
 
 ```text
 running_1.png
 running_2.png
 shooting_1.png
+shooting_2.png
 ```
 
-When a normal mob attacks, the runtime displays `shooting_1.png`. If that file is not available yet, the renderer falls back to `running_1.png`. Normal mobs do not require `shooting_2.png` or `idle_shooting_*` frames for attack animation support.
+When a normal mob attacks, the runtime cycles `shooting_1.png` and `shooting_2.png`. If either shooting frame is not available yet, that frame explicitly falls back to `running_1.png`, so enemy attack art can still be added one frame at a time. Normal mobs do not require `idle_shooting_*` frames.
 
 ## Art requirements
 
@@ -80,7 +81,7 @@ When a normal mob attacks, the runtime displays `shooting_1.png`. If that file i
 - `spitter`
 - `burst_spitter`
 
-All current enemies and playable units are registered in `src/data/sprites.js`. Missing images automatically fall back to an available frame or the game's procedural rendering, so folders can be populated one animation frame at a time.
+All current enemies and playable units are registered in `src/data/sprites.js`. Missing images automatically fall back to the configured frame fallback or the game's procedural rendering, so folders can be populated one animation frame at a time.
 
 ## Runtime states
 
@@ -95,8 +96,8 @@ Playable units and Captains:
 Normal enemies:
 
 - Moving/default: `running_1.png` / `running_2.png`
-- Attacking: `shooting_1.png`
-- Attack fallback when `shooting_1.png` is missing: `running_1.png`
+- Attacking: `shooting_1.png` / `shooting_2.png`
+- Attack fallback when either shooting frame is missing: `running_1.png`
 
 Rifleman / Captain Vale can loop firing frames during their firing window. Rocketeer / Captain Mercer use one non-looping firing cycle per shot. Shockblade and Captain Thorne use non-looping melee attack cycles. Drone Pilot uses shooting frames when issuing a drone attack command.
 
@@ -110,6 +111,6 @@ Projectile asset support has been removed. Bullets, rockets, enemy shots, and ot
 
 The game reuses each unit's `idle_1.png` for reinforcement cards. Captain selection uses the Captain folder's `idle_1.png`. If an idle portrait is missing, the UI falls back to that entity's `running_1.png` where available.
 
-Missing live animation images fall back to an available frame or procedural rendering while art is being added. Corpse rendering requests `dead_1.png`; if unavailable, the game uses its procedural corpse fallback.
+Missing live animation images fall back to an available configured frame or procedural rendering while art is being added. Corpse rendering requests `dead_1.png`; if unavailable, the game uses its procedural corpse fallback.
 
 Animation definitions live in `src/data/sprites.js`, with the Drone Pilot's static support-drone art handled by its feature module. Rendering is handled by `src/rendering/FrameAnimationRenderer.js`.
