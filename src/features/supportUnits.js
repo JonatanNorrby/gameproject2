@@ -57,45 +57,6 @@ const DRONE_SPRITE = Object.freeze({
   },
 });
 
-function getTargetBucketKey(cellX, cellY) {
-  return `${cellX}:${cellY}`;
-}
-
-function buildDroneTargetGrid(enemies, cellSize) {
-  const eligible = [];
-  const buckets = new Map();
-
-  for (const enemy of enemies) {
-    if (enemy.dead) continue;
-
-    eligible.push(enemy);
-    const cellX = Math.floor(enemy.x / cellSize);
-    const cellY = Math.floor(enemy.y / cellSize);
-    const key = getTargetBucketKey(cellX, cellY);
-    const bucket = buckets.get(key);
-    if (bucket) bucket.push(enemy);
-    else buckets.set(key, [enemy]);
-  }
-
-  return { eligible, buckets };
-}
-
-function estimateNearbyEnemyCount(buckets, enemy, cellSize) {
-  const cellX = Math.floor(enemy.x / cellSize);
-  const cellY = Math.floor(enemy.y / cellSize);
-  let count = 0;
-
-  // #126: target selection only needs a density estimate. Summing the fixed
-  // 3x3 bucket neighborhood preserves the preference for clustered enemies
-  // without doing an O(enemyCount^2) distance scan for every grenade.
-  for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
-    for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
-      count += buckets.get(getTargetBucketKey(cellX + offsetX, cellY + offsetY))?.length ?? 0;
-    }
-  }
-  return count;
-}
-
 function createSupportCombatSystem(ParentCombatSystem) {
   return class SupportCombatSystem extends ParentCombatSystem {
     reset() {
@@ -135,7 +96,7 @@ function createSupportCombatSystem(ParentCombatSystem) {
             dead: false,
             respawnAt: 0,
             grenadeCooldown: 0.75,
-            targetId: null,
+            target: null,
             hitFlash: 0,
             mercerAttackCount: 0,
           };
@@ -146,35 +107,11 @@ function createSupportCombatSystem(ParentCombatSystem) {
           drone.x = pilot.x + 28;
           drone.y = pilot.y - 18;
           drone.grenadeCooldown = 0.75;
-          drone.targetId = null;
+          drone.target = null;
           drone.hitFlash = 0;
           drone.mercerAttackCount = 0;
         }
       }
-    }
-
-    chooseDroneTarget(drone, pilot, support, modifiers) {
-      const range = support.range * modifiers.range * this.game.getTransformerStatMultiplier();
-      const radius = support.aoeRadius * modifiers.blastRadius;
-      const cellSize = Math.max(48, radius);
-      const { eligible, buckets } = buildDroneTargetGrid(
-        this.game.entities.enemies,
-        cellSize,
-      );
-      let best = null;
-      let bestScore = -Infinity;
-
-      for (const enemy of eligible) {
-        const pilotDistanceSq = distanceSq(pilot.x, pilot.y, enemy.x, enemy.y);
-        if (pilotDistanceSq > range * range) continue;
-
-        const groupCount = estimateNearbyEnemyCount(buckets, enemy, cellSize);
-        const score = pilotDistanceSq + groupCount * range * range * 0.08;
-        if (score <= bestScore) continue;
-        bestScore = score;
-        best = enemy;
-      }
-      return best;
     }
 
     getMercerDroneAttack(drone, pilot) {
@@ -200,9 +137,10 @@ function createSupportCombatSystem(ParentCombatSystem) {
       };
     }
 
-    dropExplosiveGrenade(drone, pilot, support, modifiers, target) {
+    dropExplosiveGrenade(drone, pilot, support, modifiers) {
       const game = this.game;
       const weapon = UNIT_CLASSES[DRONE_PILOT_TYPE].weapon;
+      const rocketWeapon = UNIT_CLASSES[ROCKETEER_CLASS].weapon;
       const statMultiplier = game.getTransformerStatMultiplier();
       const mercerAttack = this.getMercerDroneAttack(drone, pilot);
       const radius = support.aoeRadius
@@ -210,29 +148,29 @@ function createSupportCombatSystem(ParentCombatSystem) {
         * mercerAttack.aoeMultiplier
         * statMultiplier;
 
-      // #133: use the same explosion resolver as Rocketeer rockets so Drone
-      // Pilot grenade kills, XP, ground drops, damage and blast upgrades all
-      // follow the shared combat rules rather than maintaining a second AoE path.
-      this.explodeProjectile({
+      // #136: Drone grenades now enter the exact same projectile/explosion path
+      // as Rocketeer rockets. The zero-life rocket is spawned under the drone,
+      // then CombatSystem.updateProjectiles resolves the shared AoE on this frame.
+      game.entities.projectiles.push({
         id: game.entities.createId(),
         kind: 'rocket',
         special: mercerAttack.special ? 'mercer-drone-grenade' : 'drone-grenade',
         sourceType: DRONE_PILOT_TYPE,
-        x: target.x,
-        y: target.y,
+        x: drone.x,
+        y: drone.y,
         vx: 0,
         vy: 0,
-        radius: 0,
+        radius: rocketWeapon.projectileRadius,
         damage: weapon.damage * modifiers.damage * statMultiplier,
         life: 0,
         pierce: 1,
         aoeRadius: radius,
-        color: mercerAttack.color ?? support.color ?? weapon.color,
+        color: mercerAttack.color ?? rocketWeapon.color,
         hitIds: new Set(),
         dead: false,
       });
 
-      drone.targetId = null;
+      drone.target = null;
       drone.grenadeCooldown = support.cooldown / modifiers.fireRate;
     }
 
@@ -255,17 +193,20 @@ function createSupportCombatSystem(ParentCombatSystem) {
         const modifiers = getUnitModifiers(game.unitModifiers, DRONE_PILOT_TYPE);
         drone.grenadeCooldown = Math.max(0, (drone.grenadeCooldown ?? 0) - dt * attackSpeed);
 
-        let target = game.entities.enemies.find((enemy) => enemy.id === drone.targetId && !enemy.dead) ?? null;
+        // #136: keep a direct target reference while the drone is travelling so
+        // we do not rescan the entire enemy list every frame. When ready to fire,
+        // acquire targets with the same nearest-target helper Rocketeers use.
+        let target = drone.target && !drone.target.dead ? drone.target : null;
         const range = support.range * modifiers.range * game.getTransformerStatMultiplier();
         if (
           target
-          && distanceSq(pilot.x, pilot.y, target.x, target.y) > range * range
+          && distanceSq(drone.x, drone.y, target.x, target.y) > range * range
         ) target = null;
 
         if (!target && drone.grenadeCooldown <= 0) {
-          target = this.chooseDroneTarget(drone, pilot, support, modifiers);
-          drone.targetId = target?.id ?? null;
+          target = this.findNearestTarget(drone.x, drone.y, range);
         }
+        drone.target = target;
 
         const destination = target
           ? { x: target.x, y: target.y }
@@ -281,7 +222,7 @@ function createSupportCombatSystem(ParentCombatSystem) {
         }
 
         if (target && drone.grenadeCooldown <= 0 && distance <= support.dropDistance) {
-          this.dropExplosiveGrenade(drone, pilot, support, modifiers, target);
+          this.dropExplosiveGrenade(drone, pilot, support, modifiers);
         }
       }
     }
@@ -343,7 +284,7 @@ function createSupportCombatSystem(ParentCombatSystem) {
           if (drone.hp <= 0) {
             drone.dead = true;
             drone.respawnAt = this.game.elapsed + support.respawnDelay;
-            drone.targetId = null;
+            drone.target = null;
             drone.mercerAttackCount = 0;
             this.game.spawnDeathParticles(drone.x, drone.y, drone.radius);
           }
