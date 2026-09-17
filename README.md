@@ -24,6 +24,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - XP pickups and level-ups
 - Randomized, infinitely repeatable upgrade choices with rarity-based stat bonuses
 - Reinforcement upgrades that can introduce new squad classes
+- Gold Upgrades use a column-based ranked tree: every permanent upgrade has its own column and each sequential rank appears as a separate connected box below the previous rank
 - Freeform connected squad formation editing
 - Ground powerups with animated Magnet, Nuke, and Fury effects
 - Shared Squad Health pool that grows by 10% for every additional squad member; combat damage no longer injures or kills individual squad units
