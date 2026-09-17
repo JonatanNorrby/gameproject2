@@ -1,4 +1,4 @@
-import { Game, UI as PreviousUI } from './xpBlue.js';
+import { Game, UI as PreviousUI } from './cipherVisualPolish.js';
 
 const ISSUE_88_STYLE_ID = 'issue-88-loading-screen';
 const ISSUE_88_STYLES = `
