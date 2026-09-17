@@ -7,7 +7,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - WASD / arrow-key movement
 - Touch drag movement
 - Automatic combat with ranged, melee, and support squad classes
-- Rifleman: automatic bullet fire with pierce upgrades
+- Rifleman: automatic bullet fire with pierce upgrades and 250 base range; Captain Vale inherits the same rifle range
 - Rocketeer: slower explosive rockets with AoE damage
 - Shockblade: jump-pack melee unit that lunges at nearby enemies and cuts a forward half-moon arc while invulnerable
 - Stormlancer: long-reach lightning melee unit with 200 base strike range, 65 base damage, and 240 base chain-lightning jump range
@@ -16,7 +16,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Captain Mercer: Chain Reaction commander; Mercer and adjacent Rocketeers mark enemies for heavy-warhead cascades, while Mercer's own rockets scatter light burst rounds
 - Captain Thorne: heavily armored Shockblade-class melee Captain with a slow 360-degree greatsword sweep, lifesteal, and every-fifth-attack 360-degree Shockblade support
 - Captain unlocks use class families: Mercer requires 5 living Specialists total (Rocketeers + Drone Pilots), while Thorne requires 5 living Vanguards total (Shockblades + Stormlancers)
-- Multiple enemy archetypes that unlock over time, with fragile Runners and ranged Spitter pressure becoming more prominent as a run develops
+- Multiple enemy archetypes that unlock over time, with normal enemy base movement reduced across Crawlers, Runners, Brutes, Spitters, Burst Spitters, and Chargers
 - Spitter and Burst Spitter: capped ranged enemies that keep their distance and pressure the squad with dodgeable projectiles
 - Normal eligible enemy kills have a 2% chance to drop a 1-Gold pickup; chest and Boss Cache Gold rewards use their separate reward paths
 - Boss 2 — The Broodmother: 25,200 HP with stronger Acid, Tail Sweep, and Lunge attacks
