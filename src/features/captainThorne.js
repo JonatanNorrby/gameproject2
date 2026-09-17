@@ -85,12 +85,7 @@ function createThorneCombatSystem(ParentCombatSystem) {
       const lifesteal = this.getThorneLifestealRate();
       const damage = Math.max(0, Number(totalDamageDealt) || 0);
       if (lifesteal <= 0 || damage <= 0 || !this.isThorneLifestealEligible(unit)) return 0;
-
-      const hpBefore = Math.max(0, Number(unit.hp) || 0);
-      const maxHp = Math.max(hpBefore, Number(unit.maxHp) || hpBefore);
-      unit.hp = Math.min(maxHp, hpBefore + damage * lifesteal);
-      if (isPrimaryThorne(unit)) this.game.syncCaptainHealth();
-      return Math.max(0, unit.hp - hpBefore);
+      return this.game.healSquadHealth?.(damage * lifesteal) ?? 0;
     }
 
     getUnitArmor(unit) {

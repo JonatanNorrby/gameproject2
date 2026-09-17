@@ -252,8 +252,7 @@ function createCipherCombatSystem(ParentCombatSystem) {
         && weapon.lifesteal > 0
         && (result?.bodyDamage ?? 0) > 0
       ) {
-        unit.hp = Math.min(unit.maxHp, unit.hp + result.bodyDamage * weapon.lifesteal);
-        this.game.syncCaptainHealth();
+        this.game.healSquadHealth?.(result.bodyDamage * weapon.lifesteal);
       }
     }
   };

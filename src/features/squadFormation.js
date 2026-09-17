@@ -198,6 +198,7 @@ export class Game extends BaseGame {
 
     const index = this.player.squad.findIndex((candidate) => candidate.id === unitId);
     if (index >= 0) this.player.squad.splice(index, 1);
+    this.syncCaptainHealth?.();
     return { ok: true, message: `${UNIT_CLASSES[unit.type]?.label ?? 'Unit'} removed from the squad.` };
   }
 

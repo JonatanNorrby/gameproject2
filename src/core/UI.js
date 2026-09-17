@@ -182,16 +182,13 @@ export class UI {
     const player = game.player;
     const selectedCaptainId = game.selectedCaptainId ?? this.selectedCaptainId;
     const captain = CAPTAINS[selectedCaptainId];
-    const liveCaptain = game.getCaptainUnit?.() ?? null;
-    const healthUnit = liveCaptain ?? game.deadCaptain?.unit ?? null;
-    const fallbackMaxHp = UNIT_CLASSES[captain?.unitType]?.maxHp ?? player.maxHp ?? 100;
-    const maxHp = healthUnit?.maxHp ?? fallbackMaxHp;
-    const hp = healthUnit ? Math.max(0, healthUnit.hp) : maxHp;
-    const infiniteHp = Boolean(game.debug?.infiniteHp && liveCaptain);
-    const hpPercent = infiniteHp ? 100 : Math.max(0, Math.min(1, hp / Math.max(1, maxHp))) * 100;
+    const maxHp = Math.max(1, Number(player.maxHp) || 1);
+    const hp = Math.max(0, Math.min(maxHp, Number(player.hp) || 0));
+    const infiniteHp = Boolean(game.debug?.infiniteHp);
+    const hpPercent = infiniteHp ? 100 : Math.max(0, Math.min(1, hp / maxHp)) * 100;
     const xpPercent = Math.max(0, player.xp / player.xpToNext) * 100;
 
-    if (this.hpLabel) this.hpLabel.textContent = `${captain?.name ?? 'Captain'} Health`;
+    if (this.hpLabel) this.hpLabel.textContent = 'Squad Health';
     this.hpText.textContent = infiniteHp ? '∞ / ∞' : `${Math.ceil(hp)} / ${maxHp}`;
     this.hpBar.style.width = `${hpPercent}%`;
     this.xpBar.style.width = `${xpPercent}%`;

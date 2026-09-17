@@ -10,6 +10,7 @@ import { getHexFormationLayout, radiusForNeighborSpacing } from '../utils/hexFor
 import { distanceSq, randomRange } from '../utils/math.js';
 
 const DAMAGE_FEEDBACK_DURATION = 0.18;
+export const SQUAD_HP_PER_ADDITIONAL_UNIT = 0.1;
 const DEFAULT_SPRITE_FORWARD_ANGLE = -Math.PI / 2;
 const UNIT_ANIMATION_PRIORITY = {
   shooting: 1,
@@ -128,7 +129,7 @@ export class Game {
 
     this.entities.compact();
 
-    if (this.player.hp <= 0 && this.deadCaptain && !this.pauseReasons.has('gameover')) {
+    if (this.player.hp <= 0 && !this.pauseReasons.has('gameover')) {
       this.pause('gameover');
       this.ui.showGameOver(this);
     }
@@ -158,42 +159,106 @@ export class Game {
     const maxHp = unitClass.maxHp ?? GAME_BALANCE.player.maxHp;
 
     for (let i = 0; i < amount; i += 1) {
-      this.player.squad.push({
+      const unit = {
         id: this.nextSquadUnitId,
         type,
-        hp: maxHp,
         maxHp,
         hitFlash: 0,
         dead: false,
         animationState: null,
         animationStartedAt: 0,
         animationUntil: 0,
+      };
+
+      // v122: squad members no longer own mutable health. Older combat layers
+      // can keep targeting a unit position and writing unit.hp; damage writes
+      // are redirected into the one shared Squad Health pool instead.
+      Object.defineProperty(unit, 'hp', {
+        enumerable: true,
+        configurable: true,
+        get() {
+          return Math.max(0, Number(unit.maxHp) || 0);
+        },
+        set: (nextHp) => {
+          const fullHp = Math.max(0, Number(unit.maxHp) || 0);
+          const requestedHp = Math.max(0, Math.min(fullHp, Number(nextHp) || 0));
+          const damage = Math.max(0, fullHp - requestedHp);
+          if (damage > 0) this.applySquadDamage(damage);
+        },
       });
+
+      this.player.squad.push(unit);
       this.nextSquadUnitId += 1;
     }
+
+    // Preserve missing HP while adding the new maximum capacity from recruits.
+    this.syncCaptainHealth();
   }
 
   getCaptainUnit() {
     return this.player.squad.find((unit) => Boolean(unit.captainId)) ?? null;
   }
 
-  syncCaptainHealth() {
-    const captainUnit = this.getCaptainUnit();
-    if (captainUnit) {
-      this.player.maxHp = captainUnit.maxHp;
-      this.player.hp = Math.max(0, captainUnit.hp);
-      return;
-    }
+  getSquadHealthBaseMax() {
+    const squad = this.player?.squad ?? [];
+    const primaryCaptain = squad.find((unit) => unit.primaryCaptain && !unit.dead)
+      ?? squad.find((unit) => unit.captainId && !unit.dead)
+      ?? squad[0];
+    return Math.max(
+      1,
+      Number(primaryCaptain?.maxHp)
+        || Number(this.player?.squadBaseMaxHp)
+        || GAME_BALANCE.player.maxHp,
+    );
+  }
 
-    if (this.deadCaptain?.unit) {
-      this.player.maxHp = this.deadCaptain.unit.maxHp;
-      this.player.hp = 0;
-    }
+  syncCaptainHealth() {
+    if (!this.player) return;
+
+    const baseMaxHp = this.getSquadHealthBaseMax();
+    const unitCount = Math.max(1, this.player.squad?.length ?? 0);
+    const multiplier = 1 + SQUAD_HP_PER_ADDITIONAL_UNIT * Math.max(0, unitCount - 1);
+    const nextMaxHp = Math.round(baseMaxHp * multiplier * 100) / 100;
+    const previousMaxHp = Math.max(1, Number(this.player.maxHp) || baseMaxHp);
+    const previousHp = Math.max(0, Math.min(previousMaxHp, Number(this.player.hp) || 0));
+    const missingHp = Math.max(0, previousMaxHp - previousHp);
+
+    this.player.squadBaseMaxHp = baseMaxHp;
+    this.player.maxHp = nextMaxHp;
+    this.player.hp = Math.max(0, Math.min(nextMaxHp, nextMaxHp - missingHp));
+  }
+
+  applySquadDamage(amount) {
+    if (this.debug?.infiniteHp) return 0;
+    const damage = Math.max(0, Number(amount) || 0);
+    if (damage <= 0) return 0;
+
+    const before = Math.max(0, Number(this.player?.hp) || 0);
+    this.player.hp = Math.max(0, before - damage);
+    return before - this.player.hp;
+  }
+
+  healSquadHealth(amount) {
+    const healing = Math.max(0, Number(amount) || 0);
+    if (healing <= 0) return 0;
+
+    const before = Math.max(0, Number(this.player?.hp) || 0);
+    const maxHp = Math.max(1, Number(this.player?.maxHp) || 1);
+    this.player.hp = Math.min(maxHp, before + healing);
+    return this.player.hp - before;
+  }
+
+  healSquadHealthFraction(fraction) {
+    const normalized = Math.max(0, Number(fraction) || 0);
+    return this.healSquadHealth(this.player.maxHp * normalized);
   }
 
   healAllUnits() {
-    for (const unit of this.player.squad) unit.hp = unit.maxHp;
-    this.syncCaptainHealth();
+    this.player.hp = Math.max(1, Number(this.player.maxHp) || 1);
+    for (const unit of this.player.squad) {
+      unit.dead = false;
+      unit.hitFlash = 0;
+    }
   }
 
   isDropEffectActive(type) {
@@ -305,21 +370,8 @@ export class Game {
     if (livingUnits.length === 0 || amount <= 0) return;
 
     const effectiveDamage = amount / this.getTransformerStatMultiplier();
-    const damagePerUnit = effectiveDamage / livingUnits.length;
-    for (const unit of livingUnits) {
-      if (unit.dead) continue;
-      unit.hitFlash = DAMAGE_FEEDBACK_DURATION;
-      unit.hp = Math.max(0, unit.hp - damagePerUnit);
-      if (unit.hp <= 0) {
-        this.killSquadUnit({
-          unit,
-          x,
-          y,
-          index: -1,
-          hex: { q: 0, r: 0, ring: 0 },
-        });
-      }
-    }
+    for (const unit of livingUnits) unit.hitFlash = DAMAGE_FEEDBACK_DURATION;
+    this.applySquadDamage(effectiveDamage);
   }
 
   playUnitAnimation(unit, state, duration = 0.2) {
@@ -364,42 +416,13 @@ export class Game {
   }
 
   killSquadUnit(soldier) {
+    // v122: combat damage can no longer remove an individual squad member.
+    // Squad Health reaching zero now ends the run instead.
     const unit = soldier?.unit;
-    if (!unit || unit.dead) return;
-
-    const sprite = getSquadSprite(unit);
-    const currentAnimation = this.getUnitAnimation(unit);
-    const rotation = this.getUnitSpriteRotation(sprite, currentAnimation.name);
-
-    unit.hp = 0;
-    unit.dead = true;
-    this.playUnitAnimation(unit, 'dead');
-
-    const corpseUnit = {
-      ...unit,
-      animationState: 'dead',
-      animationStartedAt: this.animationClock,
-      animationUntil: Infinity,
-    };
-    const corpse = {
-      id: this.entities.createId(),
-      unit: corpseUnit,
-      x: soldier.x,
-      y: soldier.y,
-      rotation,
-    };
-    this.entities.corpses.push(corpse);
-
-    const squadIndex = this.player.squad.findIndex((candidate) => candidate.id === unit.id);
-    if (squadIndex >= 0) this.player.squad.splice(squadIndex, 1);
-
-    if (unit.captainId) {
-      this.deadCaptain = corpse;
-      this.player.maxHp = unit.maxHp;
-      this.player.hp = 0;
-    }
-
-    this.spawnDeathParticles(soldier.x, soldier.y, GAME_BALANCE.player.soldierRadius);
+    if (!unit) return false;
+    unit.dead = false;
+    unit.hitFlash = Math.max(unit.hitFlash ?? 0, DAMAGE_FEEDBACK_DURATION);
+    return false;
   }
 
   reorderSquad(fromIndex, toIndex) {

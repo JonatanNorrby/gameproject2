@@ -89,13 +89,7 @@ export class ProgressionSystem {
   }
 
   healSquadOnLevelUp() {
-    for (const unit of this.game.player?.squad ?? []) {
-      if (unit.dead) continue;
-      const maxHp = Math.max(0, Number(unit.maxHp) || 0);
-      const currentHp = Math.max(0, Number(unit.hp) || 0);
-      unit.hp = Math.min(maxHp, currentHp + maxHp * LEVEL_UP_HEAL_FRACTION);
-    }
-    this.game.syncCaptainHealth?.();
+    this.game.healSquadHealthFraction?.(LEVEL_UP_HEAL_FRACTION);
   }
 
   levelUp({ consumeXp = true } = {}) {

@@ -10,23 +10,9 @@ const BUILDER_UNIT_COLORS = Object.freeze({
   drone_pilot: '#ffd84d',
 });
 
-const BUILDER_HEALTH_COLORS = Object.freeze({
-  healthy: '#7ef9d4',
-  wounded: '#ffd36a',
-  critical: '#ff7188',
-});
-
 const CAPTAIN_GOLD = '#f7c94b';
 const MERCER_ID = 'mercer';
 const ROCKETEER_CLASS = 'rocketeer';
-
-function getBuilderHealthState(unit) {
-  const maxHp = Math.max(1, Number(unit?.maxHp) || 1);
-  const ratio = Math.max(0, Math.min(1, (Number(unit?.hp) || 0) / maxHp));
-  if (ratio > 0.6) return 'healthy';
-  if (ratio > 0.3) return 'wounded';
-  return 'critical';
-}
 
 export function getMercerRocketeerTargetRangeMultiplier(combatSystem, soldier) {
   const unit = soldier?.unit;
@@ -87,11 +73,9 @@ export class UI extends PreviousUI {
       const color = isCaptain
         ? CAPTAIN_GOLD
         : (BUILDER_UNIT_COLORS[unit.type] ?? card.style.getPropertyValue('--unit-color'));
-      const healthState = getBuilderHealthState(unit);
-
       card.style.setProperty('--unit-color', color);
-      card.style.setProperty('--health-border-color', BUILDER_HEALTH_COLORS[healthState]);
-      card.dataset.healthState = healthState;
+      card.style.setProperty('--health-border-color', color);
+      card.dataset.healthState = 'shared';
       card.classList.toggle('squad-unit-card--captain', isCaptain);
     }
   }

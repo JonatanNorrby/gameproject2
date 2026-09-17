@@ -6,7 +6,7 @@ import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { getBeefedUpHpBonus } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 121;
+const GAME_VERSION = 122;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 
@@ -318,8 +318,8 @@ function addAdditionalCaptain(captainId, excludedCaptainIds, slot) {
   const unit = game.player.squad.find((candidate) => !previousIds.has(candidate.id));
   if (!unit) return null;
 
-  // Additional Captains deliberately keep normal unit health/armor. Their
-  // captainId activates passives while slot flags keep their death non-fatal.
+  // Additional Captains contribute to the shared Squad Health multiplier.
+  // Their captainId activates passives while slot flags identify their slot.
   unit.captainId = captain.id;
   unit.primaryCaptain = false;
   unit.secondaryCaptain = slot === 'secondary';
