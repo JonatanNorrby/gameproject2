@@ -11,6 +11,7 @@ export const TREASURE_CHEST_DROP_CHANCE = 0.025;
 export const TREASURE_CHEST_GOLD_REWARD = 5;
 export const TREASURE_CHEST_XP_FRACTION = 0.25;
 export const TREASURE_CHEST_UNLOCK_DURATION = 5;
+export const BOSS_CHEST_UNLOCK_DURATION = 2.5;
 
 const TREASURE_CHEST_TUNING = Object.freeze([
   Object.freeze({ dropChance: 0, goldReward: 0, xpFraction: 0 }),
@@ -31,6 +32,10 @@ function getTreasureChestTuning() {
   if (!isPermanentUpgradeActive(TREASURE_CHEST_UPGRADE_ID)) return TREASURE_CHEST_TUNING[0];
   const rank = Math.max(1, Math.min(3, getPermanentUpgradeRank(TREASURE_CHEST_UPGRADE_ID)));
   return TREASURE_CHEST_TUNING[rank];
+}
+
+function getChestUnlockDuration(chest) {
+  return chest?.bossReward ? BOSS_CHEST_UNLOCK_DURATION : TREASURE_CHEST_UNLOCK_DURATION;
 }
 
 function getChestRewardTuning(chest) {
@@ -173,10 +178,10 @@ export class Game extends PreviousGame {
       }
 
       chest.unlockProgress = Math.min(
-        TREASURE_CHEST_UNLOCK_DURATION,
+        getChestUnlockDuration(chest),
         (chest.unlockProgress ?? 0) + dt,
       );
-      if (chest.unlockProgress >= TREASURE_CHEST_UNLOCK_DURATION) {
+      if (chest.unlockProgress >= getChestUnlockDuration(chest)) {
         this.collectTreasureChest(chest);
       }
     }
@@ -201,7 +206,7 @@ export class Game extends PreviousGame {
       const halfHeight = bossReward ? 13 : 10;
       const progress = Math.max(
         0,
-        Math.min(1, (chest.unlockProgress ?? 0) / TREASURE_CHEST_UNLOCK_DURATION),
+        Math.min(1, (chest.unlockProgress ?? 0) / getChestUnlockDuration(chest)),
       );
 
       ctx.save();
@@ -239,7 +244,7 @@ export class Game extends PreviousGame {
         const ringRadius = chest.radius + 12;
         const remaining = Math.max(
           0,
-          TREASURE_CHEST_UNLOCK_DURATION - (chest.unlockProgress ?? 0),
+          getChestUnlockDuration(chest) - (chest.unlockProgress ?? 0),
         );
         ctx.strokeStyle = bossReward ? '#fff4bd' : '#7ef9d4';
         ctx.lineWidth = 4;
