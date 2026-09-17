@@ -7,9 +7,11 @@ import {
   getUnitClassFamily,
   getUnitClassFamilyLabel,
 } from '../data/unitFamilies.js';
+import { SUPPORT_UNIT_DEFINITIONS } from '../data/supportUnits.js';
 import { CLASS_ICON_FILES } from '../data/upgradeIcons.js';
 
 const CLASS_ICON_ROOT = './assets/icons/unit_class';
+const DRONE_PILOT_TYPE = 'drone_pilot';
 
 const HANDBOOK_UPGRADE_FAMILIES = Object.freeze([
   Object.freeze({ id: 'rifleman', accent: '#69cfff' }),
@@ -61,6 +63,31 @@ function installBossIdleImage(card, entry) {
   media.append(image);
 }
 
+function updateDronePilotUnitCard(content) {
+  const definition = SUPPORT_UNIT_DEFINITIONS[DRONE_PILOT_TYPE];
+  if (!definition) return;
+
+  const card = [...content.querySelectorAll('.handbook-card--unit')]
+    .find((candidate) => candidate.querySelector('h3')?.textContent === definition.label);
+  if (!card) return;
+
+  const body = card.querySelector('.handbook-card__body');
+  if (body) {
+    body.textContent = 'Its drone seeks enemy groups and drops damaging explosive grenades using the same area-damage rules as Rocketeer rockets.';
+  }
+
+  const statRows = [...card.querySelectorAll('.handbook-stat')];
+  const setStat = (row, label, value) => {
+    if (!row) return;
+    const labelNode = row.querySelector('span');
+    const valueNode = row.querySelector('strong');
+    if (labelNode) labelNode.textContent = label;
+    if (valueNode) valueNode.textContent = String(value);
+  };
+  setStat(statRows[1], 'Damage', definition.weapon.damage);
+  setStat(statRows[2], 'Blast Radius', definition.support.aoeRadius);
+}
+
 function createUpgradeColumns(content, cards, upgrades) {
   content.querySelector('.handbook-card-grid')?.remove?.();
 
@@ -110,6 +137,11 @@ function createUpgradeColumns(content, cards, upgrades) {
 }
 
 export class UI extends PreviousUI {
+  renderHandbookUnits() {
+    super.renderHandbookUnits();
+    updateDronePilotUnitCard(this.handbookContent);
+  }
+
   renderHandbookBosses() {
     super.renderHandbookBosses();
 
