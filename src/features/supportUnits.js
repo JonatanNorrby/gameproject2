@@ -1,7 +1,10 @@
 import { Game as PreviousGame, UI as PreviousUI } from './captainWeaponsAndDamageFlash.js';
 import '../data/supportUnits.js';
 import { CAPTAINS, UNIT_CLASSES } from '../data/content.js';
-import { isPermanentUpgradeActive } from '../data/metaUpgrades.js';
+import {
+  getPermanentUpgradeRank,
+  isPermanentUpgradeActive,
+} from '../data/metaUpgrades.js';
 import { getEffectiveUnitStats, getUnitModifiers } from '../data/unitModifiers.js';
 import { distanceSq, normalize } from '../utils/math.js';
 
@@ -11,9 +14,17 @@ const MERCER_ID = 'mercer';
 const DAMAGE_FLASH_DURATION = 0.16;
 export const DRONE_PICKUP_UPGRADE_ID = 'drone_pickup';
 export const DRONE_PICKUP_RADIUS = 140;
+export const DRONE_PICKUP_RADIUS_BY_RANK = Object.freeze([0, 140, 210, 280]);
+
+function getDronePickupRadius() {
+  if (!isPermanentUpgradeActive(DRONE_PICKUP_UPGRADE_ID)) return 0;
+  const rank = Math.max(1, Math.min(3, getPermanentUpgradeRank(DRONE_PICKUP_UPGRADE_ID)));
+  return DRONE_PICKUP_RADIUS_BY_RANK[rank];
+}
 
 export function collectDronePickupXp(game) {
-  if (!game || !isPermanentUpgradeActive(DRONE_PICKUP_UPGRADE_ID)) return 0;
+  const pickupRange = getDronePickupRadius();
+  if (!game || pickupRange <= 0) return 0;
 
   const drones = (game.supportDrones ?? []).filter((drone) => !drone.dead);
   if (drones.length === 0) return 0;
@@ -21,7 +32,7 @@ export function collectDronePickupXp(game) {
   let totalXp = 0;
   for (const gem of game.entities?.gems ?? []) {
     if (gem.dead) continue;
-    const pickupRadius = DRONE_PICKUP_RADIUS + Math.max(0, Number(gem.radius) || 0);
+    const pickupRadius = pickupRange + Math.max(0, Number(gem.radius) || 0);
     const pickupRadiusSq = pickupRadius * pickupRadius;
     const collected = drones.some((drone) => (
       distanceSq(drone.x, drone.y, gem.x, gem.y) <= pickupRadiusSq
