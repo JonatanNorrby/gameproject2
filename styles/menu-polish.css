@@ -66,8 +66,8 @@
   text-transform: uppercase;
 }
 
-/* Captain selection is a comparison screen: selection/lock state should be
-   conveyed by labels and outlines, not by darkening the artwork. */
+/* Captain selection is a comparison screen: keep locked cards readable while
+   making only the unavailable Captain portrait visibly darker. */
 #captain-select-screen .captain-select-card,
 #captain-select-screen .captain-select-card:disabled,
 #captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) {
@@ -75,58 +75,75 @@
   filter: none !important;
 }
 
-/* #91 + #108: locked Captain cards use a visual lock instead of textual LOCKED
-   chips. Anchor the lock to the command-profile cell itself instead of using a
-   percentage of the whole card, so it stays centered at every card width. */
+/* #123: replace the old red padlock with a centered textual lock state. The
+   existing unlock-requirement copy remains available underneath, while the
+   portrait alone is darkened so the rest of the card stays legible. */
 #captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) .upgrade-card__rarity {
   display: none !important;
 }
 
-#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > p {
-  position: relative;
-  visibility: hidden;
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) .upgrade-card__portrait {
+  opacity: .42 !important;
+  filter: grayscale(.72) saturate(.28) brightness(.34) drop-shadow(0 12px 16px rgba(0,0,0,.5)) !important;
 }
 
-/* Disable the old card-level lock pieces; the profile cell owns them below. */
-#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret)::before,
-#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret)::after {
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > p {
+  position: relative;
+  align-self: stretch !important;
+  display: grid;
+  place-items: center;
+  min-height: 116px;
+  margin: 0 !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  text-align: center;
+  visibility: visible;
+}
+
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > p::before {
+  content: 'LOCKED';
+  position: static;
+  display: block;
+  margin: 0 0 34px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 1000;
+  letter-spacing: .18em;
+  line-height: 1;
+  visibility: visible;
+}
+
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > p::after {
   content: none !important;
   display: none !important;
 }
 
-#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > p::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 5;
-  width: 34px;
-  height: 28px;
-  padding: 0;
-  transform: translate(-50%, -50%);
-  visibility: visible;
-  border: 3px solid #ff5f79;
-  border-radius: 6px;
-  background: rgba(255, 95, 121, .08);
-  box-shadow: 0 0 18px rgba(255, 95, 121, .42);
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > small {
+  grid-column: 2;
+  grid-row: 3;
+  z-index: 6;
+  align-self: center !important;
+  min-height: 0 !important;
+  margin: 38px 0 0 !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 800;
+  line-height: 1.4 !important;
+  text-align: center;
 }
 
-#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > p::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: calc(50% - 21px);
-  z-index: 6;
-  width: 20px;
-  height: 18px;
-  margin: 0;
-  transform: translate(-50%, -50%);
-  visibility: visible;
-  border: 3px solid #ff5f79;
-  border-bottom: 0;
-  border-radius: 12px 12px 0 0;
-  background: transparent;
-  box-shadow: 0 -3px 12px rgba(255, 95, 121, .32);
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret) > small::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Disable every legacy card-level lock piece. */
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret)::before,
+#captain-select-screen .captain-select-card--locked:not(.captain-select-card--secret)::after {
+  content: none !important;
+  display: none !important;
 }
 
 /* The still-secret final Captain should show only the mystery mark. The legacy
