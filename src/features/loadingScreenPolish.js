@@ -1,4 +1,5 @@
-import { Game, UI as PreviousUI } from './prestigePopup.js';
+import { Game as PreviousGame, UI as PreviousUI } from './prestigePopup.js';
+import { recordHighestRunLevel } from '../data/prestige.js';
 
 const ISSUE_88_STYLE_ID = 'issue-88-loading-screen';
 const ISSUE_88_STYLES = `
@@ -7,10 +8,94 @@ const ISSUE_88_STYLES = `
   }
 `;
 
+const ISSUE_107_STYLE_ID = 'issue-107-end-run';
+const ISSUE_107_STYLES = `
+  .end-run-button {
+    align-self: flex-end;
+    min-width: 86px;
+    min-height: 42px;
+    border: 1px solid rgba(255, 95, 121, .72);
+    border-radius: 11px;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, rgba(139, 28, 47, .96), rgba(80, 13, 27, .96));
+    color: #ffe7ec;
+    font-size: 10px;
+    font-weight: 1000;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .3), 0 0 18px rgba(255, 95, 121, .12);
+    transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  }
+
+  .end-run-button:hover {
+    border-color: #ff7188;
+    background: linear-gradient(180deg, rgba(168, 34, 57, .98), rgba(99, 16, 32, .98));
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .34), 0 0 22px rgba(255, 95, 121, .24);
+    transform: translateY(-1px);
+  }
+
+  .end-run-button:active {
+    transform: translateY(1px);
+  }
+
+  .end-run-button[hidden] {
+    display: none !important;
+  }
+
+  @media (max-width: 620px) {
+    .end-run-button {
+      min-width: 70px;
+      min-height: 38px;
+      padding: 7px 9px;
+      font-size: 9px;
+      letter-spacing: .08em;
+    }
+  }
+
+  @media (max-width: 430px) {
+    .end-run-button {
+      min-width: 62px;
+      padding-inline: 7px;
+      letter-spacing: .05em;
+    }
+  }
+`;
+
+export class Game extends PreviousGame {
+  start(...args) {
+    this.manualRunEnd = false;
+    return super.start(...args);
+  }
+
+  endRun() {
+    if (!this.running || this.pauseReasons?.has('gameover')) return false;
+
+    // Permanent Gold and unlocks are persisted at the moment they are earned.
+    // Record the current run level once more here so every permanent progression
+    // system is committed before the manual run-end results screen is shown.
+    recordHighestRunLevel(this.player?.level ?? 1);
+    this.manualRunEnd = true;
+
+    this.ui?.hideLevelUp?.();
+    this.ui?.hideSquadBuilder?.();
+    this.pauseReasons?.delete?.('levelup');
+    this.pauseReasons?.delete?.('squad-builder');
+    this.pause('gameover');
+    this.ui?.showGameOver?.(this);
+    this.ui?.renderPermanentShop?.();
+    this.ui?.refreshPrestigePopup?.();
+    return true;
+  }
+}
+
 export class UI extends PreviousUI {
   constructor(...args) {
     super(...args);
     this.applyIssue88LoadingScreen();
+    this.installIssue107EndRunControl();
   }
 
   applyIssue88LoadingScreen() {
@@ -41,6 +126,58 @@ export class UI extends PreviousUI {
       else content.append(track);
     }
   }
-}
 
-export { Game };
+  installIssue107EndRunControl() {
+    if (!document.querySelector(`#${ISSUE_107_STYLE_ID}`)) {
+      const style = document.createElement('style');
+      style.id = ISSUE_107_STYLE_ID;
+      style.textContent = ISSUE_107_STYLES;
+      document.head?.append(style);
+    }
+
+    const hudBottom = document.querySelector('.hud__bottom');
+    if (!hudBottom) return;
+
+    let button = document.querySelector('#end-run-button');
+    if (!button) {
+      button = document.createElement('button');
+      button.id = 'end-run-button';
+      button.className = 'end-run-button';
+      button.type = 'button';
+      button.textContent = 'End Run';
+      button.title = 'End the current run and keep permanent progress earned so far';
+      button.setAttribute('aria-label', 'End run and keep permanent progress earned so far');
+      hudBottom.prepend(button);
+    }
+
+    button.hidden = true;
+    button.setAttribute('aria-hidden', 'true');
+    button.addEventListener('click', () => {
+      const game = this.game;
+      if (!game?.running || game.pauseReasons?.has('gameover')) return;
+
+      const confirmed = window.confirm(
+        'End this run now? Gold, unlocks and other permanent progress earned so far will be kept.',
+      );
+      if (!confirmed) return;
+      game.endRun?.();
+    });
+
+    this.endRunButton = button;
+  }
+
+  showGameOver(game, ...args) {
+    const heading = this.gameoverScreen?.querySelector('h2');
+    if (heading) heading.textContent = game?.manualRunEnd ? 'Run Ended' : 'Signal Lost';
+    return super.showGameOver(game, ...args);
+  }
+
+  update(game) {
+    super.update(game);
+    if (!this.endRunButton) return;
+
+    const visible = Boolean(game?.running && !game.pauseReasons?.has('gameover'));
+    this.endRunButton.hidden = !visible;
+    this.endRunButton.setAttribute('aria-hidden', String(!visible));
+  }
+}
