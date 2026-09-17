@@ -1,0 +1,93 @@
+name: One-shot issue 154 Boss Cache timing v129
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/issue-154-boss-cache-v129.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply issue 154 Boss Cache timing and version sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          chests = Path('src/features/treasureChests.js')
+          text = chests.read_text(encoding='utf-8')
+          old = 'export const TREASURE_CHEST_UNLOCK_DURATION = 5;'
+          new = "export const TREASURE_CHEST_UNLOCK_DURATION = 5;\nexport const BOSS_CHEST_UNLOCK_DURATION = 2.5;"
+          assert text.count(old) == 1, 'Expected treasure chest unlock constant exactly once'
+          text = text.replace(old, new)
+
+          anchor = 'function getChestRewardTuning(chest) {'
+          helper = "function getChestUnlockDuration(chest) {\n  return chest?.bossReward ? BOSS_CHEST_UNLOCK_DURATION : TREASURE_CHEST_UNLOCK_DURATION;\n}\n\n"
+          assert text.count(anchor) == 1, 'Expected chest reward helper anchor exactly once'
+          text = text.replace(anchor, helper + anchor)
+
+          replacements = {
+              '        TREASURE_CHEST_UNLOCK_DURATION,\n        (chest.unlockProgress ?? 0) + dt,': '        getChestUnlockDuration(chest),\n        (chest.unlockProgress ?? 0) + dt,',
+              '      if (chest.unlockProgress >= TREASURE_CHEST_UNLOCK_DURATION) {': '      if (chest.unlockProgress >= getChestUnlockDuration(chest)) {',
+              '        Math.min(1, (chest.unlockProgress ?? 0) / TREASURE_CHEST_UNLOCK_DURATION),': '        Math.min(1, (chest.unlockProgress ?? 0) / getChestUnlockDuration(chest)),',
+              '          TREASURE_CHEST_UNLOCK_DURATION - (chest.unlockProgress ?? 0),': '          getChestUnlockDuration(chest) - (chest.unlockProgress ?? 0),',
+          }
+          for old_text, new_text in replacements.items():
+              assert text.count(old_text) == 1, f'Expected timing reference exactly once: {old_text}'
+              text = text.replace(old_text, new_text)
+          chests.write_text(text, encoding='utf-8')
+
+          main = Path('src/main.js')
+          main_text = main.read_text(encoding='utf-8')
+          assert main_text.count('const GAME_VERSION = 128;') == 1, 'Expected GAME_VERSION 128 exactly once'
+          main.write_text(main_text.replace('const GAME_VERSION = 128;', 'const GAME_VERSION = 129;'), encoding='utf-8')
+
+          index = Path('index.html')
+          index_text = index.read_text(encoding='utf-8')
+          markers = {
+              'BUILD v128': 'BUILD v129',
+              'id="version-text">v128<': 'id="version-text">v129<',
+              'SYSTEM ONLINE • v128': 'SYSTEM ONLINE • v129',
+          }
+          for old_marker, new_marker in markers.items():
+              assert index_text.count(old_marker) == 1, f'Expected marker exactly once: {old_marker}'
+              index_text = index_text.replace(old_marker, new_marker)
+          index.write_text(index_text, encoding='utf-8')
+          PY
+
+      - name: Validate issue 154 change
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/features/treasureChests.js
+          node --check src/main.js
+          grep -Fq 'export const TREASURE_CHEST_UNLOCK_DURATION = 5;' src/features/treasureChests.js
+          grep -Fq 'export const BOSS_CHEST_UNLOCK_DURATION = 2.5;' src/features/treasureChests.js
+          grep -Fq 'return chest?.bossReward ? BOSS_CHEST_UNLOCK_DURATION : TREASURE_CHEST_UNLOCK_DURATION;' src/features/treasureChests.js
+          grep -Fq 'const GAME_VERSION = 129;' src/main.js
+          grep -Fq 'BUILD v129' index.html
+          grep -Fq 'id="version-text">v129<' index.html
+          grep -Fq 'SYSTEM ONLINE • v129' index.html
+          grep -Fq 'setGameVersion?.(GAME_VERSION)' src/main.js
+
+      - name: Commit cleaned v129 tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/issue-154-boss-cache-v129.yml
+          git add src/features/treasureChests.js src/main.js index.html
+          git commit -m 'Reduce Boss Cache capture time for issue #154 and bump v129'
+          git push
