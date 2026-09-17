@@ -1,0 +1,176 @@
+name: One-shot issue 147 enemy hit glow and v121
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-hit-glow:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Apply issue 147 hit glow and v121
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/features/enemyStatusVisuals.js')
+          source = path.read_text(encoding='utf-8')
+
+          source = source.replace("const DAMAGE_FLASH_COLOR = '#ff4b5f';", "const DAMAGE_GLOW_COLOR = '#ff334d';")
+
+          old_flash = '''function drawDamageFlash(ctx, enemy) {
+  ctx.save();
+  ctx.globalAlpha = 0.78;
+  ctx.strokeStyle = DAMAGE_FLASH_COLOR;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(enemy.x, enemy.y, enemy.radius + 3, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+'''
+          new_glow = '''function drawDamageGlow(ctx, enemy) {
+  // #147: use a few cheap translucent fills behind the sprite instead of
+  // Canvas filters/shadowBlur. This reads as a soft hit glow without the
+  // expensive per-enemy blur pass that caused spikes during multi-hit attacks.
+  const radius = enemy.radius + 4;
+  ctx.save();
+  ctx.fillStyle = DAMAGE_GLOW_COLOR;
+
+  ctx.globalAlpha = 0.07;
+  ctx.beginPath();
+  ctx.arc(enemy.x, enemy.y, radius * 1.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.12;
+  ctx.beginPath();
+  ctx.arc(enemy.x, enemy.y, radius * 1.45, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.2;
+  ctx.beginPath();
+  ctx.arc(enemy.x, enemy.y, radius * 1.16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+'''
+          if old_flash not in source:
+            raise SystemExit('Expected old damage flash renderer not found')
+          source = source.replace(old_flash, new_glow)
+
+          old_fallback = '''function drawFallbackEnemy(ctx, enemy, type, takingDamage) {
+  ctx.save();
+  ctx.translate(enemy.x, enemy.y);
+  ctx.fillStyle = takingDamage ? '#ff4659' : type.fill;
+  ctx.strokeStyle = takingDamage ? '#ffc0c8' : type.outline;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  drawEnemyShape(ctx, enemy);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+'''
+          new_fallback = '''function drawFallbackEnemy(ctx, enemy, type) {
+  ctx.save();
+  ctx.translate(enemy.x, enemy.y);
+  ctx.fillStyle = type.fill;
+  ctx.strokeStyle = type.outline;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  drawEnemyShape(ctx, enemy);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+'''
+          if old_fallback not in source:
+            raise SystemExit('Expected old fallback damage tint not found')
+          source = source.replace(old_fallback, new_fallback)
+
+          old_frame = '''  const takingDamage = (enemy.hitFlash ?? 0) > 0;
+  const sprite = getEnemySprite(enemy.type);
+  const animationName = attacking ? 'shooting' : 'running';
+  const animationTime = attacking ? 0 : game.animationClock;
+  const spriteDrawn = game.animationRenderer.draw(
+'''
+          new_frame = '''  const takingDamage = (enemy.hitFlash ?? 0) > 0;
+  const sprite = getEnemySprite(enemy.type);
+  if (takingDamage) drawDamageGlow(ctx, enemy);
+
+  const animationName = attacking ? 'shooting' : 'running';
+  const animationTime = attacking ? 0 : game.animationClock;
+  const spriteDrawn = game.animationRenderer.draw(
+'''
+          if old_frame not in source:
+            raise SystemExit('Expected enemy frame renderer not found')
+          source = source.replace(old_frame, new_frame)
+
+          old_post = '''  if (!spriteDrawn) drawFallbackEnemy(ctx, enemy, type, takingDamage);
+  else if (takingDamage) drawDamageFlash(ctx, enemy);
+'''
+          new_post = '''  if (!spriteDrawn) drawFallbackEnemy(ctx, enemy, type);
+'''
+          if old_post not in source:
+            raise SystemExit('Expected post-sprite damage outline not found')
+          source = source.replace(old_post, new_post)
+
+          source = source.replace(
+              '    // entities, then render normal mobs once with a lightweight red outline.\n',
+              '    // entities, then render normal mobs once with a lightweight red halo behind\n'
+              '    // damaged sprites. The halo uses only simple fills: no filter or shadow blur.\n',
+          )
+          path.write_text(source, encoding='utf-8')
+
+          main = Path('src/main.js')
+          main_source = main.read_text(encoding='utf-8')
+          if 'const GAME_VERSION = 120;' not in main_source:
+            raise SystemExit('Expected GAME_VERSION 120 not found')
+          main.write_text(main_source.replace('const GAME_VERSION = 120;', 'const GAME_VERSION = 121;', 1), encoding='utf-8')
+
+          index = Path('index.html')
+          index_source = index.read_text(encoding='utf-8')
+          replacements = {
+              'BUILD v120': 'BUILD v121',
+              'id="version-text">v120<': 'id="version-text">v121<',
+              'SYSTEM ONLINE • v120': 'SYSTEM ONLINE • v121',
+          }
+          for old, new in replacements.items():
+            if old not in index_source:
+              raise SystemExit(f'Expected version marker not found: {old}')
+            index_source = index_source.replace(old, new, 1)
+          index.write_text(index_source, encoding='utf-8')
+          PY
+
+          node --check src/features/enemyStatusVisuals.js
+          node --check src/main.js
+
+          grep -q "const DAMAGE_GLOW_COLOR = '#ff334d'" src/features/enemyStatusVisuals.js
+          grep -q 'if (takingDamage) drawDamageGlow(ctx, enemy);' src/features/enemyStatusVisuals.js
+          ! grep -q 'drawDamageFlash' src/features/enemyStatusVisuals.js
+          grep -q 'const GAME_VERSION = 121;' src/main.js
+          grep -q 'BUILD v121' index.html
+          grep -q 'id="version-text">v121<' index.html
+          grep -q 'SYSTEM ONLINE • v121' index.html
+
+      - name: Commit issue 147 and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/issue-147-hit-glow-v121.yml
+          git add src/features/enemyStatusVisuals.js src/main.js index.html
+          git commit -m 'Replace enemy hit circle with lightweight glow for issue #147 and bump v121'
+          git push origin HEAD:main
