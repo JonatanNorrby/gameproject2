@@ -5,6 +5,7 @@ import { getUnitClassFamily } from '../data/unitFamilies.js';
 const REINFORCEMENT_CHOICE_WEIGHT = 0.3;
 const STAT_CHOICE_WEIGHT = 1;
 const XP_DROP_VALUE_MULTIPLIER = 1.33;
+const LEVEL_UP_HEAL_FRACTION = 0.5;
 const ACTIVE_RARITY_IDS = new Set(['uncommon', 'rare', 'epic']);
 export const STARTING_REROLLS = 3;
 export const REROLL_LEVEL_INTERVAL = 10;
@@ -87,6 +88,16 @@ export class ProgressionSystem {
     return player.level;
   }
 
+  healSquadOnLevelUp() {
+    for (const unit of this.game.player?.squad ?? []) {
+      if (unit.dead) continue;
+      const maxHp = Math.max(0, Number(unit.maxHp) || 0);
+      const currentHp = Math.max(0, Number(unit.hp) || 0);
+      unit.hp = Math.min(maxHp, currentHp + maxHp * LEVEL_UP_HEAL_FRACTION);
+    }
+    this.game.syncCaptainHealth?.();
+  }
+
   levelUp({ consumeXp = true } = {}) {
     const player = this.game.player;
     if (consumeXp) {
@@ -100,6 +111,7 @@ export class ProgressionSystem {
     player.level += 1;
     this.grantRerollsForLevels(previousLevel, player.level);
     player.xpToNext = getXpToNextForLevel(player.level);
+    this.healSquadOnLevelUp();
 
     const choices = this.getChoices(3);
     if (choices.length === 0) return;
@@ -160,7 +172,7 @@ export class ProgressionSystem {
       let selectedIndex = candidates.length - 1;
 
       for (let index = 0; index < candidates.length; index += 1) {
-        roll -= this.getChoiceWeight(candidates[index]);
+        roll -= this.getChoiceWeight(candidates[index]), 0;
         if (roll < 0) {
           selectedIndex = index;
           break;
