@@ -1,4 +1,4 @@
-import { Game, UI } from './features/bossVisibilityFix.js';
+import { Game, UI } from './features/captainAbilityHud.js';
 import { installEnemyStatusVisuals } from './features/enemyStatusVisuals.js';
 import { Input } from './core/Input.js';
 import { CAPTAINS, GAME_BALANCE } from './data/content.js';

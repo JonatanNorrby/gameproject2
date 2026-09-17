@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Mercer ability icon">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff1a6"/>
+      <stop offset="1" stop-color="#ff9b4a"/>
+    </linearGradient>
+  </defs>
+  <path d="M38 8c8 6 13 13 18 22l-15 5-12 18-7-11-12-7 18-12 5-15 5 0z" fill="url(#g)" stroke="#ffd36a" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M20 43l-8 9M27 48l-4 10M15 37L6 42" stroke="#ffcf66" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="40" cy="24" r="4" fill="#fff8d5"/>
+</svg>

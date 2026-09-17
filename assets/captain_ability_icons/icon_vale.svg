@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Vale ability icon">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#dffff7"/>
+      <stop offset="1" stop-color="#7ef9d4" stop-opacity="0.08"/>
+    </radialGradient>
+  </defs>
+  <circle cx="32" cy="32" r="26" fill="url(#g)" stroke="#7ef9d4" stroke-width="3"/>
+  <circle cx="32" cy="32" r="11" fill="none" stroke="#baffee" stroke-width="3"/>
+  <path d="M32 5v15M32 44v15M5 32h15M44 32h15" stroke="#7ef9d4" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="4" fill="#ffffff"/>
+</svg>

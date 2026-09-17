@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Thorne ability icon">
+  <defs>
+    <linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#b78cff"/>
+      <stop offset="1" stop-color="#ff9adf"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 50L42 12l10 2-3 10-30 30-7-4z" fill="url(#g)" stroke="#f4d8ff" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M17 16l31 31" stroke="#c17cff" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+  <path d="M12 12l8 3-5 5zM52 52l-8-3 5-5z" fill="#ffd9f1"/>
+</svg>
