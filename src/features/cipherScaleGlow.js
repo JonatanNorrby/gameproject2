@@ -4,6 +4,7 @@ import { withBossAttackAnimations } from './bossAttackAnimations.js';
 
 const CIPHER_VISUAL_SCALE = 1.5;
 const TWO_PI = Math.PI * 2;
+const CIPHER_SEQUENCE_WARNING_DURATION = CIPHER_BOSS.puzzle.sequenceWarningDuration ?? 2;
 const CIPHER_SPRITE = Object.freeze({
   basePath: './assets/cipher',
   drawWidth: 142 * CIPHER_VISUAL_SCALE,
@@ -20,6 +21,82 @@ class CipherScaleGlowGame extends PreviousGame {
     const result = super.spawnCipher(...args);
     if (this.cipherBoss && !this.cipherBoss.dead) {
       this.cipherBoss.radius = CIPHER_BOSS.radius * CIPHER_VISUAL_SCALE;
+    }
+    return result;
+  }
+
+  beginCipherPuzzle(boss, tier) {
+    const result = super.beginCipherPuzzle(boss, tier);
+    if (boss?.puzzleActive && boss.state === 'puzzle_reveal') {
+      this.startCipherSequenceWarning(boss);
+    }
+    return result;
+  }
+
+  startCipherSequenceWarning(boss) {
+    if (!boss || boss.dead) return;
+    boss.sequenceWarningStartedAt = this.elapsed;
+    boss.sequenceWarningUntil = this.elapsed + CIPHER_SEQUENCE_WARNING_DURATION;
+  }
+
+  isCipherSequenceWarning(boss) {
+    return Boolean(
+      boss?.puzzleActive
+      && boss.state === 'puzzle_reveal'
+      && Number.isFinite(boss.sequenceWarningUntil)
+      && this.elapsed < boss.sequenceWarningUntil
+    );
+  }
+
+  updateCipherPuzzle(boss, dt) {
+    // #86: the warning is real encounter time, not part of the symbol reveal
+    // clock. Pausing revealElapsed here extends every sequence by exactly two
+    // seconds while attacks continue on their normal schedule.
+    if (this.isCipherSequenceWarning(boss)) return;
+    return super.updateCipherPuzzle(boss, dt);
+  }
+
+  restartCipherSequence(boss, bannerText = 'NEW SEQUENCE') {
+    if (!boss || boss.dead || !boss.puzzleActive) return;
+    boss.sequence = this.generateCipherSequence();
+    boss.revealElapsed = 0;
+    boss.puzzleProgress = 0;
+    boss.puzzleDeadline = Infinity;
+    boss.glyphs = [];
+    boss.glyphInsideIds = new Set();
+    boss.state = 'puzzle_reveal';
+    this.startCipherSequenceWarning(boss);
+    this.setCipherBanner(bannerText, 1.05);
+  }
+
+  activateCipherGlyph(boss, glyph) {
+    const expected = boss?.sequence?.[boss.puzzleProgress];
+    if (!boss || !glyph || glyph.symbolId === expected) {
+      return super.activateCipherGlyph(boss, glyph);
+    }
+
+    // #86: a wrong glyph is an immediate, guaranteed punishment and starts a
+    // completely fresh sequence rather than merely clearing current progress.
+    const captain = this.getCipherCaptainSoldier();
+    if (captain) {
+      this.damageSquadUnitFromBoss(captain, CIPHER_BOSS.puzzle.wrongAnswerDamage);
+      this.spawnExplosionEffect(
+        captain.x,
+        captain.y,
+        52,
+        CIPHER_BOSS.colors.wrong,
+      );
+    }
+
+    boss.wrongFlashUntil = this.elapsed + 0.55;
+    this.restartCipherSequence(boss, 'WRONG • NEW SEQUENCE');
+    return undefined;
+  }
+
+  failCipherPuzzleByTimeout(boss) {
+    const result = super.failCipherPuzzleByTimeout(boss);
+    if (boss?.puzzleActive && boss.state === 'puzzle_reveal') {
+      this.startCipherSequenceWarning(boss);
     }
     return result;
   }
@@ -52,6 +129,24 @@ class CipherScaleGlowGame extends PreviousGame {
     ctx.beginPath();
     ctx.arc(boss.x, boss.y, glowRadius, 0, TWO_PI);
     ctx.fill();
+    ctx.restore();
+  }
+
+  drawCipherSequenceWarning(ctx, boss) {
+    const flash = (Math.sin(this.animationClock * 11) + 1) * 0.5;
+    ctx.save();
+    ctx.translate(boss.x, boss.y - boss.radius - 92);
+    ctx.globalAlpha = 0.42 + flash * 0.58;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 64px Rajdhani, sans-serif';
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = 'rgba(8,12,22,.92)';
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 18 + flash * 16;
+    ctx.strokeText('!', 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('!', 0, 0);
     ctx.restore();
   }
 
@@ -125,6 +220,10 @@ class CipherScaleGlowGame extends PreviousGame {
       ctx.arc(0, 0, boss.radius + 38, 0, TWO_PI);
       ctx.stroke();
       ctx.restore();
+    }
+
+    if (this.isCipherSequenceWarning(boss)) {
+      this.drawCipherSequenceWarning(ctx, boss);
     }
 
     const visibleSymbol = this.getCipherVisibleSymbol(boss);
