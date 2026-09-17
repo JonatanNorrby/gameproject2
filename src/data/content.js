@@ -124,11 +124,11 @@ export const CAPTAINS = {
 
 export const ENEMY_TYPES = {
   crawler: {
-    label: 'Crawler', radius: 19.5, speed: 78, hp: 30, damage: 8, xp: 1,
-    fill: '#db5c83', outline: '#ff9db9', unlockAt: 0, weight: 9,
+    label: 'Crawler', radius: 19.5, speed: 72, hp: 27, damage: 8, xp: 1,
+    fill: '#db5c83', outline: '#ff9db9', unlockAt: 0, weight: 6,
   },
   runner: {
-    label: 'Runner', radius: 10, speed: 128, hp: 19, damage: 6, xp: 1,
+    label: 'Runner', radius: 10, speed: 128, hp: 1, damage: 6, xp: 1,
     fill: '#e5b84e', outline: '#ffe197', unlockAt: 18, weight: 5,
   },
   brute: {

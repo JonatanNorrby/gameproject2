@@ -6,7 +6,7 @@ import { CAPTAINS, GAME_BALANCE } from './data/content.js';
 import { getBeefedUpHpBonus } from './data/metaUpgrades.js';
 import { getSpritePortraitSources } from './data/sprites.js';
 
-const GAME_VERSION = 119;
+const GAME_VERSION = 120;
 const BOOT_ASSET_TIMEOUT_MS = 4500;
 const BOOT_MINIMUM_VISIBLE_MS = 420;
 

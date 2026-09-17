@@ -20,10 +20,11 @@ if (!FRAME_SPRITES.enemies[BURST_SPITTER_TYPE]) {
   FRAME_SPRITES.enemies[BURST_SPITTER_TYPE].drawSize = 72;
 }
 
-// Keep ranged enemies uncommon, but make them appear a little more often than before.
+// #146: shift the normal roster away from Crawlers and toward ranged pressure.
+// Keep caps in place so Spitters are more common without flooding the arena.
 Object.assign(ENEMY_TYPES.spitter, {
-  weight: 0.42,
-  maxActive: 4,
+  weight: 0.75,
+  maxActive: 5,
 });
 
 // #119: make the standard Spitter's acid shots substantially quicker without
@@ -43,8 +44,8 @@ if (!ENEMY_TYPES[BURST_SPITTER_TYPE]) {
     fill: '#d463c7',
     outline: '#ffb5ef',
     unlockAt: 85,
-    weight: 0.2,
-    maxActive: 2,
+    weight: 0.4,
+    maxActive: 3,
     ranged: {
       range: 350,
       preferredRange: 295,
