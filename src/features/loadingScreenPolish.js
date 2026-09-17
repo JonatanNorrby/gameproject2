@@ -103,7 +103,8 @@ const ISSUE_125_STYLES = `
     transform: translateY(1px);
   }
 
-  .ingame-settings-toggle[hidden] {
+  .ingame-settings-toggle[hidden],
+  .settings-run-section[hidden] {
     display: none !important;
   }
 
@@ -289,6 +290,7 @@ export class UI extends PreviousUI {
       settingsFooter.before(runSection);
     }
     runSection.hidden = true;
+    runSection.setAttribute('aria-hidden', 'true');
 
     const actions = runSection.querySelector('.settings-run-actions');
     if (!actions) return;
@@ -365,6 +367,11 @@ export class UI extends PreviousUI {
       game?.running && !game.pauseReasons?.has('gameover'),
     );
 
+    if (this.settingsRunSection) {
+      this.settingsRunSection.hidden = !this.settingsOpenedInGame;
+      this.settingsRunSection.setAttribute('aria-hidden', String(!this.settingsOpenedInGame));
+    }
+
     if (this.settingsOpenedInGame) {
       game.pause?.('settings');
       if (this.settingsBack) this.settingsBack.textContent = 'Resume Run';
@@ -429,6 +436,7 @@ export class UI extends PreviousUI {
 
     if (this.settingsRunSection) {
       this.settingsRunSection.hidden = !runActive;
+      this.settingsRunSection.setAttribute('aria-hidden', String(!runActive));
     }
 
     if (this.ingameSettingsButton) {
