@@ -1,0 +1,104 @@
+name: One-shot issue 155 balance v130
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/issue-155-balance-v130.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply issue 155 balance and version sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          content = Path('src/data/content.js')
+          text = content.read_text(encoding='utf-8')
+          replacements = {
+              '      range: 200,': '      range: 250,',
+              "    label: 'Crawler', radius: 19.5, speed: 72, hp: 27, damage: 8, xp: 1,": "    label: 'Crawler', radius: 19.5, speed: 65, hp: 27, damage: 8, xp: 1,",
+              "    label: 'Runner', radius: 10, speed: 128, hp: 1, damage: 6, xp: 1,": "    label: 'Runner', radius: 10, speed: 115, hp: 1, damage: 6, xp: 1,",
+              "    label: 'Brute', radius: 23, speed: 48, hp: 220, damage: 18, xp: 4,": "    label: 'Brute', radius: 23, speed: 43, hp: 220, damage: 18, xp: 4,",
+              "    label: 'Spitter', radius: 14, speed: 52, hp: 46, damage: 0, xp: 3,": "    label: 'Spitter', radius: 14, speed: 47, hp: 46, damage: 0, xp: 3,",
+          }
+          for old, new in replacements.items():
+              assert text.count(old) == 1, f'Expected content balance value exactly once: {old}'
+              text = text.replace(old, new)
+          content.write_text(text, encoding='utf-8')
+
+          ranged = Path('src/features/rangedEnemies.js')
+          text = ranged.read_text(encoding='utf-8')
+          old = '    speed: 55,'
+          new = '    speed: 50,'
+          assert text.count(old) == 1, 'Expected Burst Spitter speed exactly once'
+          ranged.write_text(text.replace(old, new), encoding='utf-8')
+
+          charger = Path('src/features/chargerEnemy.js')
+          text = charger.read_text(encoding='utf-8')
+          old = '    speed: 36,'
+          new = '    speed: 32,'
+          assert text.count(old) == 1, 'Expected Charger approach speed exactly once'
+          charger.write_text(text.replace(old, new), encoding='utf-8')
+
+          main = Path('src/main.js')
+          text = main.read_text(encoding='utf-8')
+          assert text.count('const GAME_VERSION = 129;') == 1, 'Expected GAME_VERSION 129 exactly once'
+          main.write_text(text.replace('const GAME_VERSION = 129;', 'const GAME_VERSION = 130;'), encoding='utf-8')
+
+          index = Path('index.html')
+          text = index.read_text(encoding='utf-8')
+          markers = {
+              'BUILD v129': 'BUILD v130',
+              'id="version-text">v129<': 'id="version-text">v130<',
+              'SYSTEM ONLINE • v129': 'SYSTEM ONLINE • v130',
+          }
+          for old, new in markers.items():
+              assert text.count(old) == 1, f'Expected version marker exactly once: {old}'
+              text = text.replace(old, new)
+          index.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate issue 155 change
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/data/content.js
+          node --check src/features/rangedEnemies.js
+          node --check src/features/chargerEnemy.js
+          node --check src/main.js
+          grep -Fq '      range: 250,' src/data/content.js
+          grep -Fq "label: 'Crawler', radius: 19.5, speed: 65" src/data/content.js
+          grep -Fq "label: 'Runner', radius: 10, speed: 115" src/data/content.js
+          grep -Fq "label: 'Brute', radius: 23, speed: 43" src/data/content.js
+          grep -Fq "label: 'Spitter', radius: 14, speed: 47" src/data/content.js
+          grep -Fq '    speed: 50,' src/features/rangedEnemies.js
+          grep -Fq '    speed: 32,' src/features/chargerEnemy.js
+          grep -Fq 'const GAME_VERSION = 130;' src/main.js
+          grep -Fq 'BUILD v130' index.html
+          grep -Fq 'id="version-text">v130<' index.html
+          grep -Fq 'SYSTEM ONLINE • v130' index.html
+          grep -Fq 'setGameVersion?.(GAME_VERSION)' src/main.js
+
+      - name: Commit cleaned v130 tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/issue-155-balance-v130.yml
+          git add src/data/content.js src/features/rangedEnemies.js src/features/chargerEnemy.js src/main.js index.html
+          git commit -m 'Balance enemy speed and Rifleman range for issue #155 and bump v130'
+          git push
