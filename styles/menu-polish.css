@@ -225,3 +225,12 @@
   left: 0;
   bottom: calc(100% + 8px);
 }
+
+/* #124: the Captain showcase is centered on the viewport, so keep the faded
+   menu glows on that same horizontal centerline instead of the legacy 57% offset. */
+#start-screen {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(21, 133, 158, .22), transparent 24%),
+    radial-gradient(circle at 50% 66%, rgba(126, 249, 212, .08), transparent 31%),
+    linear-gradient(90deg, rgba(1, 5, 9, .99) 0%, rgba(3, 10, 15, .96) 28%, rgba(4, 13, 19, .91) 63%, rgba(1, 5, 9, .98) 100%);
+}
