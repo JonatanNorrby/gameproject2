@@ -1,5 +1,6 @@
 import { Game as PreviousGame, UI } from './runConfigurationPopups.js';
 import { CIPHER_BOSS } from '../data/bosses.js';
+import { withBossAttackAnimations } from './bossAttackAnimations.js';
 
 const CIPHER_VISUAL_SCALE = 1.5;
 const TWO_PI = Math.PI * 2;
@@ -14,7 +15,7 @@ const CIPHER_SPRITE = Object.freeze({
   },
 });
 
-export class Game extends PreviousGame {
+class CipherScaleGlowGame extends PreviousGame {
   spawnCipher(...args) {
     const result = super.spawnCipher(...args);
     if (this.cipherBoss && !this.cipherBoss.dead) {
@@ -146,4 +147,5 @@ export class Game extends PreviousGame {
   }
 }
 
+export const Game = withBossAttackAnimations(CipherScaleGlowGame);
 export { UI };
