@@ -1,20 +1,27 @@
 import { ENEMY_TYPES } from '../data/content.js';
 import { chooseWeighted, randomRange } from '../utils/math.js';
 
+const SPAWN_INTERVAL_MULTIPLIER = 1.5;
+const SPAWN_XP_MULTIPLIER = 1.5;
+
 export class SpawnSystem {
   constructor(game) {
     this.game = game;
     this.cooldown = 0;
   }
 
-  reset() { this.cooldown = 0.65; }
+  reset() { this.cooldown = 0.65 * SPAWN_INTERVAL_MULTIPLIER; }
 
   update(dt) {
     this.cooldown -= dt;
     if (this.cooldown > 0) return;
 
     const elapsed = this.game.elapsed;
-    const interval = Math.max(0.28, 0.95 - elapsed * 0.003);
+    // #127: keep the existing escalation/burst curve, but space every burst
+    // farther apart. XP per spawned enemy is increased by the same factor so
+    // progression remains close to the established level-50-at-~30-min pace.
+    const baseInterval = Math.max(0.28, 0.95 - elapsed * 0.003);
+    const interval = baseInterval * SPAWN_INTERVAL_MULTIPLIER;
     const burst = 1 + Math.floor(elapsed / 120);
     for (let i = 0; i < burst; i += 1) this.spawnEnemy();
     this.cooldown = interval;
@@ -54,7 +61,7 @@ export class SpawnSystem {
       damage: type.damage * damageScaling,
       rangedDamage: type.ranged ? type.ranged.damage * damageScaling : 0,
       rangedCooldown: type.ranged ? randomRange(type.ranged.cooldown * 0.5, type.ranged.cooldown) : 0,
-      xp: type.xp,
+      xp: type.xp * SPAWN_XP_MULTIPLIER,
       hitFlash: 0,
       dead: false,
     });
