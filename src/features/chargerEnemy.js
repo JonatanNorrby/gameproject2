@@ -23,7 +23,7 @@ if (!ENEMY_TYPES[CHARGER_TYPE]) {
   ENEMY_TYPES[CHARGER_TYPE] = {
     label: 'Charger',
     radius: 27,
-    speed: 36,
+    speed: 32,
     hp: 350,
     damage: 12,
     xp: 5,

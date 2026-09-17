@@ -37,7 +37,7 @@ if (!ENEMY_TYPES[BURST_SPITTER_TYPE]) {
   ENEMY_TYPES[BURST_SPITTER_TYPE] = {
     label: 'Burst Spitter',
     radius: 26,
-    speed: 55,
+    speed: 50,
     hp: 52,
     damage: 0,
     xp: 4,

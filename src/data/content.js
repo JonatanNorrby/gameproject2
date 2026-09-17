@@ -34,7 +34,7 @@ export const UNIT_CLASSES = {
       projectileRadius: 5,
       projectileLife: 1.25,
       pierce: 1,
-      range: 200,
+      range: 250,
       color: '#bffcf0',
     },
   },
@@ -124,19 +124,19 @@ export const CAPTAINS = {
 
 export const ENEMY_TYPES = {
   crawler: {
-    label: 'Crawler', radius: 19.5, speed: 72, hp: 27, damage: 8, xp: 1,
+    label: 'Crawler', radius: 19.5, speed: 65, hp: 27, damage: 8, xp: 1,
     fill: '#db5c83', outline: '#ff9db9', unlockAt: 0, weight: 6,
   },
   runner: {
-    label: 'Runner', radius: 10, speed: 128, hp: 1, damage: 6, xp: 1,
+    label: 'Runner', radius: 10, speed: 115, hp: 1, damage: 6, xp: 1,
     fill: '#e5b84e', outline: '#ffe197', unlockAt: 18, weight: 5,
   },
   brute: {
-    label: 'Brute', radius: 23, speed: 48, hp: 220, damage: 18, xp: 4,
+    label: 'Brute', radius: 23, speed: 43, hp: 220, damage: 18, xp: 4,
     fill: '#8f62d8', outline: '#c3a5ff', unlockAt: 34, weight: 2,
   },
   spitter: {
-    label: 'Spitter', radius: 14, speed: 52, hp: 46, damage: 0, xp: 3,
+    label: 'Spitter', radius: 14, speed: 47, hp: 46, damage: 0, xp: 3,
     fill: '#6fcb62', outline: '#baff98', unlockAt: 65, weight: 0.35, maxActive: 3,
     ranged: {
       range: 340,
