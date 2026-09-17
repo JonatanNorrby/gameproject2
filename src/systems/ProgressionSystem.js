@@ -172,7 +172,7 @@ export class ProgressionSystem {
       let selectedIndex = candidates.length - 1;
 
       for (let index = 0; index < candidates.length; index += 1) {
-        roll -= this.getChoiceWeight(candidates[index]), 0;
+        roll -= this.getChoiceWeight(candidates[index]);
         if (roll < 0) {
           selectedIndex = index;
           break;
