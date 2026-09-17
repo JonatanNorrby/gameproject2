@@ -66,6 +66,72 @@ const ISSUE_107_STYLES = `
   }
 `;
 
+const ISSUE_125_STYLE_ID = 'issue-125-ingame-settings';
+const ISSUE_125_STYLES = `
+  .ingame-settings-menu {
+    position: fixed;
+    top: max(16px, env(safe-area-inset-top));
+    left: max(16px, env(safe-area-inset-left));
+    z-index: 84;
+    pointer-events: auto;
+  }
+
+  .ingame-settings-toggle {
+    min-width: 92px;
+    min-height: 36px;
+    border: 1px solid rgba(126, 249, 212, .26);
+    border-radius: 9px;
+    padding: 7px 11px;
+    background: rgba(5, 16, 22, .82);
+    color: #d9fff4;
+    font-size: 9px;
+    font-weight: 1000;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .24), 0 0 16px rgba(126, 249, 212, .07);
+    transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  }
+
+  .ingame-settings-toggle:hover {
+    border-color: rgba(126, 249, 212, .55);
+    background: rgba(12, 31, 39, .94);
+    transform: translateY(-1px);
+  }
+
+  .ingame-settings-toggle:active {
+    transform: translateY(1px);
+  }
+
+  .ingame-settings-toggle[hidden] {
+    display: none !important;
+  }
+
+  .settings-run-actions {
+    display: grid;
+    gap: 10px;
+  }
+
+  .settings-run-actions .end-run-button {
+    width: 100%;
+    align-self: stretch;
+  }
+
+  @media (max-width: 560px) {
+    .ingame-settings-menu {
+      top: max(86px, calc(env(safe-area-inset-top) + 72px));
+      left: max(10px, env(safe-area-inset-left));
+    }
+
+    .ingame-settings-toggle {
+      min-width: 78px;
+      min-height: 32px;
+      padding: 6px 9px;
+      font-size: 8px;
+    }
+  }
+`;
+
 const HEALTH_DROP_TYPE = 'health';
 const HEALTH_DROP_CHANCE = 0.33;
 const HEALTH_DROP_HEAL_FRACTION = 0.1;
@@ -150,6 +216,7 @@ export class Game extends PreviousGame {
     this.ui?.hideSquadBuilder?.();
     this.pauseReasons?.delete?.('levelup');
     this.pauseReasons?.delete?.('squad-builder');
+    this.pauseReasons?.delete?.('settings');
     this.pause('gameover');
     this.ui?.showGameOver?.(this);
     this.ui?.renderPermanentShop?.();
@@ -161,8 +228,10 @@ export class Game extends PreviousGame {
 export class UI extends PreviousUI {
   constructor(...args) {
     super(...args);
+    this.settingsOpenedInGame = false;
     this.applyIssue88LoadingScreen();
     this.installIssue107EndRunControl();
+    this.installIssue125InGameSettingsControl();
   }
 
   applyIssue88LoadingScreen() {
@@ -202,8 +271,26 @@ export class UI extends PreviousUI {
       document.head?.append(style);
     }
 
-    const hudBottom = document.querySelector('.hud__bottom');
-    if (!hudBottom) return;
+    const settingsScreen = this.settingsScreen ?? document.querySelector('#settings-screen');
+    const settingsFooter = settingsScreen?.querySelector('.settings-footer');
+    if (!settingsScreen || !settingsFooter) return;
+
+    let runSection = settingsScreen.querySelector('.settings-run-section');
+    if (!runSection) {
+      runSection = document.createElement('section');
+      runSection.className = 'settings-section settings-run-section';
+      runSection.innerHTML = `
+        <div class="settings-section__heading">
+          <h3>Run</h3>
+          <p>Current run controls</p>
+        </div>
+        <div class="settings-run-actions"></div>
+      `;
+      settingsFooter.before(runSection);
+    }
+
+    const actions = runSection.querySelector('.settings-run-actions');
+    if (!actions) return;
 
     let button = document.querySelector('#end-run-button');
     if (!button) {
@@ -214,8 +301,8 @@ export class UI extends PreviousUI {
       button.textContent = 'End Run';
       button.title = 'End the current run and keep permanent progress earned so far';
       button.setAttribute('aria-label', 'End run and keep permanent progress earned so far');
-      hudBottom.prepend(button);
     }
+    actions.append(button);
 
     button.hidden = true;
     button.setAttribute('aria-hidden', 'true');
@@ -227,10 +314,74 @@ export class UI extends PreviousUI {
         'End this run now? Gold, unlocks and other permanent progress earned so far will be kept.',
       );
       if (!confirmed) return;
+
+      this.hideSettings();
       game.endRun?.();
     });
 
     this.endRunButton = button;
+    this.settingsRunSection = runSection;
+  }
+
+  installIssue125InGameSettingsControl() {
+    if (!document.querySelector(`#${ISSUE_125_STYLE_ID}`)) {
+      const style = document.createElement('style');
+      style.id = ISSUE_125_STYLE_ID;
+      style.textContent = ISSUE_125_STYLES;
+      document.head?.append(style);
+    }
+
+    const app = document.querySelector('#app') ?? document.body;
+    let menu = document.querySelector('.ingame-settings-menu');
+    if (!menu) {
+      menu = document.createElement('aside');
+      menu.className = 'ingame-settings-menu';
+      menu.setAttribute('aria-label', 'In-game menu');
+      app.append(menu);
+    }
+
+    let button = document.querySelector('#ingame-settings-toggle');
+    if (!button) {
+      button = document.createElement('button');
+      button.id = 'ingame-settings-toggle';
+      button.className = 'ingame-settings-toggle';
+      button.type = 'button';
+      button.textContent = 'Settings';
+      button.setAttribute('aria-haspopup', 'dialog');
+      button.setAttribute('aria-controls', 'settings-screen');
+      menu.append(button);
+    }
+
+    button.hidden = true;
+    button.setAttribute('aria-hidden', 'true');
+    button.addEventListener('click', () => this.showSettings());
+    this.ingameSettingsButton = button;
+  }
+
+  showSettings(...args) {
+    const game = this.game;
+    this.settingsOpenedInGame = Boolean(
+      game?.running && !game.pauseReasons?.has('gameover'),
+    );
+
+    if (this.settingsOpenedInGame) {
+      game.pause?.('settings');
+      if (this.settingsBack) this.settingsBack.textContent = 'Resume Run';
+    } else if (this.settingsBack) {
+      this.settingsBack.textContent = 'Back to Main Menu';
+    }
+
+    return super.showSettings(...args);
+  }
+
+  hideSettings(...args) {
+    const resumeRun = this.settingsOpenedInGame;
+    this.settingsOpenedInGame = false;
+    const result = super.hideSettings(...args);
+
+    if (resumeRun) this.game?.resume?.('settings');
+    if (this.settingsBack) this.settingsBack.textContent = 'Back to Main Menu';
+    return result;
   }
 
   installFullResetDebugControl(...args) {
@@ -266,10 +417,23 @@ export class UI extends PreviousUI {
 
   update(game) {
     super.update(game);
-    if (!this.endRunButton) return;
 
-    const visible = Boolean(game?.running && !game.pauseReasons?.has('gameover'));
-    this.endRunButton.hidden = !visible;
-    this.endRunButton.setAttribute('aria-hidden', String(!visible));
+    const runActive = Boolean(game?.running && !game.pauseReasons?.has('gameover'));
+    const settingsVisible = Boolean(this.settingsScreen?.classList.contains('overlay--visible'));
+
+    if (this.endRunButton) {
+      this.endRunButton.hidden = !runActive;
+      this.endRunButton.setAttribute('aria-hidden', String(!runActive));
+    }
+
+    if (this.settingsRunSection) {
+      this.settingsRunSection.hidden = !runActive;
+    }
+
+    if (this.ingameSettingsButton) {
+      const showButton = runActive && !settingsVisible;
+      this.ingameSettingsButton.hidden = !showButton;
+      this.ingameSettingsButton.setAttribute('aria-hidden', String(!showButton));
+    }
   }
 }
