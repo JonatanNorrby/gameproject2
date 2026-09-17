@@ -7,6 +7,12 @@ export const UNIT_CLASS_FAMILIES = Object.freeze({
   shockblade: Object.freeze(['shockblade', 'stormlancer']),
 });
 
+export const UNIT_CLASS_FAMILY_NAMES = Object.freeze({
+  rifleman: 'Trooper',
+  rocketeer: 'Specialist',
+  shockblade: 'Vanguard',
+});
+
 const FAMILY_BY_TYPE = Object.freeze(
   Object.fromEntries(
     Object.entries(UNIT_CLASS_FAMILIES)
@@ -21,6 +27,15 @@ export function getUnitClassFamily(unitType) {
 export function getUnitClassMembers(unitTypeOrFamily) {
   const familyId = getUnitClassFamily(unitTypeOrFamily);
   return UNIT_CLASS_FAMILIES[familyId] ?? Object.freeze([unitTypeOrFamily]);
+}
+
+export function getUnitClassFamilyName(unitTypeOrFamily) {
+  const familyId = getUnitClassFamily(unitTypeOrFamily);
+  return UNIT_CLASS_FAMILY_NAMES[familyId] ?? familyId;
+}
+
+export function getUnitClassFamilyLabel(unitTypeOrFamily) {
+  return `${getUnitClassFamilyName(unitTypeOrFamily)} Class`;
 }
 
 export function isUnitInClassFamily(unitType, unitTypeOrFamily) {
