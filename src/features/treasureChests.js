@@ -93,6 +93,21 @@ export class Game extends PreviousGame {
     });
   }
 
+  collectGroundDrop(type) {
+    if (type === 'magnet') {
+      // Gold pickups keep their normal reward path. Moving every live pickup
+      // onto the squad lets updateGoldDrops() award run Gold, persist it and
+      // refresh the shop exactly as if each pickup had been collected normally.
+      for (const drop of this.goldDrops ?? []) {
+        if (drop.dead) continue;
+        drop.x = this.player.x;
+        drop.y = this.player.y;
+      }
+    }
+
+    super.collectGroundDrop(type);
+  }
+
   defeatWarden(boss) {
     const wasAlive = Boolean(boss && !boss.dead);
     const rewardPosition = boss ? { x: boss.x, y: boss.y } : null;
