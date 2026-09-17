@@ -7,6 +7,7 @@ const RANGED_DAMAGE_FEEDBACK_INTERVAL = 0.16;
 const RANGED_HIT_INVULNERABILITY_DURATION = 0.1;
 const BURST_SPITTER_TYPE = 'burst_spitter';
 const STATIONARY_RUNNING_FRAME_TIME = 0.000001;
+const ENEMY_PROJECTILE_COLOR = '#ff3b4f';
 
 if (!FRAME_SPRITES.enemies.spitter) {
   FRAME_SPRITES.enemies.spitter = createStandardFrameSet('spitter', { drawSize: 38 });
@@ -212,7 +213,7 @@ function createRangedEnemyCombatSystem(ParentCombatSystem) {
         radius,
         damage: enemy.rangedDamage ?? ranged.damage ?? 10,
         life: ranged.projectileLife ?? 5.4,
-        color: ranged.color ?? '#a8ff72',
+        color: ENEMY_PROJECTILE_COLOR,
         dead: false,
       });
     }
@@ -369,23 +370,25 @@ export class Game extends PreviousGame {
     super.drawProjectiles(ctx);
 
     for (const projectile of this.entities.projectiles) {
-      if (!projectile.hostile || projectile.dead) continue;
+      if (!projectile.hostile || projectile.dead || projectile.kind !== 'enemy-shot') continue;
       const speed = Math.hypot(projectile.vx, projectile.vy) || 1;
       const tailLength = 22;
       const tailX = projectile.x - (projectile.vx / speed) * tailLength;
       const tailY = projectile.y - (projectile.vy / speed) * tailLength;
 
       ctx.save();
-      ctx.strokeStyle = projectile.color ?? '#a8ff72';
-      ctx.globalAlpha = 0.72;
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = ENEMY_PROJECTILE_COLOR;
+      ctx.shadowColor = ENEMY_PROJECTILE_COLOR;
+      ctx.shadowBlur = 22;
+      ctx.globalAlpha = 0.9;
+      ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(projectile.x, projectile.y);
       ctx.lineTo(tailX, tailY);
       ctx.stroke();
 
-      ctx.globalAlpha = 0.9;
-      ctx.lineWidth = 2;
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(projectile.x, projectile.y, projectile.radius + 4, 0, Math.PI * 2);
       ctx.stroke();
