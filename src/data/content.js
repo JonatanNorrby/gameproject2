@@ -128,7 +128,7 @@ export const ENEMY_TYPES = {
     fill: '#db5c83', outline: '#ff9db9', unlockAt: 0, weight: 9,
   },
   runner: {
-    label: 'Runner', radius: 10, speed: 160, hp: 19, damage: 6, xp: 1,
+    label: 'Runner', radius: 10, speed: 128, hp: 19, damage: 6, xp: 1,
     fill: '#e5b84e', outline: '#ffe197', unlockAt: 18, weight: 5,
   },
   brute: {
