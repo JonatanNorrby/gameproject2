@@ -88,6 +88,16 @@ function updateDronePilotUnitCard(content) {
   setStat(statRows[2], 'Blast Radius', definition.support.aoeRadius);
 }
 
+function installSquadBuilderHealthLegend(content) {
+  const header = content.querySelector('.handbook-page__header');
+  if (!header) return;
+
+  const note = document.createElement('p');
+  note.className = 'handbook-page__intro';
+  note.textContent = 'Squad Builder health borders show each unit’s current HP: green above 60%, amber from 31–60%, and red at 30% or below.';
+  header.append(note);
+}
+
 function createUpgradeColumns(content, cards, upgrades) {
   content.querySelector('.handbook-card-grid')?.remove?.();
 
@@ -140,6 +150,7 @@ export class UI extends PreviousUI {
   renderHandbookUnits() {
     super.renderHandbookUnits();
     updateDronePilotUnitCard(this.handbookContent);
+    installSquadBuilderHealthLegend(this.handbookContent);
   }
 
   renderHandbookBosses() {
