@@ -15,6 +15,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Captain Vale: Coordinated Fire commander; Vale and adjacent Riflemen build Focus on sustained same-target fire, and Vale fires three-round bursts
 - Captain Mercer: Chain Reaction commander; Mercer and adjacent Rocketeers mark enemies for heavy-warhead cascades, while Mercer's own rockets scatter light burst rounds
 - Captain Thorne: heavily armored Shockblade-class melee Captain with a slow 360-degree greatsword sweep, lifesteal, and every-fifth-attack 360-degree Shockblade support
+- Captain unlocks use class families: Mercer requires 5 living Specialists total (Rocketeers + Drone Pilots), while Thorne requires 5 living Vanguards total (Shockblades + Stormlancers)
 - Multiple enemy archetypes that unlock over time, with fragile Runners and ranged Spitter pressure becoming more prominent as a run develops
 - Spitter and Burst Spitter: capped ranged enemies that keep their distance and pressure the squad with dodgeable projectiles
 - Boss 2 — The Broodmother: 25,200 HP with stronger Acid, Tail Sweep, and Lunge attacks
