@@ -17,6 +17,29 @@ const WARDEN_SPRITE = Object.freeze({
 
 const SOURCE_FORWARD_ANGLE = Math.PI / 2;
 
+function drawWardenEnrageAlert(ctx, boss, animationClock) {
+  if (!boss?.enraged) return;
+
+  const flashOn = Math.sin(animationClock * 14) > -0.15;
+  const bob = Math.sin(animationClock * 7) * 3;
+  const x = boss.x;
+  const y = boss.y - boss.radius - 46 + bob;
+
+  ctx.save();
+  ctx.globalAlpha = flashOn ? 1 : 0.18;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '900 50px Rajdhani, Arial Narrow, sans-serif';
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = 'rgba(255,255,255,.92)';
+  ctx.fillStyle = '#ff425f';
+  ctx.shadowColor = '#ff425f';
+  ctx.shadowBlur = flashOn ? 24 : 8;
+  ctx.strokeText('!', x, y);
+  ctx.fillText('!', x, y);
+  ctx.restore();
+}
+
 export class Game extends PreviousGame {
   drawWarden(ctx, boss) {
     const drawn = this.animationRenderer.draw(
@@ -30,7 +53,17 @@ export class Game extends PreviousGame {
     );
 
     if (!drawn) {
-      super.drawWarden(ctx, boss);
+      // The procedural fallback still contains the legacy enrage ring. Hide
+      // only that draw-time state, then restore it immediately so gameplay
+      // continues to treat the Warden as enraged.
+      const wasEnraged = boss.enraged;
+      if (wasEnraged) boss.enraged = false;
+      try {
+        super.drawWarden(ctx, boss);
+      } finally {
+        boss.enraged = wasEnraged;
+      }
+      drawWardenEnrageAlert(ctx, boss, this.animationClock);
       return;
     }
 
@@ -73,18 +106,8 @@ export class Game extends PreviousGame {
       ctx.restore();
     }
 
-    // Keep the existing enrage state visible outside the replaceable body art.
-    if (boss.enraged) {
-      ctx.save();
-      ctx.strokeStyle = `rgba(255,66,95,${0.45 + pulse * 0.35})`;
-      ctx.shadowColor = colors.telegraph;
-      ctx.shadowBlur = 15 + pulse * 10;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(boss.x, boss.y, boss.radius + 12 + pulse * 4, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
+    // #85: use a flashing overhead warning instead of the old red enrage ring.
+    drawWardenEnrageAlert(ctx, boss, this.animationClock);
   }
 }
 
