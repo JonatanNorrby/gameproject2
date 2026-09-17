@@ -18,6 +18,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Multiple enemy archetypes that unlock over time, with fragile Runners and ranged Spitter pressure becoming more prominent as a run develops
 - Spitter and Burst Spitter: capped ranged enemies that keep their distance and pressure the squad with dodgeable projectiles
 - Boss 2 — The Broodmother: 25,200 HP with stronger Acid, Tail Sweep, and Lunge attacks
+- Boss Caches award 150% of the current next-level XP requirement before global XP scaling, plus their existing Gold reward
 - XP pickups and level-ups
 - Randomized, infinitely repeatable upgrade choices with rarity-based stat bonuses
 - Reinforcement upgrades that can introduce new squad classes
