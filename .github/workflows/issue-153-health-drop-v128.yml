@@ -89,3 +89,5 @@ jobs:
           git add src/features/loadingScreenPolish.js src/main.js index.html
           git commit -m 'Heal shared Squad Health from HP drops for issue #153 and bump v128'
           git push
+
+# retrigger: issue-153
