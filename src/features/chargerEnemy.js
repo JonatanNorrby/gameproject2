@@ -24,7 +24,7 @@ if (!ENEMY_TYPES[CHARGER_TYPE]) {
     label: 'Charger',
     radius: 27,
     speed: 36,
-    hp: 175,
+    hp: 350,
     damage: 12,
     xp: 5,
     fill: '#b85b50',
