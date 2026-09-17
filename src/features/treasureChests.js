@@ -19,7 +19,10 @@ const TREASURE_CHEST_TUNING = Object.freeze([
   Object.freeze({ dropChance: 0.06, goldReward: 12, xpFraction: 0.45 }),
 ]);
 
-const BOSS_CHEST_TUNING = TREASURE_CHEST_TUNING[TREASURE_CHEST_TUNING.length - 1];
+const BOSS_CHEST_TUNING = Object.freeze({
+  ...TREASURE_CHEST_TUNING[TREASURE_CHEST_TUNING.length - 1],
+  xpFraction: 1.5,
+});
 const CHEST_RADIUS = 16;
 const BOSS_CHEST_RADIUS = 21;
 const CHEST_UNLOCK_PADDING = 6;
