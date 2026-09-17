@@ -1,6 +1,6 @@
 import { Game as PreviousGame, UI } from './upgradeActivation.js';
 import {
-  BEEFED_UP_HP_BONUS,
+  getBeefedUpHpBonus,
   isPermanentUpgradeActive,
 } from '../data/metaUpgrades.js';
 
@@ -8,13 +8,16 @@ const BEEFED_UPGRADE_ID = 'beefed_up';
 
 export function applyBeefedUpHealthBonus(unit) {
   if (!unit || unit.beefedUpApplied) return false;
+  const bonus = getBeefedUpHpBonus();
+  if (bonus <= 0) return false;
 
-  unit.maxHp = Math.max(1, Number(unit.maxHp) || 1) + BEEFED_UP_HP_BONUS;
+  unit.maxHp = Math.max(1, Number(unit.maxHp) || 1) + bonus;
   unit.hp = Math.min(
     unit.maxHp,
-    Math.max(0, Number(unit.hp) || 0) + BEEFED_UP_HP_BONUS,
+    Math.max(0, Number(unit.hp) || 0) + bonus,
   );
   unit.beefedUpApplied = true;
+  unit.beefedUpBonus = bonus;
   return true;
 }
 
