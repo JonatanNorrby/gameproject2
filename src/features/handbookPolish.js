@@ -4,6 +4,11 @@ import {
   getHandbookRunUpgradeEntries,
 } from './handbook.js';
 import {
+  PERMANENT_UPGRADES,
+  getPermanentUpgradeNextCost,
+  getPermanentUpgradeRank,
+} from '../data/metaUpgrades.js';
+import {
   getUnitClassFamily,
   getUnitClassFamilyLabel,
 } from '../data/unitFamilies.js';
@@ -98,6 +103,45 @@ function installSquadBuilderHealthLegend(content) {
   header.append(note);
 }
 
+function updateRankedGoldUpgradeCards(content) {
+  const upgrades = Object.values(PERMANENT_UPGRADES);
+  const cards = [...content.querySelectorAll('.handbook-card--gold-upgrade')];
+  const purchasedRanks = upgrades.reduce(
+    (total, upgrade) => total + getPermanentUpgradeRank(upgrade.id),
+    0,
+  );
+  const totalRanks = upgrades.reduce((total, upgrade) => total + upgrade.maxRank, 0);
+
+  const intro = content.querySelector('.handbook-page__intro');
+  if (intro) {
+    intro.textContent = `Permanent Gold upgrades are bought rank by rank. Each later rank costs more and improves its effect. ${purchasedRanks}/${totalRanks} ranks are currently purchased.`;
+  }
+
+  cards.forEach((card, index) => {
+    const upgrade = upgrades[index];
+    if (!upgrade) return;
+    const rank = getPermanentUpgradeRank(upgrade.id);
+    const nextCost = getPermanentUpgradeNextCost(upgrade.id);
+    const subtitle = card.querySelector('.handbook-card__subtitle');
+    if (subtitle) {
+      subtitle.textContent = nextCost === null
+        ? `RANK ${rank}/${upgrade.maxRank} • MAX RANK`
+        : `RANK ${rank}/${upgrade.maxRank} • NEXT ${nextCost} GOLD`;
+    }
+
+    const body = card.querySelector('.handbook-card__body');
+    if (body) {
+      const ranks = upgrade.rankDescriptions
+        .map((description, rankIndex) => `Rank ${rankIndex + 1}: ${description}`)
+        .join(' ');
+      body.textContent = `${upgrade.description} ${ranks}`;
+    }
+
+    card.classList.toggle('handbook-card--owned', rank > 0);
+    card.querySelector('.handbook-stat-grid')?.remove();
+  });
+}
+
 function createUpgradeColumns(content, cards, upgrades) {
   content.querySelector('.handbook-card-grid')?.remove?.();
 
@@ -164,11 +208,7 @@ export class UI extends PreviousUI {
 
   renderHandbookGoldUpgrades() {
     super.renderHandbookGoldUpgrades();
-    for (const statGrid of this.handbookContent.querySelectorAll(
-      '.handbook-card--gold-upgrade .handbook-stat-grid',
-    )) {
-      statGrid.remove();
-    }
+    updateRankedGoldUpgradeCards(this.handbookContent);
   }
 
   renderHandbookRunUpgrades() {
