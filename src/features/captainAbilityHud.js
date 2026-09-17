@@ -26,9 +26,9 @@ const SLOT_DEFINITIONS = Object.freeze([
 ]);
 
 const ICON_FILES = Object.freeze({
-  vale: 'icon_vale.svg',
-  mercer: 'icon_mercer.svg',
-  thorne: 'icon_thorne.svg',
+  vale: 'icon_vale.png',
+  mercer: 'icon_mercer.png',
+  thorne: 'icon_thorne.png',
 });
 
 function getCaptainIconId(soldier, fallbackCaptainId) {
