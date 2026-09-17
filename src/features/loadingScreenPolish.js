@@ -1,4 +1,4 @@
-import { Game, UI as PreviousUI } from './cipherScaleGlow.js';
+import { Game, UI as PreviousUI } from './dronePilotCooldownStat.js';
 
 const ISSUE_88_STYLE_ID = 'issue-88-loading-screen';
 const ISSUE_88_STYLES = `
