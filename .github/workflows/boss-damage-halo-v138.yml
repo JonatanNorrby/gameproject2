@@ -1,0 +1,74 @@
+name: Boss damage halo v138
+
+'on':
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/boss-damage-halo-v138.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync v138 and document boss damage feedback
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          main = Path('src/main.js')
+          text = main.read_text(encoding='utf-8')
+          assert text.count('const GAME_VERSION = 137;') == 1
+          main.write_text(text.replace('const GAME_VERSION = 137;', 'const GAME_VERSION = 138;'), encoding='utf-8')
+
+          index = Path('index.html')
+          text = index.read_text(encoding='utf-8')
+          replacements = [
+            ('BUILD v137', 'BUILD v138'),
+            ('id="version-text">v137<', 'id="version-text">v138<'),
+            ('SYSTEM ONLINE • v137', 'SYSTEM ONLINE • v138'),
+          ]
+          for old, new in replacements:
+            assert text.count(old) == 1, old
+            text = text.replace(old, new)
+          index.write_text(text, encoding='utf-8')
+
+          readme = Path('README.md')
+          text = readme.read_text(encoding='utf-8')
+          old = '- Enemy damage feedback uses a lightweight red halo behind damaged sprites without per-hit Canvas blur/filter effects'
+          new = '- Enemy and boss damage feedback uses the same lightweight faded red halo behind damaged sprites without per-hit Canvas blur/filter effects'
+          assert text.count(old) == 1
+          readme.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+
+          node --check src/features/enemyStatusVisuals.js
+          node --check src/features/wardenArtwork.js
+          node --check src/main.js
+          grep -Fq "for (const methodName of ['drawWarden', 'drawBroodmother', 'drawCipher'])" src/features/enemyStatusVisuals.js
+          grep -Fq 'drawDamageGlow(ctx, boss);' src/features/enemyStatusVisuals.js
+          grep -Fq 'boss.hitFlash = 0;' src/features/enemyStatusVisuals.js
+          grep -Fq 'const GAME_VERSION = 138;' src/main.js
+          grep -Fq 'BUILD v138' index.html
+          grep -Fq 'id="version-text">v138<' index.html
+          grep -Fq 'SYSTEM ONLINE • v138' index.html
+          grep -Fq 'setGameVersion?.(GAME_VERSION)' src/main.js
+
+      - name: Commit cleaned v138 tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/boss-damage-halo-v138.yml
+          git add src/main.js index.html README.md src/features/enemyStatusVisuals.js src/features/wardenArtwork.js
+          git commit -m 'Use mob damage halo for bosses and bump v138'
+          git push
