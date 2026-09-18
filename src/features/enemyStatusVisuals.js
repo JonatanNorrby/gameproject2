@@ -190,6 +190,27 @@ function isEnemyAttacking(game, enemy, meleeTargets) {
   return false;
 }
 
+function installBossDamageGlow(GameClass, methodName) {
+  const inheritedDrawBoss = GameClass.prototype[methodName];
+  if (typeof inheritedDrawBoss !== 'function') return;
+
+  GameClass.prototype[methodName] = function drawBossWithMobDamageGlow(ctx, boss, ...args) {
+    const hitFlash = Math.max(0, Number(boss?.hitFlash) || 0);
+    if (hitFlash <= 0) return inheritedDrawBoss.call(this, ctx, boss, ...args);
+
+    // Bosses use the exact same lightweight red damage halo as normal mobs.
+    // Temporarily suppress the legacy boss hitFlash renderers so their white
+    // circles/body flashes do not draw over the shared damage graphic.
+    drawDamageGlow(ctx, boss);
+    boss.hitFlash = 0;
+    try {
+      return inheritedDrawBoss.call(this, ctx, boss, ...args);
+    } finally {
+      boss.hitFlash = hitFlash;
+    }
+  };
+}
+
 export function installEnemyStatusVisuals(GameClass) {
   if (!GameClass?.prototype || GameClass.prototype.enemyStatusVisualsInstalled) return;
 
@@ -213,6 +234,10 @@ export function installEnemyStatusVisuals(GameClass) {
       installEnemyAttackTracking(this);
       return inheritedUpdate.call(this, dt);
     };
+  }
+
+  for (const methodName of ['drawWarden', 'drawBroodmother', 'drawCipher']) {
+    installBossDamageGlow(GameClass, methodName);
   }
 
   GameClass.prototype.drawEnemies = function drawEnemiesWithStatusVisuals(ctx) {
