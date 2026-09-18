@@ -31,7 +31,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 - Shared Squad Health pool that grows by 10% for every additional squad member; combat damage no longer injures or kills individual squad units
 - HP drops restore 10% of maximum shared Squad Health regardless of which squad member collects them and render as a glowing green medical plus
 - In-game Settings show a full-width Resume Run action above the full-width End Run action
-- Enemy damage feedback uses a lightweight red halo behind damaged sprites without per-hit Canvas blur/filter effects
+- Enemy and boss damage feedback uses the same lightweight faded red halo behind damaged sprites without per-hit Canvas blur/filter effects
 - Endless difficulty scaling
 - Death / return-to-menu loop
 - Responsive canvas UI
