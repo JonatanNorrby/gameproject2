@@ -67,11 +67,11 @@ export const PERMANENT_UPGRADES = Object.freeze({
     name: 'Treasure Chests',
     costs: [125, 250, 450],
     color: '#f7c94b',
-    description: 'Enemies can drop treasure chests containing Gold and XP. Higher ranks improve both frequency and rewards.',
+    description: 'Eligible enemies can drop treasure chests containing a fixed 25 XP and 2 Gold. Higher ranks improve drop frequency.',
     rankDescriptions: [
-      '2.5% chest chance • 5 Gold • 25% of next-level XP.',
-      '4% chest chance • 8 Gold • 33% of next-level XP.',
-      '6% chest chance • 12 Gold • 45% of next-level XP.',
+      '2.5% chest chance • 2 Gold • 25 XP.',
+      '4% chest chance • 2 Gold • 25 XP.',
+      '6% chest chance • 2 Gold • 25 XP.',
     ],
   }),
   drone_pickup: rankedUpgrade({

@@ -8,22 +8,20 @@ import { distanceSq } from '../utils/math.js';
 
 export const TREASURE_CHEST_UPGRADE_ID = 'treasure_chests';
 export const TREASURE_CHEST_DROP_CHANCE = 0.025;
-export const TREASURE_CHEST_GOLD_REWARD = 5;
-export const TREASURE_CHEST_XP_FRACTION = 0.25;
+export const TREASURE_CHEST_GOLD_REWARD = 2;
+export const TREASURE_CHEST_XP_REWARD = 25;
 export const TREASURE_CHEST_UNLOCK_DURATION = 0;
 export const BOSS_CHEST_UNLOCK_DURATION = 2.5;
 
 const TREASURE_CHEST_TUNING = Object.freeze([
-  Object.freeze({ dropChance: 0, goldReward: 0, xpFraction: 0 }),
-  Object.freeze({ dropChance: 0.025, goldReward: 5, xpFraction: 0.25 }),
-  Object.freeze({ dropChance: 0.04, goldReward: 8, xpFraction: 0.33 }),
-  Object.freeze({ dropChance: 0.06, goldReward: 12, xpFraction: 0.45 }),
+  Object.freeze({ dropChance: 0, goldReward: 0 }),
+  Object.freeze({ dropChance: 0.025, goldReward: TREASURE_CHEST_GOLD_REWARD }),
+  Object.freeze({ dropChance: 0.04, goldReward: TREASURE_CHEST_GOLD_REWARD }),
+  Object.freeze({ dropChance: 0.06, goldReward: TREASURE_CHEST_GOLD_REWARD }),
 ]);
 
-const BOSS_CHEST_TUNING = Object.freeze({
-  ...TREASURE_CHEST_TUNING[TREASURE_CHEST_TUNING.length - 1],
-  xpFraction: 1.5,
-});
+// Boss Caches keep their separate boss-specific reward path.
+const BOSS_CHEST_TUNING = Object.freeze({ goldReward: 12, xpFraction: 1.5 });
 const CHEST_RADIUS = 16;
 const BOSS_CHEST_RADIUS = 21;
 const CHEST_UNLOCK_PADDING = 6;
@@ -43,8 +41,9 @@ function getChestRewardTuning(chest) {
 }
 
 export function getTreasureChestXpReward(player, chest = null) {
+  if (!chest?.bossReward) return TREASURE_CHEST_XP_REWARD;
   const xpToNext = Math.max(1, Number(player?.xpToNext) || 1);
-  return Math.max(1, Math.round(xpToNext * getChestRewardTuning(chest).xpFraction));
+  return Math.max(1, Math.round(xpToNext * BOSS_CHEST_TUNING.xpFraction));
 }
 
 function createTreasureChestCombatSystem(ParentCombatSystem) {
