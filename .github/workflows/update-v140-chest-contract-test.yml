@@ -1,0 +1,59 @@
+name: Update v140 chest reward contract test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/update-v140-chest-contract-test.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update Pages chest reward assertions
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/pages.yml')
+          text = path.read_text()
+          replacements = [
+              (
+                  "assert(treasureRuntime.TREASURE_CHEST_GOLD_REWARD === 5, 'Treasure Chest rank-1 Gold reward must be 5');",
+                  "assert(treasureRuntime.TREASURE_CHEST_GOLD_REWARD === 2, 'Treasure Chest Gold reward must be 2');",
+              ),
+              (
+                  "assert(treasureRuntime.TREASURE_CHEST_XP_FRACTION === 0.25, 'Treasure Chest rank-1 XP fraction must be 25%');",
+                  "assert(treasureRuntime.TREASURE_CHEST_XP_REWARD === 25, 'Treasure Chest fixed XP reward must be 25');",
+              ),
+              (
+                  "assert(treasureRuntime.getTreasureChestXpReward({ xpToNext: 100 }) === 25, 'Treasure Chest rank-1 XP scaling is incorrect');",
+                  "assert(treasureRuntime.getTreasureChestXpReward({ xpToNext: 100 }) === 25, 'Treasure Chest fixed XP reward is incorrect');\n          assert(treasureRuntime.getTreasureChestXpReward({ xpToNext: 500 }) === 25, 'Treasure Chest XP reward must not scale with level');",
+              ),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'Missing expected stale assertion: {old}')
+              text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+
+          grep -F "TREASURE_CHEST_GOLD_REWARD === 2" .github/workflows/pages.yml
+          grep -F "TREASURE_CHEST_XP_REWARD === 25" .github/workflows/pages.yml
+          grep -F "xpToNext: 500" .github/workflows/pages.yml
+
+      - name: Commit cleaned workflow test update
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm .github/workflows/update-v140-chest-contract-test.yml
+          git add .github/workflows/pages.yml .github/workflows/update-v140-chest-contract-test.yml
+          git commit -m 'Update Treasure Chest reward contract test'
+          git push
