@@ -10,7 +10,7 @@ export const TREASURE_CHEST_UPGRADE_ID = 'treasure_chests';
 export const TREASURE_CHEST_DROP_CHANCE = 0.025;
 export const TREASURE_CHEST_GOLD_REWARD = 5;
 export const TREASURE_CHEST_XP_FRACTION = 0.25;
-export const TREASURE_CHEST_UNLOCK_DURATION = 5;
+export const TREASURE_CHEST_UNLOCK_DURATION = 0;
 export const BOSS_CHEST_UNLOCK_DURATION = 2.5;
 
 const TREASURE_CHEST_TUNING = Object.freeze([
@@ -172,16 +172,19 @@ export class Game extends PreviousGame {
       const standingOnChest = distanceSq(player.x, player.y, chest.x, chest.y)
         <= unlockRadius * unlockRadius;
 
-      if (!standingOnChest) {
-        chest.unlockProgress = 0;
+      if (!standingOnChest) continue;
+
+      const unlockDuration = getChestUnlockDuration(chest);
+      if (unlockDuration <= 0) {
+        this.collectTreasureChest(chest);
         continue;
       }
 
       chest.unlockProgress = Math.min(
-        getChestUnlockDuration(chest),
+        unlockDuration,
         (chest.unlockProgress ?? 0) + dt,
       );
-      if (chest.unlockProgress >= getChestUnlockDuration(chest)) {
+      if (chest.unlockProgress >= unlockDuration) {
         this.collectTreasureChest(chest);
       }
     }
@@ -204,10 +207,10 @@ export class Game extends PreviousGame {
       const bossReward = Boolean(chest.bossReward);
       const halfWidth = bossReward ? 22 : 17;
       const halfHeight = bossReward ? 13 : 10;
-      const progress = Math.max(
-        0,
-        Math.min(1, (chest.unlockProgress ?? 0) / getChestUnlockDuration(chest)),
-      );
+      const unlockDuration = getChestUnlockDuration(chest);
+      const progress = unlockDuration <= 0
+        ? 0
+        : Math.max(0, Math.min(1, (chest.unlockProgress ?? 0) / unlockDuration));
 
       ctx.save();
       ctx.translate(chest.x, chest.y);
@@ -244,7 +247,7 @@ export class Game extends PreviousGame {
         const ringRadius = chest.radius + 12;
         const remaining = Math.max(
           0,
-          getChestUnlockDuration(chest) - (chest.unlockProgress ?? 0),
+          unlockDuration - (chest.unlockProgress ?? 0),
         );
         ctx.strokeStyle = bossReward ? '#fff4bd' : '#7ef9d4';
         ctx.lineWidth = 4;
