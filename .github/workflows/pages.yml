@@ -292,13 +292,14 @@ jobs:
           assert(treasure.costs[0] === 125, 'Treasure Chests rank 1 should cost 125 Gold');
           assert(treasure.maxRank === 3, 'Treasure Chests should have three ranks');
           assert(treasureRuntime.TREASURE_CHEST_DROP_CHANCE === 0.025, 'Treasure Chest rank-1 drop chance must be 2.5%');
-          assert(treasureRuntime.TREASURE_CHEST_GOLD_REWARD === 5, 'Treasure Chest rank-1 Gold reward must be 5');
-          assert(treasureRuntime.TREASURE_CHEST_XP_FRACTION === 0.25, 'Treasure Chest rank-1 XP fraction must be 25%');
+          assert(treasureRuntime.TREASURE_CHEST_GOLD_REWARD === 2, 'Treasure Chest Gold reward must be 2');
+          assert(treasureRuntime.TREASURE_CHEST_XP_REWARD === 25, 'Treasure Chest fixed XP reward must be 25');
           resetPermanentProgression();
           grantGold(125);
           assert(canPurchasePermanentUpgrade('treasure_chests'), 'Treasure Chests was not purchasable with 125 Gold');
           assert(purchasePermanentUpgrade('treasure_chests'), 'Could not purchase Treasure Chests rank 1');
-          assert(treasureRuntime.getTreasureChestXpReward({ xpToNext: 100 }) === 25, 'Treasure Chest rank-1 XP scaling is incorrect');
+          assert(treasureRuntime.getTreasureChestXpReward({ xpToNext: 100 }) === 25, 'Treasure Chest fixed XP reward is incorrect');
+          assert(treasureRuntime.getTreasureChestXpReward({ xpToNext: 500 }) === 25, 'Treasure Chest XP reward must not scale with level');
           assert(typeof treasureRuntime.Game.prototype.spawnTreasureChest === 'function', 'Treasure Chest spawn API missing');
           assert(typeof treasureRuntime.Game.prototype.collectTreasureChest === 'function', 'Treasure Chest collection API missing');
 
