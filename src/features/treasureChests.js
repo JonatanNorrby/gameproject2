@@ -53,6 +53,7 @@ function createTreasureChestCombatSystem(ParentCombatSystem) {
       const wasAlive = Boolean(enemy && !enemy.dead);
       super.killEnemy(enemy, options);
       if (!wasAlive || !enemy?.dead || options.allowDrop === false) return;
+      if (enemy.type === 'crawler' || enemy.type === 'runner') return;
       const tuning = getTreasureChestTuning();
       if (tuning.dropChance <= 0 || Math.random() >= tuning.dropChance) return;
       this.game.spawnTreasureChest(enemy.x, enemy.y);
