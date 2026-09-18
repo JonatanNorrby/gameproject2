@@ -1,0 +1,124 @@
+name: Chest behavior v137
+
+on:
+  push:
+    paths:
+      - '.github/workflows/chest-behavior-v137.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update chest behavior and bump v137
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          chest_path = Path('src/features/treasureChests.js')
+          text = chest_path.read_text()
+
+          text = text.replace(
+              'export const TREASURE_CHEST_UNLOCK_DURATION = 5;',
+              'export const TREASURE_CHEST_UNLOCK_DURATION = 0;',
+          )
+
+          old_update = '''      if (!standingOnChest) {
+        chest.unlockProgress = 0;
+        continue;
+      }
+
+      chest.unlockProgress = Math.min(
+        getChestUnlockDuration(chest),
+        (chest.unlockProgress ?? 0) + dt,
+      );
+      if (chest.unlockProgress >= getChestUnlockDuration(chest)) {
+        this.collectTreasureChest(chest);
+      }
+'''
+          new_update = '''      if (!standingOnChest) continue;
+
+      const unlockDuration = getChestUnlockDuration(chest);
+      if (unlockDuration <= 0) {
+        this.collectTreasureChest(chest);
+        continue;
+      }
+
+      chest.unlockProgress = Math.min(
+        unlockDuration,
+        (chest.unlockProgress ?? 0) + dt,
+      );
+      if (chest.unlockProgress >= unlockDuration) {
+        this.collectTreasureChest(chest);
+      }
+'''
+          if old_update not in text:
+              raise SystemExit('Expected chest update block not found')
+          text = text.replace(old_update, new_update, 1)
+
+          old_progress = '''      const progress = Math.max(
+        0,
+        Math.min(1, (chest.unlockProgress ?? 0) / getChestUnlockDuration(chest)),
+      );
+'''
+          new_progress = '''      const unlockDuration = getChestUnlockDuration(chest);
+      const progress = unlockDuration <= 0
+        ? 0
+        : Math.max(0, Math.min(1, (chest.unlockProgress ?? 0) / unlockDuration));
+'''
+          if old_progress not in text:
+              raise SystemExit('Expected chest progress render block not found')
+          text = text.replace(old_progress, new_progress, 1)
+          text = text.replace(
+              '          getChestUnlockDuration(chest) - (chest.unlockProgress ?? 0),',
+              '          unlockDuration - (chest.unlockProgress ?? 0),',
+              1,
+          )
+          chest_path.write_text(text)
+
+          main_path = Path('src/main.js')
+          main = main_path.read_text()
+          if 'const GAME_VERSION = 136;' not in main:
+              raise SystemExit('Expected v136 GAME_VERSION not found')
+          main_path.write_text(main.replace('const GAME_VERSION = 136;', 'const GAME_VERSION = 137;', 1))
+
+          index_path = Path('index.html')
+          index = index_path.read_text()
+          replacements = {
+              'BUILD v136': 'BUILD v137',
+              'id="version-text">v136</span>': 'id="version-text">v137</span>',
+              'SYSTEM ONLINE • v136': 'SYSTEM ONLINE • v137',
+          }
+          for old, new in replacements.items():
+              if old not in index:
+                  raise SystemExit(f'Expected version marker not found: {old}')
+              index = index.replace(old, new, 1)
+          index_path.write_text(index)
+          PY
+
+          node --check src/features/treasureChests.js
+          node --check src/main.js
+
+          grep -q 'export const TREASURE_CHEST_UNLOCK_DURATION = 0;' src/features/treasureChests.js
+          grep -q 'export const BOSS_CHEST_UNLOCK_DURATION = 2.5;' src/features/treasureChests.js
+          grep -q 'if (!standingOnChest) continue;' src/features/treasureChests.js
+          grep -q 'if (unlockDuration <= 0)' src/features/treasureChests.js
+          grep -q 'const GAME_VERSION = 137;' src/main.js
+          grep -q 'BUILD v137' index.html
+          grep -q 'id="version-text">v137</span>' index.html
+          grep -q 'SYSTEM ONLINE • v137' index.html
+
+      - name: Commit cleaned v137 tree
+        run: |
+          rm .github/workflows/chest-behavior-v137.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/features/treasureChests.js src/main.js index.html .github/workflows/chest-behavior-v137.yml
+          git commit -m 'Make chest capture behavior consistent and bump v137'
+          git push
