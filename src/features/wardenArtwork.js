@@ -71,19 +71,8 @@ export class Game extends PreviousGame {
     const coreExposed = boss.coreExposedUntil > this.elapsed;
     const pulse = (Math.sin(this.animationClock * (boss.enraged ? 9 : 5)) + 1) * 0.5;
 
-    // Preserve readable damage feedback even though the PNG itself is not
-    // recolored by the shared frame renderer.
-    if (boss.hitFlash > 0) {
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,.95)';
-      ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 20;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(boss.x, boss.y, boss.radius + 5, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
+    // Damage feedback is supplied by the shared enemy-status visual layer so
+    // bosses use the same faded red halo as normal mobs instead of a white ring.
 
     // Core exposure remains a runtime mechanic rather than artwork so a missed
     // Charge still has an unmistakable punish window with any future sprite.
