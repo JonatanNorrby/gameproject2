@@ -4,7 +4,7 @@ A browser-based roguelite survival game inspired by the broad arena-survival for
 
 ## Current prototype
 
-- WASD / arrow-key movement
+- WASD / arrow-key movement, with optional mouse steering that moves the squad toward the cursor from screen center
 - Touch drag movement
 - Automatic combat with ranged, melee, and support squad classes
 - Rifleman: automatic bullet fire with pierce upgrades and 250 base range; Captain Vale inherits the same rifle range
