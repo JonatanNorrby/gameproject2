@@ -8,6 +8,7 @@ import {
   resetKeyBindings,
   setDisableArtworkRotation,
   setKeyBinding,
+  setMouseSteering,
 } from '../data/settings.js';
 
 const CAPTAIN_CALL_ACTIONS = Object.freeze([
@@ -264,6 +265,7 @@ export class UI extends PreviousUI {
     this.settingsClose = document.querySelector('#settings-close');
     this.settingsBack = document.querySelector('#settings-back');
     this.settingsDisableRotation = document.querySelector('#settings-disable-rotation');
+    this.settingsMouseSteering = document.querySelector('#settings-mouse-steering');
     this.settingsResetControls = document.querySelector('#settings-reset-controls');
     this.settingsVersion = document.querySelector('#settings-version');
     this.settingsCaptureAction = null;
@@ -426,6 +428,13 @@ export class UI extends PreviousUI {
             <h3>Controls</h3>
             <p>Click a control, then press the new key.</p>
           </div>
+          <label class="settings-toggle">
+            <span>
+              <strong>Mouse steering</strong>
+              <small>Move the squad toward the cursor while it is over the battlefield. Keyboard and touch input take priority.</small>
+            </span>
+            <input id="settings-mouse-steering" type="checkbox" />
+          </label>
           <div class="settings-bindings">
             ${Object.entries(CONTROL_ACTIONS).map(([action, definition]) => `
               <button class="settings-binding" type="button" data-settings-action="${action}" aria-pressed="false">
@@ -460,6 +469,11 @@ export class UI extends PreviousUI {
       this.renderSettingsMenu();
     });
 
+    this.settingsMouseSteering?.addEventListener('change', (event) => {
+      setMouseSteering(event.currentTarget.checked);
+      this.renderSettingsMenu();
+    });
+
     for (const button of this.settingsScreen?.querySelectorAll('[data-settings-action]') ?? []) {
       button.addEventListener('click', () => {
         const action = button.dataset.settingsAction;
@@ -472,6 +486,7 @@ export class UI extends PreviousUI {
 
     this.settingsResetControls?.addEventListener('click', () => {
       this.settingsCaptureAction = null;
+      setMouseSteering(false);
       resetKeyBindings();
       this.renderSettingsMenu();
     });
@@ -528,6 +543,9 @@ export class UI extends PreviousUI {
     const settings = getGameSettings();
     if (this.settingsDisableRotation) {
       this.settingsDisableRotation.checked = settings.disableArtworkRotation;
+    }
+    if (this.settingsMouseSteering) {
+      this.settingsMouseSteering.checked = settings.mouseSteering;
     }
 
     for (const button of this.settingsScreen?.querySelectorAll('[data-settings-action]') ?? []) {
