@@ -29,6 +29,7 @@ function createDefaultBindings() {
 
 const DEFAULT_SETTINGS = Object.freeze({
   disableArtworkRotation: false,
+  mouseSteering: false,
   keybindings: Object.freeze(createDefaultBindings()),
 });
 
@@ -74,6 +75,7 @@ function sanitizeBindings(candidate) {
 function sanitizeSettings(candidate) {
   return {
     disableArtworkRotation: Boolean(candidate?.disableArtworkRotation),
+    mouseSteering: Boolean(candidate?.mouseSteering),
     keybindings: sanitizeBindings(candidate?.keybindings),
   };
 }
@@ -117,6 +119,7 @@ export function getGameSettings() {
   const settings = getMutableSettings();
   return {
     disableArtworkRotation: settings.disableArtworkRotation,
+    mouseSteering: settings.mouseSteering,
     keybindings: { ...settings.keybindings },
   };
 }
@@ -133,6 +136,13 @@ export function matchesKeyBinding(action, key) {
 
 export function setDisableArtworkRotation(enabled) {
   getMutableSettings().disableArtworkRotation = Boolean(enabled);
+  saveSettings();
+  emitSettingsChanged();
+  return getGameSettings();
+}
+
+export function setMouseSteering(enabled) {
+  getMutableSettings().mouseSteering = Boolean(enabled);
   saveSettings();
   emitSettingsChanged();
   return getGameSettings();
