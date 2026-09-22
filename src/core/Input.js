@@ -1,10 +1,13 @@
-import { getKeyBinding, normalizeKeyBinding } from '../data/settings.js';
+import { getGameSettings, getKeyBinding, normalizeKeyBinding } from '../data/settings.js';
 import { clamp, normalize } from '../utils/math.js';
 
 export class Input {
   constructor(element, stickElement) {
     this.keys = new Set();
+    this.element = element;
     this.touchAxis = { x: 0, y: 0 };
+    this.mousePosition = { x: 0, y: 0 };
+    this.mouseInside = false;
     this.touchId = null;
     this.touchOrigin = { x: 0, y: 0 };
     this.stickElement = stickElement;
@@ -15,6 +18,8 @@ export class Input {
     window.addEventListener('blur', () => this.keys.clear());
 
     element.addEventListener('pointerdown', (event) => this.onPointerDown(event));
+    element.addEventListener('pointerenter', (event) => this.onPointerEnter(event));
+    element.addEventListener('pointerleave', (event) => this.onPointerLeave(event));
     element.addEventListener('pointermove', (event) => this.onPointerMove(event));
     element.addEventListener('pointerup', (event) => this.onPointerUp(event));
     element.addEventListener('pointercancel', (event) => this.onPointerUp(event));
@@ -29,7 +34,35 @@ export class Input {
     if (this.keys.has(getKeyBinding('moveDown'))) y += 1;
 
     if (x || y) return normalize(x, y);
-    return { ...this.touchAxis };
+    if (Math.abs(this.touchAxis.x) > 0.01 || Math.abs(this.touchAxis.y) > 0.01) {
+      return { ...this.touchAxis };
+    }
+    return this.getMouseSteeringAxis();
+  }
+
+  getMouseSteeringAxis() {
+    if (!getGameSettings().mouseSteering || !this.mouseInside || !this.element) {
+      return { x: 0, y: 0 };
+    }
+
+    const rect = this.element.getBoundingClientRect();
+    const dx = this.mousePosition.x - (rect.left + rect.width / 2);
+    const dy = this.mousePosition.y - (rect.top + rect.height / 2);
+    const distance = Math.hypot(dx, dy);
+    const deadZone = 32;
+    if (distance <= deadZone) return { x: 0, y: 0 };
+    return normalize(dx, dy);
+  }
+
+  onPointerEnter(event) {
+    if (event.pointerType !== 'mouse') return;
+    this.mouseInside = true;
+    this.mousePosition = { x: event.clientX, y: event.clientY };
+  }
+
+  onPointerLeave(event) {
+    if (event.pointerType !== 'mouse') return;
+    this.mouseInside = false;
   }
 
   onPointerDown(event) {
@@ -41,6 +74,11 @@ export class Input {
   }
 
   onPointerMove(event) {
+    if (event.pointerType === 'mouse') {
+      this.mouseInside = true;
+      this.mousePosition = { x: event.clientX, y: event.clientY };
+      return;
+    }
     if (event.pointerId !== this.touchId) return;
     const maxDistance = 42;
     const dx = event.clientX - this.touchOrigin.x;
