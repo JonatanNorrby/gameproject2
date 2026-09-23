@@ -280,7 +280,9 @@ export class UI extends FormationUI {
           this.selectedCaptainId = captain.id;
           this.captainSelectionRequired = false;
           this.renderCaptainOptions();
-          this.renderSelectedCaptainSummary();
+          // #163: selecting an unlocked Captain confirms the choice immediately
+          // and returns the player to the main menu.
+          this.hideCaptainSelection();
         });
       }
 
